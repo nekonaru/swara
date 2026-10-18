@@ -1485,32 +1485,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         title: Text('${p['name']}'),
                         onTap: () async {
                           final name = '${p['name']}';
-                          // Sequential batches, one write per song in parallel
-                          // would lock the database and block the UI.
+                          // One transaction for the whole selection. The per
+                          // song path re-read the entire playlist every time,
+                          // which made a large selection quadratic.
                           var added = 0;
                           var failed = 0;
-                          const batchSize = 20;
-                          for (var i = 0; i < songs.length; i += batchSize) {
-                            final end =
-                                (i + batchSize).clamp(0, songs.length);
-                            final batch = songs.sublist(i, end);
-                            final results =
-                                await Future.wait(batch.map((s) async {
-                              try {
-                                await provider.addSong(p['id'], s.id);
-                                return true;
-                              } catch (_) {
-                                // Counted below, the batch continues anyway.
-                                return false;
-                              }
-                            }));
-                            for (final ok in results) {
-                              if (ok) {
-                                added++;
-                              } else {
-                                failed++;
-                              }
-                            }
+                          try {
+                            added = await provider.addSongs(
+                                p['id'], songs.map((s) => s.id).toList());
+                          } catch (_) {
+                            failed = songs.length;
                           }
                           if (ctx.mounted) Navigator.pop(ctx);
                           if (!mounted) return;

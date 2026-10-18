@@ -158,15 +158,10 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
     var removed = 0;
     try {
       final lib = context.read<LibraryProvider>();
-      for (final song in toDelete) {
-        try {
-          // Use the existing LibraryProvider delete API.
-          await lib.deleteSong(song);
-          removed++;
-        } catch (_) {
-          // Skip failures and continue with the rest.
-        }
-      }
+      // One batch: deleting row by row rebuilt the row index and the A-Z map
+      // for every single removal.
+      await lib.deleteSongs(toDelete);
+      removed = toDelete.length;
       if (!mounted) return;
       setState(() {
         _selectedIds.removeWhere((id) => toDelete.any((s) => s.id == id));
@@ -222,15 +217,9 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
     var removed = 0;
     try {
       final lib = context.read<LibraryProvider>();
-      for (final song in extras) {
-        try {
-          // Use the existing LibraryProvider delete API.
-          await lib.deleteSong(song);
-          removed++;
-        } catch (_) {
-          // Skip failures and continue with the rest.
-        }
-      }
+      // One batch instead of one notify (and one map rebuild) per row.
+      await lib.deleteSongs(extras);
+      removed = extras.length;
       if (!mounted) return;
       setState(() {
         _selectedIds.removeWhere((id) => extras.any((s) => s.id == id));

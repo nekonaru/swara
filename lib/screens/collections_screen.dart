@@ -440,26 +440,29 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       }
 
       var added = 0;
-      for (final song in picked.match.matched) {
-        try {
-          await prov.addSong(playlistId, song.id);
-          added++;
-        } catch (_) {
-          // Ignore per-song duplicate errors, keep importing the rest.
-        }
+      // One transaction for the whole import instead of one write per song.
+      try {
+        added = await prov.addSongs(
+          playlistId,
+          picked.match.matched.map((s) => s.id).toList(),
+        );
+      } catch (_) {
+        added = 0;
       }
       await prov.load();
       // Refresh the collage for the imported content, without blocking.
       _scheduleArtRefresh(prov, playlistId);
       if (!mounted) return;
-      final missing = picked.match.missing;
+      // Report every entry that could not be placed, including the ones
+      // skipped because the file name was shared by several songs.
+      final unresolved = picked.match.unresolved;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.m3uImportSummary(
               added,
               picked.match.matched.length,
               name,
-              missing)),
+              unresolved)),
         ),
       );
     } catch (e) {
@@ -566,21 +569,21 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       final source = await prov.songsIn(sourceId);
       if (!ctx.mounted) return;
       final existingIds = current.map((s) => s.id).toSet();
-      var added = 0;
-      var skipped = 0;
+      // Only the missing songs go in, in one transaction. The insert
+      // re-checks inside the transaction, so a duplicate cannot slip in.
+      final toAdd = <int>[];
       for (final s in source) {
-        if (existingIds.contains(s.id)) {
-          skipped++;
-          continue;
-        }
-        try {
-          await prov.addSong(targetId, s.id);
-          existingIds.add(s.id);
-          added++;
-        } catch (_) {
-          // Per song failure (for example a race duplicate): count as skipped.
-          skipped++;
-        }
+        if (existingIds.contains(s.id)) continue;
+        existingIds.add(s.id);
+        toAdd.add(s.id);
+      }
+      final skipped = source.length - toAdd.length;
+      var added = 0;
+      try {
+        added = await prov.addSongs(targetId, toAdd);
+      } catch (_) {
+        // The insert is atomic, so a failure means nothing was added.
+        added = 0;
       }
       await prov.load();
       _scheduleArtRefresh(prov, targetId);

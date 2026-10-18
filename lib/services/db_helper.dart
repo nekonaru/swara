@@ -779,6 +779,61 @@ class DBHelper {
     }
   }
 
+  /// Add many songs to a playlist in one transaction.
+  ///
+  /// [addSongToPlaylist] needs a MAX(position) query per song, and the
+  /// provider used to re-read the whole playlist per song to detect a
+  /// duplicate. Doing that per row made a playlist merge or a bulk add
+  /// quadratic: n songs meant n full playlist reads. Here the existing ids
+  /// are read once, the new rows are inserted with one batch inside a single
+  /// transaction, and the positions are assigned from one starting value.
+  ///
+  /// Returns how many rows were actually inserted, so the caller can report
+  /// the real result instead of the requested count.
+  Future<int> addSongsToPlaylist(int playlistId, List<int> songIds) async {
+    if (songIds.isEmpty) return 0;
+    final database = await db;
+    // Preserve the order of the incoming list and drop repeated ids so the
+    // same song cannot be inserted twice by one call.
+    final unique = <int>[];
+    final seen = <int>{};
+    for (final id in songIds) {
+      if (seen.add(id)) unique.add(id);
+    }
+    if (unique.isEmpty) return 0;
+
+    return database.transaction<int>((txn) async {
+      final existingRows = await txn.rawQuery(
+        'SELECT songId FROM playlist_songs WHERE playlistId = ?',
+        [playlistId],
+      );
+      final existing = existingRows
+          .map((r) => r['songId'])
+          .whereType<int>()
+          .toSet();
+      final toInsert = unique.where((id) => !existing.contains(id)).toList();
+      if (toInsert.isEmpty) return 0;
+
+      final maxPos = Sqflite.firstIntValue(await txn.rawQuery(
+        'SELECT MAX(position) as m FROM playlist_songs WHERE playlistId = ?',
+        [playlistId],
+      ));
+      var nextPos = (maxPos ?? 0) + 1;
+      final now = DateTime.now().toIso8601String();
+      final batch = txn.batch();
+      for (final id in toInsert) {
+        batch.insert('playlist_songs', {
+          'playlistId': playlistId,
+          'songId': id,
+          'addedAt': now,
+          'position': nextPos++,
+        });
+      }
+      await batch.commit(noResult: true);
+      return toInsert.length;
+    });
+  }
+
   Future<void> addSongToPlaylist(int playlistId, int songId) async {
     final database = await db;
     final maxPos = Sqflite.firstIntValue(await database.rawQuery(

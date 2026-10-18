@@ -154,23 +154,38 @@ class BackupService {
           }
           final current = await dbHelper.getSongsInPlaylist(playlistId);
           final currentIds = current.map((s) => s.id).toSet();
+          // Collect the candidates first, then check existence with one query
+          // and insert with one transaction. The per member path asked the
+          // songs table for every id and inserted row by row, which turned a
+          // large playlist restore into thousands of round trips.
+          final candidates = <int>[];
           for (final rawId in (rawIds as List? ?? [])) {
             try {
               final songId = (rawId as num?)?.toInt();
               if (songId == null || currentIds.contains(songId)) continue;
-              // Only link songs that still exist in the library.
-              final found = await database.query('songs',
-                  columns: ['id'],
-                  where: 'id = ?',
-                  whereArgs: [songId],
-                  limit: 1);
-              if (found.isEmpty) continue;
-              await dbHelper.addSongToPlaylist(playlistId, songId);
               currentIds.add(songId);
-              membersAdded++;
+              candidates.add(songId);
             } catch (_) {
-              // Skip single bad member rows.
+              // Skip a bad member row.
               continue;
+            }
+          }
+          if (candidates.isNotEmpty) {
+            // Only link songs that still exist in the library.
+            final placeholders = List.filled(candidates.length, '?').join(',');
+            final found = await database.rawQuery(
+              'SELECT id FROM songs WHERE id IN ($placeholders)',
+              candidates,
+            );
+            final existingIds =
+                found.map((r) => r['id']).whereType<int>().toSet();
+            final insertable =
+                candidates.where((id) => existingIds.contains(id)).toList();
+            if (insertable.isNotEmpty) {
+              membersAdded += await dbHelper.addSongsToPlaylist(
+                playlistId,
+                insertable,
+              );
             }
           }
         } catch (_) {

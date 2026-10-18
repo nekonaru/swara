@@ -40,6 +40,27 @@ class PlaylistProvider extends ChangeNotifier {
     }
   }
 
+  /// Add many songs with a single write and a single notification.
+  ///
+  /// Returns the number of songs that were really added, which is lower than
+  /// [songIds].length when some of them were already in the playlist.
+  Future<int> addSongs(int playlistId, List<int> songIds) async {
+    try {
+      final added = await DBHelper.instance.addSongsToPlaylist(
+        playlistId,
+        songIds,
+      );
+      if (added > 0) notifyListeners();
+      return added;
+    } catch (e) {
+      if (e.toString().contains('UNIQUE')) {
+        throw Exception(lookupAppLocalizations(
+            LanguageProvider.instance.locale).coreSongAlreadyInPlaylist);
+      }
+      rethrow;
+    }
+  }
+
   Future<void> removeSong(int playlistId, int songId) async {
     try {
       await DBHelper.instance.removeSongFromPlaylist(playlistId, songId);

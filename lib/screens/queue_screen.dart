@@ -184,7 +184,14 @@ class _QueueScreenState extends State<QueueScreen> {
   // Removes from the back so live positions stay valid while deleting.
   // Uses only the existing removeFromQueue API.
   Future<void> _clearUpNext() async {
-    final count = _player.queue.length - _player.currentIndex - 1;
+    // A crossfade may already have loaded the next song into the standby
+    // player. That song stays: it is already audible, so it must remain in
+    // the queue. Everything after it goes.
+    final pending = _player.pendingCrossfadePosition;
+    final keepThrough = pending != null && pending > _player.currentIndex
+        ? pending
+        : _player.currentIndex;
+    final count = _player.queue.length - keepThrough - 1;
     if (count <= 0) return;
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -205,15 +212,22 @@ class _QueueScreenState extends State<QueueScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    for (var i = _player.queue.length - 1;
-        i > _player.currentIndex;
-        i--) {
+    // The crossfade may have flipped while the dialog was open, so the
+    // boundary is recomputed instead of trusted.
+    final pendingNow = _player.pendingCrossfadePosition;
+    final last = pendingNow != null && pendingNow > _player.currentIndex
+        ? pendingNow
+        : _player.currentIndex;
+    var removed = 0;
+    for (var i = _player.queue.length - 1; i > last; i--) {
+      final before = _player.queue.length;
       _player.removeFromQueue(i);
+      if (_player.queue.length < before) removed++;
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(l10n.queueCleared(count)),
+        content: Text(l10n.queueCleared(removed)),
       ),
     );
   }

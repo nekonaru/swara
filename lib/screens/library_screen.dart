@@ -105,10 +105,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   // row at a time, so a huge selection freezes the UI and locks the database.
   static const int _selectAllLimit = 500;
 
-  // How many playlist writes run in parallel inside one bulk add. Small enough
-  // to avoid a write storm, large enough to keep 500 rows reasonably fast.
-  static const int _bulkWriteBatch = 20;
-
   bool _multiSelectMode = false;
   final Set<int> _selectedIds = {};
 
@@ -444,30 +440,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   title: Text(p['name']),
                   onTap: () async {
                     final name = '${p['name']}';
-                    // Sequential batches: one parallel write per song locks
-                    // the database and blocks the UI thread.
+                    // One transaction for the whole selection. The per song
+                    // path re-read the entire playlist every time, which
+                    // made a large selection quadratic and froze the UI.
                     var added = 0;
                     var failed = 0;
-                    for (var i = 0; i < songs.length; i += _bulkWriteBatch) {
-                      final end =
-                          (i + _bulkWriteBatch).clamp(0, songs.length);
-                      final batch = songs.sublist(i, end);
-                      final results = await Future.wait(batch.map((s) async {
-                        try {
-                          await provider.addSong(p['id'], s.id);
-                          return true;
-                        } catch (_) {
-                          // Counted below, the batch continues either way.
-                          return false;
-                        }
-                      }));
-                      for (final ok in results) {
-                        if (ok) {
-                          added++;
-                        } else {
-                          failed++;
-                        }
-                      }
+                    try {
+                      added = await provider
+                          .addSongs(p['id'], songs.map((s) => s.id).toList());
+                    } catch (_) {
+                      failed = songs.length;
                     }
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (!mounted) return;

@@ -233,21 +233,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       final source = await prov.songsIn(sourceId);
       if (!mounted) return;
       final existingIds = current.map((s) => s.id).toSet();
-      var added = 0;
-      var skipped = 0;
+      // Only the songs the target does not have yet. The batch insert
+      // re-checks inside its transaction, so a concurrent change cannot
+      // create a duplicate, and the count it returns is the real one.
+      final toAdd = <int>[];
       for (final s in source) {
-        if (existingIds.contains(s.id)) {
-          skipped++;
-          continue;
-        }
-        try {
-          await prov.addSong(widget.playlistId, s.id);
-          existingIds.add(s.id);
-          added++;
-        } catch (_) {
-          // Per song failure (for example a race duplicate): count as skipped.
-          skipped++;
-        }
+        if (existingIds.contains(s.id)) continue;
+        existingIds.add(s.id);
+        toAdd.add(s.id);
+      }
+      final skipped = source.length - toAdd.length;
+      var added = 0;
+      try {
+        added = await prov.addSongs(widget.playlistId, toAdd);
+      } catch (_) {
+        // The insert is atomic, so a failure means nothing was added.
+        added = 0;
       }
       await _load();
       if (!mounted) return;

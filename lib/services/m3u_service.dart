@@ -13,7 +13,18 @@ class M3uMatch {
   final List<Song> matched;
   final int missing;
 
-  const M3uMatch({required this.matched, required this.missing});
+  /// Entries whose file name matches more than one library song, so no safe
+  /// match was possible and they were skipped instead of guessing.
+  final int ambiguous;
+
+  const M3uMatch({
+    required this.matched,
+    required this.missing,
+    this.ambiguous = 0,
+  });
+
+  /// Entries that could not be matched, for any reason.
+  int get unresolved => missing + ambiguous;
 }
 
 // Picked M3U file together with its library match result.
@@ -53,18 +64,26 @@ class M3uService {
     final matched = <Song>[];
     final seenIds = <int>{};
     var missing = 0;
+    var ambiguous = 0;
     for (final entry in entries) {
       final resolved = _resolveEntry(entry, baseDir);
       final normalized = _normalizePath(resolved);
       Song? hit = byPath[normalized];
       hit ??= _matchByFileName(normalized, library);
       if (hit == null) {
-        missing++;
+        // No path match and no single file name match: either the file is
+        // gone or the name is shared by several songs. Either way guessing
+        // would silently add the wrong track, so report it instead.
+        if (_countByFileName(normalized, library) > 1) {
+          ambiguous++;
+        } else {
+          missing++;
+        }
       } else if (seenIds.add(hit.id)) {
         matched.add(hit);
       }
     }
-    return M3uMatch(matched: matched, missing: missing);
+    return M3uMatch(matched: matched, missing: missing, ambiguous: ambiguous);
   }
 
   // Open the system file picker, read the chosen .m3u/.m3u8 file,
@@ -154,16 +173,41 @@ class M3uService {
   static Song? _matchByFileName(String normalizedEntry, List<Song> library) {
     final name = _basenameOf(normalizedEntry);
     if (name.isEmpty) return null;
+    // Prefer an exact normalized path or a path ending in the same
+    // directory plus name.
+    final exact = library.cast<Song?>().firstWhere(
+          (s) => _normalizePath(s!.filePath) == normalizedEntry,
+          orElse: () => null,
+        );
+    if (exact != null) return exact;
+    // Fall back to the file name only when it is UNIQUE in the library.
+    // Returning the first of several same named files would silently add the
+    // wrong song to the playlist.
+    final byName = _allByFileName(normalizedEntry, library);
+    if (byName.length == 1) return byName.first;
+    return null;
+  }
+
+  /// Every library song whose path ends with the same file name.
+  static List<Song> _allByFileName(
+      String normalizedEntry, List<Song> library) {
+    final name = _basenameOf(normalizedEntry);
+    if (name.isEmpty) return const [];
+    final hits = <Song>[];
     for (final song in library) {
       final libPath = _normalizePath(song.filePath);
       if (libPath == name ||
           libPath.endsWith('/$name') ||
           _basenameOf(libPath) == name) {
-        return song;
+        hits.add(song);
       }
     }
-    return null;
+    return hits;
   }
+
+  /// How many library songs share this entry's file name.
+  static int _countByFileName(String normalizedEntry, List<Song> library) =>
+      _allByFileName(normalizedEntry, library).length;
 
   static String _basenameOf(String path) {
     final value = path.replaceAll('\\', '/');

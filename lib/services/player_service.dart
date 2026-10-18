@@ -456,6 +456,22 @@ class PlayerService extends ChangeNotifier {
     }
   }
 
+  /// True while a crossfade is running between the current song and the next
+  /// one. The next song is already loaded in the standby player during that
+  /// window, so the queue must not drop it.
+  bool get isCrossfadeActive => _crossfadeActiveGeneration != -1;
+
+  /// Queue slot (position in the play order) of the song that a running
+  /// crossfade is fading in, or null when no crossfade is running.
+  ///
+  /// Exposed so the queue screen can leave that song alone while the user
+  /// clears everything after the current one.
+  int? get pendingCrossfadePosition {
+    if (!isCrossfadeActive) return null;
+    final next = _computeNextPosition();
+    return next;
+  }
+
   int? _computeNextPosition() {
     // SwaraRepeatMode.one must be checked FIRST, before every other condition,
     // so crossfade also repeats the same song instead of moving to the next one.
@@ -844,6 +860,10 @@ class PlayerService extends ChangeNotifier {
   /// Remove from the queue (position in _playOrder, not the currently playing item)
   void removeFromQueue(int posInOrder) {
     if (posInOrder == _posInOrder || posInOrder < 0 || posInOrder >= _playOrder.length) return;
+    // The song a running crossfade is fading in is already loaded in the
+    // standby player. Dropping it from the queue would leave that song
+    // audible while the queue no longer contains it.
+    if (isCrossfadeActive && posInOrder == pendingCrossfadePosition) return;
     queueVersion++;
     _playOrder.removeAt(posInOrder);
     if (posInOrder < _posInOrder) _posInOrder--;

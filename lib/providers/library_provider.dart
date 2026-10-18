@@ -37,6 +37,10 @@ class LibraryProvider extends ChangeNotifier {
   // deep comparing thousands of songs.
   int _songsVersion = 0;
 
+  // Cached sum of every duration, recomputed once per load instead of on
+  // every read.
+  int _totalDurationMs = 0;
+
   static const _kSortOption = 'lib_sort_option';
   static const _kLastDeviceScan = 'last_device_scan_ms';
   // Auto scan only when more than 30 minutes have passed
@@ -86,6 +90,15 @@ class LibraryProvider extends ChangeNotifier {
             return !excluded.contains(folder);
           }).toList();
     _applySort();
+    // Sum the durations once here instead of folding the whole library on
+    // every rebuild. The header reads this value on every notification and
+    // a metadata scan notifies once per batch, so folding 20k rows there
+    // would be tens of millions of iterations per scan.
+    var durationMs = 0;
+    for (final s in songs) {
+      durationMs += s.durationMs;
+    }
+    _totalDurationMs = durationMs;
     // Content may have changed while the length stayed the same (metadata
     // edits, one file removed and one added), so bump the version.
     _songsVersion++;
@@ -314,7 +327,7 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   int get totalCount => songs.length;
-  int get totalDurationMs => songs.fold(0, (sum, s) => sum + s.durationMs);
+  int get totalDurationMs => _totalDurationMs;
 
   List<Song> get favorites => songs.where((s) => s.isFavorite).toList();
 
@@ -339,7 +352,47 @@ class LibraryProvider extends ChangeNotifier {
 
   Future<void> deleteSong(Song song) async {
     await DBHelper.instance.deleteSong(song.id);
-    songs.removeWhere((s) => s.id == song.id);
+    _removeSongsFromMemory([song]);
+  }
+
+  /// Delete many songs with one in memory update.
+  ///
+  /// [deleteSong] in a loop re-notifies for every row, and each notification
+  /// invalidates the row index map and the A-Z map, so removing a few hundred
+  /// duplicates rebuilt those maps hundreds of times. This removes them all
+  /// at once and bumps the version a single time.
+  Future<void> deleteSongs(List<Song> toDelete) async {
+    if (toDelete.isEmpty) return;
+    for (final song in toDelete) {
+      try {
+        await DBHelper.instance.deleteSong(song.id);
+      } catch (_) {
+        // Keep going so one locked row does not abort the whole cleanup.
+      }
+    }
+    _removeSongsFromMemory(toDelete);
+  }
+
+  /// Drop deleted songs from the cached lists and bump the version once.
+  void _removeSongsFromMemory(List<Song> toRemove) {
+    if (toRemove.isEmpty) return;
+    final ids = toRemove.map((s) => s.id).toSet();
+    var removedDurationMs = 0;
+    final kept = <Song>[];
+    for (final s in songs) {
+      if (ids.contains(s.id)) {
+        removedDurationMs += s.durationMs;
+      } else {
+        kept.add(s);
+      }
+    }
+    songs = kept;
+    // The cached total must follow the deletion, otherwise the library header
+    // would keep reporting the duration of songs that no longer exist.
+    _totalDurationMs =
+        _totalDurationMs > removedDurationMs
+            ? _totalDurationMs - removedDurationMs
+            : 0;
     _songsVersion++;
     notifyListeners();
   }

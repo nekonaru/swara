@@ -225,26 +225,24 @@ jobs:
           body: |
             # English
 
-            **Swara v2.6.1 - Audit fixes for v2.6.0**
+            **Swara v2.6.2 - Smoother playlist writes and safer M3U import**
 
             ## 🐛 Bug fixes
 
-            - **Listening history is no longer deleted behind your back.** v2.6.0 pruned rows older than 12 months automatically during the database upgrade. The dashboard totals are computed from that history with no date filter, so Total listened, Top songs, Top artists and the listening hours chart could silently shrink. Cleanup is now an action you trigger yourself in Settings, and the dialog says plainly that those numbers will go down.
-            - **Database tuning now actually applies.** WAL and the other pragmas were being set from inside the migration transaction, where SQLite refuses to change journal mode, and the failures were swallowed. They now run before the transaction and the result is verified.
-            - **The upgrade no longer stalls on startup.** The prune ran inside the migration transaction despite a comment saying it was fire and forget, which delayed the database open.
-            - **History cleanup compares dates correctly**, so entries restored from a backup with a timezone offset are no longer at risk.
-            - **Indexes match the sort order.** Artist and album indexes used a different collation than the queries, so SQLite ignored them and every sort stayed a full scan. Indexes are also retried on every open, so a failed index now heals itself.
-            - **A-Z jump and search results can no longer go stale** when metadata changes without changing the song count, for example after a metadata scan.
-            - **Sleep schedule is reliable again.** A leftover flag could stop playback after the first song, and the sheet did not update when a scheduled session started while it was open.
-            - **Speed and pitch are remembered** across restarts, and dragging the slider no longer rebuilds the whole player screen on every frame.
-            - **Select all is safe on large libraries.** It is capped, bulk writes are batched, and the result message now reports what really happened instead of the requested count.
-            - **List rows no longer overflow** when the text size setting is increased.
-            - **Search results no longer rebuild entirely** on every play or pause, and grouping work is cached instead of repeated on each scan progress update.
+            - **M3U import no longer adds the wrong song.** When an entry only matched by file name and several songs shared that name, the app picked the first one at random. An ambiguous name is now reported as unmatched instead of guessed.
+            - **Clear up next keeps the song that is currently fading in.** Pressing it during a crossfade could delete the incoming track while it was still audible.
+            - **The library duration in the header is always correct.** It is now summed once per load and adjusted when songs are deleted.
+
+            ## ⚡ Performance
+
+            - **Adding many songs to a playlist is now one transaction.** It used to re-read the whole playlist and the row position for every single song, which made a merge, a bulk add or an M3U import quadratic. Large selections were noticeably slow.
+            - **Removing duplicates updates the library once** instead of rebuilding the row index and the A-Z map for every deleted row.
+            - **Restoring a backup checks song ids with one query** and inserts the members in one transaction, instead of one round trip per playlist member.
+            - **The header no longer re-sums every duration on each rebuild**, which was the main source of stutter during a metadata scan.
 
             ## 🧪 Verification
 
-            - Localization parity is now enforced by tests: every English key must exist in Indonesian with the same placeholders.
-            - A regression test blocks the automatic history prune from coming back.
+            - 114 tests. New coverage for M3U path matching and for the ambiguous file name case, so the wrong song cannot come back silently.
 
             ## 📦 Install / Update
 
@@ -258,26 +256,24 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.6.1 - Perbaikan audit untuk v2.6.0**
+            **Swara v2.6.2 - Penulisan playlist lebih ringan dan import M3U lebih aman**
 
             ## 🐛 Perbaikan bug
 
-            - **Riwayat pendengaran tidak lagi dihapus diam-diam.** v2.6.0 menghapus riwayat lebih dari 12 bulan secara otomatis saat upgrade database. Total di dashboard dihitung dari riwayat itu tanpa filter tanggal, jadi Total listened, Top songs, Top artists, dan grafik jam bisa menyusut tanpa jejak. Sekarang pembersihan jadi aksi yang kamu jalankan sendiri di Pengaturan, dan dialognya menyebutkan terus terang bahwa angka tersebut akan turun.
-            - **Tuning database sekarang benar-benar berlaku.** WAL dan pragma lain dijalankan dari dalam transaksi migrasi, tempat SQLite menolak pergantian journal mode, dan kegagalannya ditelan. Sekarang dijalankan sebelum transaksi dan hasilnya diverifikasi.
-            - **Upgrade tidak lagi menunda startup.** Prune jalan di dalam transaksi migrasi meski komentarnya bilang fire and forget, sehingga database ikut tertunda.
-            - **Perbandingan tanggal pada pembersihan riwayat kini benar**, jadi entri hasil restore backup dengan offset timezone tidak lagi berisiko terhapus.
-            - **Index sudah cocok dengan urutan sort.** Index artis dan album memakai collation berbeda dari query, jadi SQLite mengabaikannya dan setiap sort tetap full scan. Index juga dicoba ulang setiap buka, sehingga index yang gagal sekarang akan pulih sendiri.
-            - **Lompat A-Z dan hasil search tidak lagi basi** saat metadata berubah tanpa jumlah lagu berubah, misalnya setelah scan metadata.
-            - **Jadwal tidur kembali andal.** Ada flag sisa yang bisa menghentikan playback setelah lagu pertama, dan sheet tidak memperbarui tampilan saat sesi terjadwal dimulai selagi sheet terbuka.
-            - **Kecepatan dan nada diingat** setelah app ditutup, dan menggeser slider tidak lagi membangun ulang seluruh layar player tiap frame.
-            - **Pilih all aman di pustaka besar.** Ada batas jumlah, penulisan massal diproses bertahap, dan pesan hasil sekarang melaporkan apa yang benar-benar terjadi, bukan jumlah yang diminta.
-            - **Baris list tidak lagi meluber** saat pengaturan ukuran teks dinaikkan.
-            - **Hasil search tidak lagi dibangun ulang seluruhnya** tiap play atau pause, dan kerja pengelompokan di-cache, tidak diulang tiap update progres scan.
+            - **Import M3U tidak lagi menambah lagu yang salah.** Kalau sebuah entry hanya cocok dari nama file dan beberapa lagu punya nama sama, aplikasi mengambil yang pertama secara acak. Nama yang ambigu kini dilaporkan sebagai tidak cocok, bukan ditebak.
+            - **Bersihkan antrean tetap menyisakan lagu yang sedang fade-in.** Menekan tombol itu saat crossfade berjalan bisa menghapus lagu yang sedang terdengar.
+            - **Durasi pustaka di header selalu akurat.** Sekarang dijumlahkan sekali per pemuatan dan disesuaikan saat lagu dihapus.
+
+            ## ⚡ Performa
+
+            - **Menambah banyak lagu ke playlist kini satu transaksi.** Sebelumnya seluruh playlist dibaca ulang dan posisi baris dicek untuk tiap lagu, sehingga merge, tambah massal, atau import M3U menjadi melingkar kuadratik. Pemilihan besar terasa lambat.
+            - **Hapus duplikat memperbarui pustaka sekali**, bukan membangun ulang peta baris dan peta A-Z untuk tiap baris yang dihapus.
+            - **Restore backup mengecek id lagu dengan satu query** dan memasukkan anggota playlist dalam satu transaksi, bukan satu round trip per anggota.
+            - **Header tidak lagi menjumlahkan ulang seluruh durasi tiap rebuild**, dan itu sumber utama tersendat saat scan metadata.
 
             ## 🧪 Verifikasi
 
-            - Paritas lokalisasi dijaga test: setiap key English harus ada di Indonesian dengan placeholder yang sama.
-            - Test regresi mencegah pembersihan riwayat otomatis agar tidak kembali lagi.
+            - 114 test. Cakupan baru untuk pencocokan path M3U dan kasus nama file ambigu, supaya lagu yang salah tidak bisa kembali diam-diam.
 
             ## 📦 Instalasi / Update
 
