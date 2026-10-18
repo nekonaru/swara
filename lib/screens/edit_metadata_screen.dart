@@ -113,8 +113,10 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
     );
     if (confirm != true || !mounted) return;
     setState(() => _isScanning = true);
+    bool limited;
     try {
-      await context.read<LibraryProvider>().rescanSingleMetadata(widget.song);
+      limited =
+          await context.read<LibraryProvider>().rescanSingleMetadata(widget.song);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isScanning = false);
@@ -133,7 +135,11 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       _region.text = widget.song.region ?? '';
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l.editMetadataRescanSuccess)),
+      SnackBar(
+        content: Text(limited
+            ? AppLocalizations.of(context)!.editMetadataRescanRateLimited
+            : l.editMetadataRescanSuccess),
+      ),
     );
   }
 

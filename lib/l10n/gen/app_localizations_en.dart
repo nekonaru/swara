@@ -1829,4 +1829,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String historyCleanupFailed(String error) {
     return 'History cleanup failed: $error';
   }
+
+  @override
+  String get editMetadataRescanRateLimited =>
+      'Fetch skipped, too many requests. Try again in a minute.';
+
+  @override
+  String historyPlayFailed(String error) {
+    return 'Could not play this song: $error';
+  }
 }

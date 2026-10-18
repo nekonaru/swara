@@ -225,24 +225,24 @@ jobs:
           body: |
             # English
 
-            **Swara v2.6.2 - Smoother playlist writes and safer M3U import**
+            **Swara v2.7.0 - Scan stops wiping your metadata**
 
             ## 🐛 Bug fixes
 
-            - **M3U import no longer adds the wrong song.** When an entry only matched by file name and several songs shared that name, the app picked the first one at random. An ambiguous name is now reported as unmatched instead of guessed.
-            - **Clear up next keeps the song that is currently fading in.** Pressing it during a crossfade could delete the incoming track while it was still audible.
-            - **The library duration in the header is always correct.** It is now summed once per load and adjusted when songs are deleted.
+            - **Rescans no longer erase enriched metadata.** This is the important one. Every device scan wrote each known song as a brand new row built from the file tags alone, and SQLite REPLACE deletes the old row before inserting. Every pull to refresh and every automatic scan on startup therefore blanked out your album covers, genres, regions and lyrics, and undid manual metadata edits. Existing songs now only receive the facts that actually come from the file, such as its path and duration.
+            - **Overlapping scans can no longer delete freshly added songs.** Two scans running at the same time compared the song table against their own device snapshot, so the slower one removed the songs the faster one had just inserted, along with their playlist entries and listening history. A second scan is now ignored while one is running, and the cleanup compares against a snapshot taken before the scan started.
+            - **Fetch from the internet now actually saves.** In Edit Metadata the button filled the form with fresh values but wrote nothing to the database, so closing the screen lost everything and the snackbar still said success. It now stores the result, reaches the network instead of replaying a cache entry up to 30 days old, and says so plainly when the request was skipped because of rate limiting.
+            - **Tapping a row in History no longer fails silently.** Playing a song whose file disappeared threw an uncaught error, so the tap did nothing with no message.
+            - **Cleaning listening history refreshes the dashboard numbers.** The summary cards were cached for 10 minutes while the detail lists were always fresh, so one screen could show two different versions of the same statistic.
 
             ## ⚡ Performance
 
-            - **Adding many songs to a playlist is now one transaction.** It used to re-read the whole playlist and the row position for every single song, which made a merge, a bulk add or an M3U import quadratic. Large selections were noticeably slow.
-            - **Removing duplicates updates the library once** instead of rebuilding the row index and the A-Z map for every deleted row.
-            - **Restoring a backup checks song ids with one query** and inserts the members in one transaction, instead of one round trip per playlist member.
-            - **The header no longer re-sums every duration on each rebuild**, which was the main source of stutter during a metadata scan.
+            - **The notification no longer rebuilds its whole queue on every state change.** The media session allocated one item per queued song before even checking whether the queue had changed, which was wasteful during a volume drag or a speed change.
+            - **A deliberate rescan is honest about rate limiting** instead of reporting success when nothing was fetched.
 
             ## 🧪 Verification
 
-            - 114 tests. New coverage for M3U path matching and for the ambiguous file name case, so the wrong song cannot come back silently.
+            - 119 tests. A new regression suite blocks the metadata wiping, the scan race and the rescan that does not persist from coming back.
 
             ## 📦 Install / Update
 
@@ -256,25 +256,24 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.6.2 - Penulisan playlist lebih ringan dan import M3U lebih aman**
+            **Swara v2.7.0 - Scan berhenti menghapus metadata kamu**
 
             ## 🐛 Perbaikan bug
 
-            - **Import M3U tidak lagi menambah lagu yang salah.** Kalau sebuah entry hanya cocok dari nama file dan beberapa lagu punya nama sama, aplikasi mengambil yang pertama secara acak. Nama yang ambigu kini dilaporkan sebagai tidak cocok, bukan ditebak.
-            - **Bersihkan antrean tetap menyisakan lagu yang sedang fade-in.** Menekan tombol itu saat crossfade berjalan bisa menghapus lagu yang sedang terdengar.
-            - **Durasi pustaka di header selalu akurat.** Sekarang dijumlahkan sekali per pemuatan dan disesuaikan saat lagu dihapus.
+            - **Scan ulang tidak lagi menghapus metadata hasil enrich.** Ini yang paling penting. Setiap scan device menulis ulang lagu yang sudah dikenal sebagai baris baru yang hanya berisi tag dari file, dan SQLite REPLACE menghapus baris lama sebelum insert. Artinya setiap tarik ke bawah untuk refresh dan setiap scan otomatis saat app dibuka menghapus album cover, genre, region, dan lirik hasil enrich, plus mengundo edit metadata manual. Sekarang lagu yang sudah ada hanya menerima fakta yang benar-benar berasal dari file, seperti path dan durasinya.
+            - **Dua scan yang tumpang tindih tidak lagi bisa menghapus lagu yang baru ditambahkan.** Dua scan yang jalan bersamaan membandingkan tabel lagu dengan snapshot device masing-masing, sehingga scan yang lebih lambat menghapus lagu yang baru saja di-insert scan yang lebih cepat, beserta anggota playlist dan riwayat listenednya. Scan kedua sekarang diabaikan selama satu berjalan, dan pembersihan memakai snapshot yang diambil sebelum scan dimulai.
+            - **Ambil dari internet sekarang benar-benar menyimpan.** Di Edit Metadata tombolnya mengisi form dengan nilai baru tapi tidak menulis apa pun ke database, jadi begitu layar ditutup semua hilang padahal snackbar tetap bilang berhasil. Sekarang hasilnya disimpan, request benar-benar ke jaringan bukan memutar cache yang bisa sudah 30 hari, dan memberi tahu kalau permintaan dilewati karena rate limit.
+            - **Ketuk baris di Riwayat tidak lagi gagal diam-diam.** Memutar lagu yang file-nya hilang melempar error yang tidak tertangani, jadi ketukannya tidak terjadi tanpa pesan apa pun.
+            - **Bersihkan riwayat kini menyegarkan angka dashboard.** Kartu ringkasan di-cache 10 menit sementara daftar detail selalu diambil segar, jadi satu layar bisa menampilkan dua versi angka yang berbeda.
 
             ## ⚡ Performa
 
-            - **Menambah banyak lagu ke playlist kini satu transaksi.** Sebelumnya seluruh playlist dibaca ulang dan posisi baris dicek untuk tiap lagu, sehingga merge, tambah massal, atau import M3U menjadi melingkar kuadratik. Pemilihan besar terasa lambat.
-            - **Hapus duplikat memperbarui pustaka sekali**, bukan membangun ulang peta baris dan peta A-Z untuk tiap baris yang dihapus.
-            - **Restore backup mengecek id lagu dengan satu query** dan memasukkan anggota playlist dalam satu transaksi, bukan satu round trip per anggota.
-            - **Header tidak lagi menjumlahkan ulang seluruh durasi tiap rebuild**, dan itu sumber utama tersendat saat scan metadata.
+            - **Notifikasi tidak lagi membangun ulang seluruh antrean tiap perubahan state.** Media session membuat satu objek per lagu antrean sebelum sempat mengecek apakah antrean berubah, dan itu boros saat menggeser volume atau mengubah kecepatan.
+            - **Rescan manual jujur soal rate limit**, bukan melaporkan berhasil padahal tidak ada yang diambil.
 
             ## 🧪 Verifikasi
 
-            - 114 test. Cakupan baru untuk pencocokan path M3U dan kasus nama file ambigu, supaya lagu yang salah tidak bisa kembali diam-diam.
-
+            - 119 test. Regression test baru untuk mencegah metadata terhapus, balapan antar scan, dan rescan yang tidak menyimpan supaya tidak bisa kembali lagi.
             ## 📦 Instalasi / Update
 
             Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26).

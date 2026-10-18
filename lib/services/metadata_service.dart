@@ -57,7 +57,7 @@ class MetadataService {
   /// Returns true when iTunes rate limited the request (HTTP 429) or the
   /// backoff window is still active, so batch callers can stop at once.
   /// Returns false otherwise. Success behavior is unchanged.
-  Future<bool> enrichSong(Song song) async {
+  Future<bool> enrichSong(Song song, {bool bypassCache = false}) async {
     // Inside the backoff window: skip the network and leave the song
     // unscanned so a later scan retries it. No retry loop here.
     if (isRateLimited) {
@@ -68,7 +68,10 @@ class MetadataService {
     // A cache hit applies the same fields as a live 200 response, and a
     // miss marker follows the same path as a live empty result.
     final cacheKey = _cacheKeyFor(song);
-    final cachedResponse = await _readValidCache(cacheKey);
+    // A manual "scan from the internet" must actually reach the network,
+    // otherwise it silently replays a cache entry up to 30 days old.
+    final cachedResponse =
+        bypassCache ? null : await _readValidCache(cacheKey);
     if (cachedResponse != null) {
       if (cachedResponse != _cacheMissMarker) {
         // Corrupt cache entries return false and fall through to network.

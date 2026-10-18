@@ -3,6 +3,7 @@ import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/providers/language_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 
 class DBHelper {
@@ -428,12 +429,26 @@ class DBHelper {
     int keepMaxRows = 200000,
   }) async {
     final database = await db;
-    return _pruneListeningEntriesOn(
+    final deleted = await _pruneListeningEntriesOn(
       database,
       keepDays: keepDays,
       keepMaxRows: keepMaxRows,
     );
+    // The dashboard caches its summary numbers for 10 minutes and they come
+    // from this table, so the cache must go or the summary would contradict
+    // the fresh detail lists on the same screen.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_dashboardCacheKey);
+    } catch (_) {
+      // Best effort: the numbers self heal on the next full reload.
+    }
+    return deleted;
   }
+
+  /// Prefs key of the dashboard aggregate cache. Owned here because a history
+  /// prune changes those numbers from outside the dashboard screen.
+  static const String _dashboardCacheKey = 'dashboard_aggregate_cache_v1';
 
   // ---------- Songs ----------
   Future<void> upsertSong(Song s) async {
@@ -479,11 +494,20 @@ class DBHelper {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  Future<int> deleteSongsMissingFromDevice(Set<int> existingIds) async {
+  Future<int> deleteSongsMissingFromDevice(
+    Set<int> existingIds, {
+    /// Ids that were already stored when the scan started. Passing them keeps
+    /// the delete from touching rows another scan inserted meanwhile.
+    Set<int>? knownDbIds,
+  }) async {
     final database = await db;
-    final allDbIds = (await database.query('songs', columns: ['id']))
-        .map((r) => r['id'] as int)
-        .toSet();
+    // Use the caller snapshot when provided. A live read of the songs table
+    // would also see rows written by a scan running in parallel, and those
+    // rows would look like files that disappeared.
+    final allDbIds = knownDbIds ??
+        (await database.query('songs', columns: ['id']))
+            .map((r) => r['id'] as int)
+            .toSet();
     final ghostIds = allDbIds.difference(existingIds);
     if (ghostIds.isEmpty) return 0;
 
@@ -777,6 +801,32 @@ class DBHelper {
     } catch (_) {
       // Best effort only, folders still render with the old name.
     }
+  }
+
+  /// Write the enriched fields of an existing song to the DB.
+  ///
+  /// [upsertSong] deliberately refuses to overwrite the rich columns of an
+  /// existing row so a rescan cannot wipe them. That is correct for the
+  /// scanner but wrong for a deliberate "fetch from the internet", which is
+  /// exactly the case where the new values should win.
+  Future<void> applyEnrichedMetadata(Song s) async {
+    final database = await db;
+    await database.update(
+      'songs',
+      {
+        'title': s.title,
+        'artist': s.artist,
+        'album': s.album,
+        'genre': s.genre,
+        'region': s.region,
+        'albumArtPath': s.albumArtPath,
+        'albumArtUrl': s.albumArtUrl,
+        'lyrics': encodeLyricsForDb(s.lyrics),
+        'metadataScanned': s.metadataScanned ? 1 : 0,
+      },
+      where: 'id = ?',
+      whereArgs: [s.id],
+    );
   }
 
   /// Add many songs to a playlist in one transaction.

@@ -43,6 +43,11 @@ class LibraryScanner {
       'songs',
       columns: ['id', 'metadataScanned', 'addedAt', 'isFavorite', 'lastPlayedAt'],
     );
+    // Snapshot of the ids present BEFORE querySongs() runs. The ghost cleanup
+    // must compare against this snapshot, never a live read of the songs
+    // table: a second scan running in parallel would insert new rows that the
+    // first scan would then mistake for deleted files.
+    final dbIdsAtScanStart = existingRows.map((row) => row['id'] as int).toSet();
     final existingById = <int, Map<String, Object?>>{
       for (final row in existingRows) (row['id'] as int): row,
     };
@@ -94,6 +99,9 @@ class LibraryScanner {
     // stored favorite, lastPlayedAt, and addedAt, and OR the scanned flag
     // so a rescan never resets stored metadata state.
     final pendingMaps = <Map<String, Object?>>[];
+    // Rows that already exist: only file facts are refreshed, see below.
+    final pendingUpdates = <Map<String, Object?>>[];
+    final updateIds = <int>[];
     for (final track in tracks) {
       final folder = folderOf(track.data);
       if (excluded.contains(folder)) continue;
@@ -114,32 +122,50 @@ class LibraryScanner {
             : 'Unknown Album',
         durationMs: track.duration ?? 0,
       );
-      final map = song.toMap();
       final existing = existingById[song.id];
       if (existing != null) {
-        map['isFavorite'] = existing['isFavorite'];
-        map['lastPlayedAt'] = existing['lastPlayedAt'];
-        map['addedAt'] = existing['addedAt'];
-        final wasScanned = existing['metadataScanned'] == 1;
-        map['metadataScanned'] = (wasScanned || song.metadataScanned) ? 1 : 0;
-      } else {
-        map['addedAt'] = DateTime.now().toIso8601String();
+        // The row is already in the DB. Only the facts that come from the
+        // file itself may be refreshed. Writing the full row here used to
+        // blank out genre, region, album art and lyrics, because the object
+        // above has none of them and SQLite REPLACE deletes the old row
+        // first. That wiped every enriched cover and genre on each rescan.
+        pendingUpdates.add({
+          'filePath': song.filePath,
+          'durationMs': song.durationMs,
+        });
+        updateIds.add(song.id);
+        result.add(song);
+
+        // Check the REAL status from the preloaded map (not the freshly built
+        // `song` object, which always has metadataScanned false even when the
+        // data is already stored in the DB).
+        if (!alreadyScannedIds.contains(song.id)) {
+          needsMetadata.add(song);
+        }
+        continue;
       }
+      final map = song.toMap();
+      map['addedAt'] = DateTime.now().toIso8601String();
       pendingMaps.add(map);
       result.add(song);
 
-      // Check the REAL status from the preloaded map (not the freshly built
-      // `song` object, which always has metadataScanned false even when the
-      // data is already stored in the DB).
       if (!alreadyScannedIds.contains(song.id)) {
         needsMetadata.add(song);
       }
     }
-    if (pendingMaps.isNotEmpty) {
+    if (pendingMaps.isNotEmpty || pendingUpdates.isNotEmpty) {
       final batch = database.batch();
       for (final map in pendingMaps) {
         batch.insert('songs', map,
             conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      for (var i = 0; i < pendingUpdates.length; i++) {
+        batch.update(
+          'songs',
+          pendingUpdates[i],
+          where: 'id = ?',
+          whereArgs: [updateIds[i]],
+        );
       }
       await batch.commit(noResult: true);
     }
@@ -148,7 +174,12 @@ class LibraryScanner {
     // deleted/moved from the phone outside the app.
     // Only runs when querySongs() returns a sane result (see the guard above).
     if (safeToDelete) {
-      await DBHelper.instance.deleteSongsMissingFromDevice(allDeviceIds);
+      // Pass the snapshot so a parallel scan cannot have its freshly inserted
+      // rows deleted as ghosts by this one.
+      await DBHelper.instance.deleteSongsMissingFromDevice(
+        allDeviceIds,
+        knownDbIds: dbIdsAtScanStart,
+      );
     }
 
     if (autoFetchMetadata && needsMetadata.isNotEmpty) {

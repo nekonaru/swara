@@ -37,6 +37,9 @@ class LibraryProvider extends ChangeNotifier {
   // deep comparing thousands of songs.
   int _songsVersion = 0;
 
+  // True while scanDevice is running, so a second call is ignored.
+  bool _scanning = false;
+
   // Cached sum of every duration, recomputed once per load instead of on
   // every read.
   int _totalDurationMs = 0;
@@ -132,6 +135,12 @@ class LibraryProvider extends ChangeNotifier {
   /// song list appears instantly at startup. Pass [autoFetchMetadata] true
   /// only when the caller explicitly wants the slow internet enrich inline.
   Future<void> scanDevice({bool autoFetchMetadata = false}) async {
+    // Reentrancy guard. Two overlapping scans compared the songs table against
+    // their own device snapshot, so the slower one deleted the songs the
+    // faster one had just inserted, together with their playlist entries and
+    // listening history.
+    if (_scanning) return;
+    _scanning = true;
     isScanning = true;
     scanError = null;
     notifyListeners();
@@ -141,6 +150,7 @@ class LibraryProvider extends ChangeNotifier {
     } catch (e) {
       scanError = '${lookupAppLocalizations(LanguageProvider.instance.locale).coreScanFailed}: $e';
     }
+    _scanning = false;
     isScanning = false;
     notifyListeners();
   }
@@ -186,9 +196,22 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> rescanSingleMetadata(Song song) async {
-    await MetadataService.instance.enrichSong(song);
+  /// Fetch metadata for one song from the internet on purpose.
+  ///
+  /// Returns true when the fetch was skipped because iTunes is rate limiting
+  /// us, so the UI can say so instead of claiming success.
+  Future<bool> rescanSingleMetadata(Song song) async {
+    final limited =
+        await MetadataService.instance.enrichSong(song, bypassCache: true);
+    // enrichSong fills the in-memory object but upsertSong keeps the stored
+    // rich columns for an existing row, so the new values have to be written
+    // explicitly. Without this the button appeared to work and then changed
+    // nothing.
+    if (!limited) {
+      await DBHelper.instance.applyEnrichedMetadata(song);
+    }
     await loadFromDb();
+    return limited;
   }
 
   void setSortOption(SortOption option) {

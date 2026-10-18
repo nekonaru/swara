@@ -114,30 +114,32 @@ class SwaraAudioHandler extends BaseAudioHandler {
   void _syncState() {
     final ps = PlayerService.instance;
     final song = ps.currentSong;
-    // Build MediaSession queue in playback order with one stable id
-    // per queue entry so repeated songs stay distinct.
-    final q = ps.queue;
     final slotIds = ps.queueSlotIds;
     final queueVersion = ps.queueVersion;
-    final items = <MediaItem>[
-      for (var i = 0; i < q.length; i++)
-        MediaItem(
-          id: 'queue_${slotIds.length > i ? slotIds[i] : i}_${q[i].filePath}',
-          title: q[i].title,
-          artist: q[i].artist,
-          album: q[i].album,
-          duration: Duration(milliseconds: q[i].durationMs),
-          artUri: _safeArtUri(q[i].albumArtPath),
-        ),
-    ];
-    // Push the queue only when its fingerprint changed, so the 1 second
-    // ticker and unrelated state syncs do not resend a huge list.
-    // The fingerprint is order sensitive and duplicate safe because it
-    // uses the stable slot ids in playback order plus the version that
-    // bumps on every queue mutation.
+    // Decide FIRST whether the queue actually changed. Building the MediaItem
+    // list allocates one object per queue entry, and _syncState runs on every
+    // PlayerService notification (volume drag, favourite toggle, speed change,
+    // crossfade steps). Comparing the fingerprint first keeps those cheap.
+    // The fingerprint is order sensitive and duplicate safe because it uses
+    // the stable slot ids in playback order plus the version that bumps on
+    // every queue mutation.
     final fingerprint = '$queueVersion|${slotIds.join(',')}';
     if (fingerprint != _lastQueueFingerprint) {
       _lastQueueFingerprint = fingerprint;
+      // Build MediaSession queue in playback order with one stable id
+      // per queue entry so repeated songs stay distinct.
+      final q = ps.queue;
+      final items = <MediaItem>[
+        for (var i = 0; i < q.length; i++)
+          MediaItem(
+            id: 'queue_${slotIds.length > i ? slotIds[i] : i}_${q[i].filePath}',
+            title: q[i].title,
+            artist: q[i].artist,
+            album: q[i].album,
+            duration: Duration(milliseconds: q[i].durationMs),
+            artUri: _safeArtUri(q[i].albumArtPath),
+          ),
+      ];
       queue.add(items);
       try {
         queueTitle.add('Swara Queue');
@@ -146,19 +148,21 @@ class SwaraAudioHandler extends BaseAudioHandler {
       }
     }
     final currentIndex = ps.currentIndex;
-    final currentItem =
-        (currentIndex >= 0 && currentIndex < items.length)
-            ? items[currentIndex]
-            : (song == null
-                ? null
-                : MediaItem(
-                    id: song.filePath,
-                    title: song.title,
-                    artist: song.artist,
-                    album: song.album,
-                    duration: Duration(milliseconds: song.durationMs),
-                    artUri: _safeArtUri(song.albumArtPath),
-                  ));
+    // The queue length equals the play order length, so the slot ids are
+    // enough to bound the index without materializing the queue list.
+    final queueLength = slotIds.length;
+    // This is the same item the queue entry for the current slot would
+    // produce, built directly so a full list is never needed here.
+    final currentItem = song == null
+        ? null
+        : MediaItem(
+            id: 'queue_${currentIndex >= 0 && currentIndex < queueLength ? slotIds[currentIndex] : 0}_${song.filePath}',
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            duration: Duration(milliseconds: song.durationMs),
+            artUri: _safeArtUri(song.albumArtPath),
+          );
     mediaItem.add(currentItem);
 
     final playing = ps.player.playing;
@@ -187,7 +191,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
         updatePosition: ps.player.position,
         speed: ps.player.speed,
         queueIndex:
-            (currentIndex >= 0 && currentIndex < items.length)
+            (currentIndex >= 0 && currentIndex < queueLength)
                 ? currentIndex
                 : null,
       ),

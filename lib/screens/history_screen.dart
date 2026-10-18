@@ -88,7 +88,22 @@ class HistoryScreenState extends State<HistoryScreen> {
                 ),
               ],
             ),
-            onTap: () => PlayerService.instance.setQueueAndPlay(_history, i),
+            // The play call opens the file, so it can throw when the file is gone.
+            // Without a catch the user would see the tap do nothing at all.
+            onTap: () async {
+              try {
+                await PlayerService.instance
+                    .setQueueAndPlay(_history, i);
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context)!
+                        .historyPlayFailed(e.toString())),
+                  ),
+                );
+              }
+            },
           );
         },
       ),

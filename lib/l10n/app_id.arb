@@ -2052,5 +2052,18 @@
                                                                "type":  "String"
                                                            }
                                                  }
-                            }
+                            },
+    "editMetadataRescanRateLimited":  "Pengambilan dilewati, terlalu banyak permintaan. Coba lagi sebentar lagi.",
+    "@editMetadataRescanRateLimited":  {
+                                         "description":  "Rescan dilewati karena rate limit"
+                                     },
+    "historyPlayFailed":  "Tidak bisa memutar lagu ini: {error}",
+    "@historyPlayFailed":  {
+                            "description":  "Gagal memutar dari riwayat",
+                            "placeholders":  {
+                                                 "error":  {
+                                                           "type":  "String"
+                                                       }
+                                             }
+                        }
 }

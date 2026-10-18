@@ -2052,5 +2052,18 @@
                                                                "type":  "String"
                                                            }
                                                  }
-                            }
+                            },
+    "editMetadataRescanRateLimited":  "Fetch skipped, too many requests. Try again in a minute.",
+    "@editMetadataRescanRateLimited":  {
+                                         "description":  "Rescan skipped due to rate limit"
+                                     },
+    "historyPlayFailed":  "Could not play this song: {error}",
+    "@historyPlayFailed":  {
+                            "description":  "History play failure",
+                            "placeholders":  {
+                                                 "error":  {
+                                                           "type":  "String"
+                                                       }
+                                             }
+                        }
 }

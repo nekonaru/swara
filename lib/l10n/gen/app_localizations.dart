@@ -3224,6 +3224,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'History cleanup failed: {error}'**
   String historyCleanupFailed(String error);
+
+  /// Rescan skipped due to rate limit
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch skipped, too many requests. Try again in a minute.'**
+  String get editMetadataRescanRateLimited;
+
+  /// History play failure
+  ///
+  /// In en, this message translates to:
+  /// **'Could not play this song: {error}'**
+  String historyPlayFailed(String error);
 }
 
 class _AppLocalizationsDelegate

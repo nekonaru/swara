@@ -1830,4 +1830,13 @@ class AppLocalizationsId extends AppLocalizations {
   String historyCleanupFailed(String error) {
     return 'Bersihkan riwayat gagal: $error';
   }
+
+  @override
+  String get editMetadataRescanRateLimited =>
+      'Pengambilan dilewati, terlalu banyak permintaan. Coba lagi sebentar lagi.';
+
+  @override
+  String historyPlayFailed(String error) {
+    return 'Tidak bisa memutar lagu ini: $error';
+  }
 }
