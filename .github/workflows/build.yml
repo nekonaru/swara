@@ -225,24 +225,27 @@ jobs:
           body: |
             # English
 
-            **Swara v2.7.0 - Scan stops wiping your metadata**
+            **Swara v2.7.1 - Crossfade and equalizer finally work**
 
             ## 🐛 Bug fixes
 
-            - **Rescans no longer erase enriched metadata.** This is the important one. Every device scan wrote each known song as a brand new row built from the file tags alone, and SQLite REPLACE deletes the old row before inserting. Every pull to refresh and every automatic scan on startup therefore blanked out your album covers, genres, regions and lyrics, and undid manual metadata edits. Existing songs now only receive the facts that actually come from the file, such as its path and duration.
-            - **Overlapping scans can no longer delete freshly added songs.** Two scans running at the same time compared the song table against their own device snapshot, so the slower one removed the songs the faster one had just inserted, along with their playlist entries and listening history. A second scan is now ignored while one is running, and the cleanup compares against a snapshot taken before the scan started.
-            - **Fetch from the internet now actually saves.** In Edit Metadata the button filled the form with fresh values but wrote nothing to the database, so closing the screen lost everything and the snackbar still said success. It now stores the result, reaches the network instead of replaying a cache entry up to 30 days old, and says so plainly when the request was skipped because of rate limiting.
-            - **Tapping a row in History no longer fails silently.** Playing a song whose file disappeared threw an uncaught error, so the tap did nothing with no message.
-            - **Cleaning listening history refreshes the dashboard numbers.** The summary cards were cached for 10 minutes while the detail lists were always fresh, so one screen could show two different versions of the same statistic.
+            - **Crossfade no longer breaks every transition.** The finished track raised its normal completion event in the middle of its own fade, which started the next song, cancelled the fade and restarted the incoming track from its first second. You heard a jump instead of a smooth transition. The completion handler now steps aside while a fade is running.
+            - **The equalizer now actually changes the sound.** The audio plugin never replies to its own commands, so every preset and slider change timed out and no gain ever reached the output. Commands are now sent without waiting, readiness is confirmed with a call that does reply, and band levels are sent in dB instead of being scaled twice (which asked your phone for +40 dB, outside the allowed range).
+            - **Repeat one no longer leaves a second voice behind.** With a crossfade involved, the other player kept playing the fading track faintly in the background.
+            - **The duplicate finder no longer deletes a different recording.** A studio track and a live version of the same song were treated as duplicates, and removing all duplicates deleted the live version along with its playlist entries and history. Album and duration now take part in matching, and every delete is checked.
+            - **Daily Mix and Unplayed follow your changes.** Hiding a folder or rescanning now updates them, instead of keeping hidden songs until the app was restarted.
+            - **Most Played respects hidden folders.** Songs from a folder you hid could still be listed and played there.
+            - **Setting an A-B loop during a crossfade now sticks** instead of being dropped a moment later.
+            - **Album art no longer touches the disk while scrolling.** Cover lookup happened on every rebuild of every row.
 
             ## ⚡ Performance
 
-            - **The notification no longer rebuilds its whole queue on every state change.** The media session allocated one item per queued song before even checking whether the queue had changed, which was wasteful during a volume drag or a speed change.
-            - **A deliberate rescan is honest about rate limiting** instead of reporting success when nothing was fetched.
+            - **Bulk edit is one batch instead of one reload per song.** Editing 500 songs used to reload the whole library 500 times and froze the app.
+            - **Cover art lookups are memory only**, with a single index built at startup.
 
             ## 🧪 Verification
 
-            - 119 tests. A new regression suite blocks the metadata wiping, the scan race and the rescan that does not persist from coming back.
+            - 127 tests. New regression checks cover the crossfade race, the equalizer units, duplicate matching, bulk edit batching and hidden folder handling.
 
             ## 📦 Install / Update
 
@@ -256,24 +259,28 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.7.0 - Scan berhenti menghapus metadata kamu**
+            **Swara v2.7.1 - Crossfade dan equalizer akhirnya bekerja**
 
             ## 🐛 Perbaikan bug
 
-            - **Scan ulang tidak lagi menghapus metadata hasil enrich.** Ini yang paling penting. Setiap scan device menulis ulang lagu yang sudah dikenal sebagai baris baru yang hanya berisi tag dari file, dan SQLite REPLACE menghapus baris lama sebelum insert. Artinya setiap tarik ke bawah untuk refresh dan setiap scan otomatis saat app dibuka menghapus album cover, genre, region, dan lirik hasil enrich, plus mengundo edit metadata manual. Sekarang lagu yang sudah ada hanya menerima fakta yang benar-benar berasal dari file, seperti path dan durasinya.
-            - **Dua scan yang tumpang tindih tidak lagi bisa menghapus lagu yang baru ditambahkan.** Dua scan yang jalan bersamaan membandingkan tabel lagu dengan snapshot device masing-masing, sehingga scan yang lebih lambat menghapus lagu yang baru saja di-insert scan yang lebih cepat, beserta anggota playlist dan riwayat listenednya. Scan kedua sekarang diabaikan selama satu berjalan, dan pembersihan memakai snapshot yang diambil sebelum scan dimulai.
-            - **Ambil dari internet sekarang benar-benar menyimpan.** Di Edit Metadata tombolnya mengisi form dengan nilai baru tapi tidak menulis apa pun ke database, jadi begitu layar ditutup semua hilang padahal snackbar tetap bilang berhasil. Sekarang hasilnya disimpan, request benar-benar ke jaringan bukan memutar cache yang bisa sudah 30 hari, dan memberi tahu kalau permintaan dilewati karena rate limit.
-            - **Ketuk baris di Riwayat tidak lagi gagal diam-diam.** Memutar lagu yang file-nya hilang melempar error yang tidak tertangani, jadi ketukannya tidak terjadi tanpa pesan apa pun.
-            - **Bersihkan riwayat kini menyegarkan angka dashboard.** Kartu ringkasan di-cache 10 menit sementara daftar detail selalu diambil segar, jadi satu layar bisa menampilkan dua versi angka yang berbeda.
+            - **Crossfade tidak lagi rusak di setiap transisi.** Lagu yang selesai memunculkan event penyelesaian normal di tengah fade-nya sendiri, yang memicu lagu berikutnya, membatalkan fade, dan memulai ulang lagu yang sedang masuk dari detik nol. Yang terdengar adalah lompatan bunyi, bukan transisi halus. Sekarang handler penyelesaian menyingkir selagi fade berjalan.
+            - **Equalizer sekarang benar-benar mengubah suara.** Plugin audio tidak pernah menjawab perintahnya sendiri, jadi setiap perubahan preset dan slider kehabisan waktu dan tidak ada gain yang sampai ke output. Sekarang perintah dikirim tanpa menunggu, kesiapan dikonfirmasi lewat panggilan yang benar-benar menjawab, dan level band dikirim dalam dB tanpa dikali dua (yang membuat HP kamu diminta +40 dB, di luar rentang yang diizinkan).
+            - **Repeat one tidak lagi menyisakan suara kedua.** Saat ada crossfade, player lain tetap memutar lagu yang sedang fade dengan suara pelan di belakang.
+            - **Pencari duplikat tidak lagi menghapus rekaman berbeda.** Versi studio dan versi live lagu yang sama dianggap duplikat, dan hapus semua duplikat menghapus versi live beserta anggota playlist dan riwayatnya. Album dan durasi kini ikut dicocokkan, dan setiap penghapusan diperiksa.
+            - **Daily Mix dan Unplayed mengikuti perubahanmu.** Menyembunyikan folder atau scan ulang kini memperbaruinya, bukan tetap memuat lagu tersembunyi sampai app ditutup.
+            - **Most Played menghormati folder tersembunyi.** Lagu dari folder yang kamu sembunyikan tidak lagi muncul dan bisa diputar di sana.
+            - **Pasang loop A-B saat crossfade jalan sekarang bertahan**, bukan hilang sedetik kemudian.
+            - **Cover album tidak lagi menyentuh disk saat scrolling.** Pencarian cover berjalan di setiap rebuild tiap baris.
 
             ## ⚡ Performa
 
-            - **Notifikasi tidak lagi membangun ulang seluruh antrean tiap perubahan state.** Media session membuat satu objek per lagu antrean sebelum sempat mengecek apakah antrean berubah, dan itu boros saat menggeser volume atau mengubah kecepatan.
-            - **Rescan manual jujur soal rate limit**, bukan melaporkan berhasil padahal tidak ada yang diambil.
+            - **Edit massal satu batch, bukan satu muat ulang per lagu.** Mengedit 500 lagu sebelumnya memuat ulang seluruh pustaka 500 kali dan membuat app beku.
+            - **Pencarian cover hanya di memori**, dengan satu indeks yang dibangun saat app mulai.
 
             ## 🧪 Verifikasi
 
-            - 119 test. Regression test baru untuk mencegah metadata terhapus, balapan antar scan, dan rescan yang tidak menyimpan supaya tidak bisa kembali lagi.
+            - 127 test. Regression test baru menutup balapan crossfade, satuan equalizer, pencocokan duplikat, batch edit massal, dan penanganan folder tersembunyi.
+
             ## 📦 Instalasi / Update
 
             Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26).
