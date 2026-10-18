@@ -89,8 +89,21 @@ class SwaraAudioHandler extends BaseAudioHandler {
 
   bool _disposed = false;
 
-  /// Dispose listeners + ticker so nothing leaks when the handler is discarded.
+  /// True once this handler has been torn down. Guarded so a second call is a
+  /// no-op instead of touching an already cancelled ticker.
+  bool get isHandlerDisposed => _disposed;
+
+  /// Real teardown: drop the PlayerService listener and cancel the ticker.
+  ///
+  /// Only called from a lifecycle callback that actually destroys the handler,
+  /// never from a transport command. audio_service 0.18 exposes no onDestroy
+  /// for the handler, and onTaskRemoved cannot be used here either: Android
+  /// fires it when the user merely swipes the task away from recents while
+  /// playback continues, which is not a teardown. So the listener removal
+  /// stays here, idempotent and explicit, for whoever owns the handler
+  /// lifetime.
   void disposeHandler() {
+    if (_disposed) return;
     _disposed = true;
     _positionTicker?.cancel();
     _positionTicker = null;
@@ -271,11 +284,43 @@ class SwaraAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// A MediaSession stop means "stop the music", not "throw this handler away".
+  ///
+  /// This used to call disposeHandler(), which removed the PlayerService
+  /// listener and cancelled the position ticker, and then super.stop(), which
+  /// pushes the MediaSession to idle. Android, a headset button, or the Google
+  /// Assistant can send a stop at any moment. After that PlayerService kept
+  /// calling notifyListeners with nothing listening, so the title, the
+  /// position, and the Shuffle and Repeat icons in the notification froze until
+  /// the app was restarted.
+  ///
+  /// Now the listener and the ticker stay attached: stop pauses playback
+  /// through PlayerService so its own state stays consistent, then re-syncs
+  /// the MediaSession right away instead of waiting for the next event.
+  ///
+  /// super.stop() is intentionally not called. It sets processingState to idle,
+  /// which makes audio_service stop the Android service and hides the
+  /// notification, and it awaits a playback state that is idle, which can never
+  /// arrive once the sync below pushes processingState back to ready. Pausing
+  /// instead keeps the notification alive, showing the play button, so
+  /// playback can start again from the notification or from the UI and the
+  /// notification keeps moving.
   @override
   Future<void> stop() async {
-    // Release the listener and ticker through the shared helper,
-    // then hand over to the base class to finish the stop.
-    disposeHandler();
-    await super.stop();
+    if (_disposed) return;
+    final ps = PlayerService.instance;
+    try {
+      // Use the PlayerService pause path (with its fade and its own listener
+      // bookkeeping) rather than touching the player directly.
+      if (ps.player.playing) {
+        await ps.togglePlayPause();
+      }
+    } catch (e) {
+      debugPrint('MediaSession stop failed: $e');
+    }
+    if (_disposed) return;
+    // Push the paused state into the notification now, so the button flips to
+    // play even if PlayerService did not notify on this path.
+    _syncState();
   }
 }

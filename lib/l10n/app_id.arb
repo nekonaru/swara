@@ -2065,5 +2065,25 @@
                                                            "type":  "String"
                                                        }
                                              }
-                        }
+                        },
+    "playerLyricTiming":  "Waktu lirik",
+    "@playerLyricTiming":  {
+                           "description":  "Label kontrol offset lirik"
+                       },
+    "playerLyricTimingEarlier":  "Geser lirik 100 ms lebih awal",
+    "@playerLyricTimingEarlier":  {
+                                   "description":  "Tooltip geser lirik lebih awal"
+                               },
+    "playerLyricTimingLater":  "Geser lirik 100 ms lebih lambat",
+    "@playerLyricTimingLater":  {
+                                 "description":  "Tooltip geser lirik lebih lambat"
+                             },
+    "eqActive":  "EQ aktif",
+    "@eqActive":  {
+                    "description":  "Status equalizer aktif"
+                },
+    "eqUnavailable":  "EQ tidak tersedia di perangkat ini",
+    "@eqUnavailable":  {
+                         "description":  "Status equalizer tidak tersedia"
+                     }
 }

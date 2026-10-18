@@ -54,6 +54,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // the save future is awaited and input is disabled while saving.
   bool _savingPrefs = false;
 
+  // Local mirror of the 5 custom EQ gains, so a slider drag only repaints.
+  // Every pref write and every platform call happens on onChangeEnd, once the
+  // finger is up. See _eqDraft.
+  final List<double> _eqDraft = [0, 0, 0, 0, 0];
+  bool _eqDraftReady = false;
+
+  // Lazily seeds the drag draft from the persisted gains.
+  List<double> _eqDraftFrom(ThemeProvider theme) {
+    if (!_eqDraftReady) {
+      _eqDraft
+        ..clear()
+        ..addAll(theme.customEqGains);
+      _eqDraftReady = true;
+    }
+    return _eqDraft;
+  }
+
+  // Forget the draft so it is re-seeded from prefs on the next build, used when
+  // the preset changes from outside the sliders.
+  void _resetEqDraft() {
+    _eqDraftReady = false;
+  }
+
   // State for the Data section (backup export/import + art cache).
   bool _busyData = false;
   bool _loadingArt = false;
@@ -609,6 +632,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // -- EQUALIZER --
           _SectionHeader(l10n.settingsEqualizer),
+          // Live state of the DSP. isReady is false until the device actually
+          // reported usable bands, so this must not claim "Active" blindly.
+          Builder(builder: (context) {
+            final ready = EqualizerService.instance.isReady;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: ready
+                          ? Colors.green
+                          : Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    ready
+                        ? AppLocalizations.of(context)!.eqActive
+                        : AppLocalizations.of(context)!.eqUnavailable,
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            );
+          }),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Text(
@@ -631,6 +684,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? null
                       : (_) => _savePrefs(() async {
                             await themeProvider.setEqualizerPreset(preset);
+                            setState(_resetEqDraft);
                             if (preset == 'Custom') {
                               await EqualizerService.instance.applyCustom(
                                   themeProvider.customEqGains);
@@ -651,7 +705,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Column(
                 children: List.generate(5, (i) {
-                  final gains = themeProvider.customEqGains;
+                  final gains = _eqDraftFrom(themeProvider);
                   return Row(
                     children: [
                       SizedBox(
@@ -666,13 +720,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           max: 6,
                           divisions: 24,
                           label: '${gains[i].toStringAsFixed(1)} dB',
-                          onChanged: (v) async {
-                            final updated = List.of(gains);
-                            updated[i] = v;
+                          // Drag only repaints: no prefs write, no platform
+                          // call per frame. The service throttles and
+                          // serializes applies, so even a burst of ticks could
+                          // not race, but the drag should stay smooth.
+                          onChanged: (v) => setState(() => gains[i] = v),
+                          // Finger up: persist and commit the final curve.
+                          onChangeEnd: (v) => _savePrefs(() async {
+                            final updated = List.of(gains)..[i] = v;
                             await themeProvider.setCustomEqGains(updated);
                             await EqualizerService.instance
                                 .applyCustom(updated);
-                          },
+                          }),
                         ),
                       ),
                       SizedBox(
@@ -693,7 +752,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: _EqVisualizer(
               preset: themeProvider.equalizerPreset,
-              customGains: themeProvider.customEqGains,
+              customGains: _eqDraftFrom(themeProvider),
             ),
           ),
           const Divider(),

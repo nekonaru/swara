@@ -62,6 +62,7 @@
 | 🛏️ **Jadwal tidur harian** | Sleep timer 30 menit otomatis tiap hari pada jam pilihan |
 | ⚡ **Database lebih cepat** | Mode WAL, pragma di optimasi, dan index yang cocok agar sort dan lompat tetap instan |
 | 🧹 **Bersihkan riwayat** | Pembersihan riwayat pendengaran lama opsional dengan konfirmasi di Pengaturan |
+| ⏱️ **Waktu lirik** | Membaca tag offset dari file .lrc plus penggeser manual 100 ms |
 | 📥 **Import M3U** | Import playlist dari file .m3u, dicocokkan ke library |
 | 📤 **Export M3U** | Export playlist ke file .m3u untuk pemutar lain |
 | 🔁 **Ulangi A-B** | Ulangi segmen lagu untuk latihan |

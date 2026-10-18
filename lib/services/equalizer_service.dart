@@ -55,11 +55,27 @@ class EqualizerService {
   /// switching until the settings screen is reopened.
   static const Duration _pluginTimeout = Duration(milliseconds: 2500);
 
+  /// Slider drags fire roughly 60 events per second. Applying each one would
+  /// queue a burst of platform calls and write to prefs on every frame, so
+  /// requests that arrive inside this window collapse into one apply that uses
+  /// the newest preset and gains. A trailing apply is always queued, so the
+  /// value the user stops dragging at is never dropped.
+  static const Duration _applyThrottle = Duration(milliseconds: 150);
+
   int? _sessionId;
   bool _ready = false;
   String _preset = 'Flat';
   // Live gains for the Custom preset, set via applyCustom.
   List<double> _customGains = [0, 0, 0, 0, 0];
+
+  // Serializes band applications. Each apply is chained onto [_chain], so two
+  // of them can never touch the platform at the same time.
+  Future<void> _chain = Future<void>.value();
+  // Applies currently queued or running, used by [_flushApply] to wait for
+  // the pending work without polling.
+  final Set<Future<void>> _inFlight = <Future<void>>{};
+  Timer? _applyTimer;
+  bool _applyQueued = false;
 
   String get preset => _preset;
   bool get isReady => _ready;
@@ -88,6 +104,44 @@ class EqualizerService {
     }
   }
 
+  /// Request a band application, throttled.
+  ///
+  /// The timer restarts on every request, so a burst of slider events results
+  /// in one single apply once the user pauses for [_applyThrottle]. Because
+  /// [_applyBandsNow] reads [_preset] and [_customGains] at run time, that one
+  /// apply always carries the last requested values (last write wins).
+  void _scheduleApply() {
+    _applyQueued = true;
+    _applyTimer?.cancel();
+    _applyTimer = Timer(_applyThrottle, _drainApply);
+  }
+
+  /// Hand the pending request to the serialization chain.
+  void _drainApply() {
+    _applyTimer?.cancel();
+    _applyTimer = null;
+    if (!_applyQueued) return;
+    _applyQueued = false;
+    final pending = _chain.then((_) => _applyBandsNow());
+    _chain = pending.catchError((Object e) {
+      debugPrint('Equalizer apply failed: $e');
+    });
+    _inFlight.add(pending);
+    unawaited(pending.whenComplete(() => _inFlight.remove(pending)));
+  }
+
+  /// Force the pending apply out immediately and wait for it.
+  ///
+  /// Used by the callers that must be able to promise "the curve is applied
+  /// when this returns" (attach, preset switch, slider release).
+  Future<void> _flushApply() async {
+    while (true) {
+      if (_applyTimer != null || _applyQueued) _drainApply();
+      if (_inFlight.isEmpty) return;
+      await Future.wait(List<Future<void>>.of(_inFlight));
+    }
+  }
+
   /// Attach the effect to [player]'s audio session. Call after the
   /// player has a source (session id is null before that).
   /// Returns true when the effect is attached.
@@ -95,7 +149,8 @@ class EqualizerService {
     final sessionId = player.androidAudioSessionId;
     if (sessionId == null) return false;
     if (_ready && sessionId == _sessionId) {
-      await _applyBands();
+      _scheduleApply();
+      await _flushApply();
       return true;
     }
     await release();
@@ -113,7 +168,8 @@ class EqualizerService {
     }
     _sessionId = sessionId;
     _ready = true;
-    await _applyBands();
+    _scheduleApply();
+    await _flushApply();
     return true;
   }
 
@@ -121,7 +177,8 @@ class EqualizerService {
   Future<void> applyPreset(String name) async {
     _preset = name;
     if (!_ready) return;
-    await _applyBands();
+    _scheduleApply();
+    await _flushApply();
   }
 
   /// Apply user slider gains as the Custom preset. Always treated as a
@@ -131,10 +188,11 @@ class EqualizerService {
     _customGains = List<double>.generate(
         5, (i) => i < gains.length ? gains[i] : 0.0);
     if (!_ready) return;
-    await _applyBands();
+    _scheduleApply();
+    await _flushApply();
   }
 
-  Future<void> _applyBands() async {
+  Future<void> _applyBandsNow() async {
     if (_preset == 'Flat') {
       _fire(() => EqualizerFlutter.setEnabled(false), 'disable');
       return;
@@ -170,6 +228,10 @@ class EqualizerService {
   }
 
   Future<void> release() async {
+    // Drop a pending throttled apply, the effect is going away anyway.
+    _applyTimer?.cancel();
+    _applyTimer = null;
+    _applyQueued = false;
     if (!_ready) return;
     _fire(() => EqualizerFlutter.release(), 'release');
     _ready = false;

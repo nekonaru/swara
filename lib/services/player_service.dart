@@ -1144,9 +1144,17 @@ class PlayerService extends ChangeNotifier {
 
   /// Load the play counts used by smart shuffle from the listening history.
   /// The Song model carries no play count or last played field, so the counts
-  /// come from DBHelper.getTopSongIdsSince. Fire and forget: on failure the
-  /// previous (or empty) map stays in place and smart shuffle falls back to a
-  /// plain shuffle.
+  /// come from DBHelper.getTopSongIdsSince.
+  ///
+  /// The last played stamps are loaded here too. They used to be filled only
+  /// by [_markSongPlayed] while the app ran, so every launch started with an
+  /// empty map: each song scored the maximum staleness and the staleness half
+  /// of the weight did nothing at all. Both maps now come from the database on
+  /// the same pass, and [_markSongPlayed] still overwrites an entry the moment
+  /// a song starts, so a song played in this session is never stale.
+  ///
+  /// Fire and forget: on failure the previous (or empty) maps stay in place
+  /// and smart shuffle falls back to a plain shuffle.
   // TODO L10N: no user facing string added here, English only.
   Future<void> refreshSmartShuffleStats() async {
     try {
@@ -1155,6 +1163,16 @@ class PlayerService extends ChangeNotifier {
         limit: 500,
       );
       _playCounts = {for (final e in rows) e.key: e.value};
+      final stamps = await DBHelper.instance.getLastPlayedStamps(limit: 500);
+      // Merge, never replace: a song already played in this session has an in
+      // memory stamp from _markSongPlayed that is newer than the row on disk,
+      // so only fill a missing entry or one that the database moved forward.
+      for (final entry in stamps.entries) {
+        final current = _lastPlayTimes[entry.key];
+        if (current == null || entry.value.isAfter(current)) {
+          _lastPlayTimes[entry.key] = entry.value;
+        }
+      }
     } catch (e) {
       debugPrint('Smart shuffle stats load failed: $e');
     }

@@ -3236,6 +3236,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not play this song: {error}'**
   String historyPlayFailed(String error);
+
+  /// Lyric offset control label
+  ///
+  /// In en, this message translates to:
+  /// **'Lyric timing'**
+  String get playerLyricTiming;
+
+  /// Shift lyrics earlier tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Shift lyrics 100 ms earlier'**
+  String get playerLyricTimingEarlier;
+
+  /// Shift lyrics later tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Shift lyrics 100 ms later'**
+  String get playerLyricTimingLater;
+
+  /// Equalizer active status
+  ///
+  /// In en, this message translates to:
+  /// **'EQ active'**
+  String get eqActive;
+
+  /// Equalizer unavailable status
+  ///
+  /// In en, this message translates to:
+  /// **'EQ unavailable on this device'**
+  String get eqUnavailable;
 }
 
 class _AppLocalizationsDelegate

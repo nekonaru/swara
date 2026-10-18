@@ -2065,5 +2065,25 @@
                                                            "type":  "String"
                                                        }
                                              }
-                        }
+                        },
+    "playerLyricTiming":  "Lyric timing",
+    "@playerLyricTiming":  {
+                           "description":  "Lyric offset control label"
+                       },
+    "playerLyricTimingEarlier":  "Shift lyrics 100 ms earlier",
+    "@playerLyricTimingEarlier":  {
+                                   "description":  "Shift lyrics earlier tooltip"
+                               },
+    "playerLyricTimingLater":  "Shift lyrics 100 ms later",
+    "@playerLyricTimingLater":  {
+                                 "description":  "Shift lyrics later tooltip"
+                             },
+    "eqActive":  "EQ active",
+    "@eqActive":  {
+                    "description":  "Equalizer active status"
+                },
+    "eqUnavailable":  "EQ unavailable on this device",
+    "@eqUnavailable":  {
+                         "description":  "Equalizer unavailable status"
+                     }
 }

@@ -70,33 +70,49 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Writes are chained so two quick taps cannot land out of order.
+  //
+  // Without this, each setter awaited getInstance() on its own and the slower
+  // write could finish last, leaving the stored value disagreeing with what
+  // the screen showed until the next app restart.
+  Future<void> _writeChain = Future<void>.value();
+
+  Future<void> _write(Future<void> Function(SharedPreferences) op) {
+    _writeChain = _writeChain.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await op(prefs);
+    }).catchError((Object e) {
+      debugPrint('ThemeProvider write failed: $e');
+    });
+    return _writeChain;
+  }
+
   Future<void> setThemeMode(ThemeMode mode) async {
     themeMode = mode;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, mode.name);
+    await _write((prefs) => prefs.setString(_prefsKey, mode.name));
   }
 
   Future<void> setAccentColor(int index) async {
     accentColorIndex = index.clamp(0, kAccentColors.length - 1);
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_accentKey, accentColorIndex);
+    await _write((prefs) => prefs.setInt(_accentKey, accentColorIndex));
   }
 
   Future<void> setEqualizerPreset(String preset) async {
     equalizerPreset = preset;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_equalizerPresetKey, preset);
+    await _write(
+        (prefs) => prefs.setString(_equalizerPresetKey, preset));
   }
 
   // Persist the selected text scale and notify listeners at once.
   Future<void> setTextScale(double scale) async {
-    textScale = scale;
+    // Validate against the same whitelist load() uses, so a value that is
+    // not an offered option cannot be stored and then silently reset later.
+    textScale = kTextScales.contains(scale) ? scale : 1.0;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_textScaleKey, scale);
+    await _write((prefs) => prefs.setDouble(_textScaleKey, textScale));
   }
 
   // Read the stored custom gains, falling back to flat on bad data.
@@ -117,9 +133,8 @@ class ThemeProvider extends ChangeNotifier {
         5, (i) => i < gains.length ? gains[i].clamp(-6.0, 6.0) : 0.0);
     customEqGains = fixed;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-        _customEqGainsKey, fixed.map((g) => g.toString()).toList());
+    await _write((prefs) => prefs.setStringList(
+        _customEqGainsKey, fixed.map((g) => g.toString()).toList()));
   }
 
   // Toggle the pitch black dark theme variant and persist it.

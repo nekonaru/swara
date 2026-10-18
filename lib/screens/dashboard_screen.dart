@@ -177,14 +177,39 @@ class DashboardScreenState extends State<DashboardScreen> {
 
       final results = await Future.wait(futures);
       final daily = results[0] as Map<DateTime, int>;
-      final topSongs = results[1] as List<MapEntry<int, int>>;
+      final rawTopSongs = results[1] as List<MapEntry<int, int>>;
       final topArtists = results[2] as List<MapEntry<String, int>>;
       final genreDist = results[3] as Map<String, int>;
-      final allSongs = results[4] as List<Song>;
-      final neverPlayed = results[5] as List<Song>;
-      final yearTopSongs = results[6] as List<MapEntry<int, int>>;
+      final dbSongs = results[4] as List<Song>;
+      final neverPlayedFromDb = results[5] as List<Song>;
+      final rawYearTopSongs = results[6] as List<MapEntry<int, int>>;
       final yearTopArtists = results[7] as List<MapEntry<String, int>>;
       final yearMs = results[8] as int;
+      // Hidden folders must not show up in the dashboard either. The DB has
+      // no idea they are hidden, so apply the same rule the library uses.
+      // Otherwise the dashboard counts more songs than the library shows, and
+      // "play all" would start songs the user deliberately hid.
+      final excluded = await DBHelper.instance.getExcludedFolders();
+      bool visible(Song s) =>
+          excluded.isEmpty || !excluded.contains(folderOf(s.filePath));
+      final allSongs =
+          excluded.isEmpty ? dbSongs : dbSongs.where(visible).toList();
+      final neverPlayed = excluded.isEmpty
+          ? neverPlayedFromDb
+          : neverPlayedFromDb.where(visible).toList();
+      final hiddenIds = <int>{
+        for (final s in dbSongs)
+          if (!visible(s)) s.id,
+      };
+      // Top songs are keyed by song id so hidden ones can be dropped. The
+      // genre chart is a per genre aggregate with no song key, so it is left
+      // alone rather than guessing which genres belong only to hidden songs.
+      final topSongs = hiddenIds.isEmpty
+          ? rawTopSongs
+          : rawTopSongs.where((e) => !hiddenIds.contains(e.key)).toList();
+      final yearTopSongs = hiddenIds.isEmpty
+          ? rawYearTopSongs
+          : rawYearTopSongs.where((e) => !hiddenIds.contains(e.key)).toList();
       // Named offsets into the conditional summary block.
       final summaryStart = detailFutures.length;
       final totalMsIndex = summaryStart;

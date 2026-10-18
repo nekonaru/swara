@@ -62,6 +62,7 @@
 | 🛏️ **Daily sleep schedule** | Auto start a 30 minute sleep timer at a chosen time every day |
 | ⚡ **Faster database** | WAL mode, tuned pragmas, and matching indexes so sorting and jumping stay instant |
 | 🧹 **History cleanup** | Optional, you-confirmed cleanup of old listening history in Settings |
+| ⏱️ **Lyric timing** | Reads the offset tag from .lrc files and lets you nudge lyrics by 100 ms |
 | 📥 **M3U import/export** | Import playlists from .m3u files, export them back out |
 | 🔁 **A-B repeat** | Loop any song segment for practice |
 | ✏️ **Bulk edit** | Edit genre and artist across many songs at once |

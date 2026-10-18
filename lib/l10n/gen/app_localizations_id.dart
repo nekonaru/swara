@@ -1839,4 +1839,19 @@ class AppLocalizationsId extends AppLocalizations {
   String historyPlayFailed(String error) {
     return 'Tidak bisa memutar lagu ini: $error';
   }
+
+  @override
+  String get playerLyricTiming => 'Waktu lirik';
+
+  @override
+  String get playerLyricTimingEarlier => 'Geser lirik 100 ms lebih awal';
+
+  @override
+  String get playerLyricTimingLater => 'Geser lirik 100 ms lebih lambat';
+
+  @override
+  String get eqActive => 'EQ aktif';
+
+  @override
+  String get eqUnavailable => 'EQ tidak tersedia di perangkat ini';
 }

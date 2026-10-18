@@ -1838,4 +1838,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String historyPlayFailed(String error) {
     return 'Could not play this song: $error';
   }
+
+  @override
+  String get playerLyricTiming => 'Lyric timing';
+
+  @override
+  String get playerLyricTimingEarlier => 'Shift lyrics 100 ms earlier';
+
+  @override
+  String get playerLyricTimingLater => 'Shift lyrics 100 ms later';
+
+  @override
+  String get eqActive => 'EQ active';
+
+  @override
+  String get eqUnavailable => 'EQ unavailable on this device';
 }

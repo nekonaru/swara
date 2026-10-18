@@ -35,13 +35,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // Synced (LRC) lyrics state. Lines load once per song from the DB,
   // then a positionStream listener highlights the active line.
   final ScrollController _lrcScrollController = ScrollController();
-  final Map<int, GlobalKey> _lrcLineKeys = {};
   StreamSubscription<Duration>? _lrcPositionSub;
   List<LrcLine> _lrcLines = [];
   int _lrcIndex = -1;
   int? _lrcSongId;
   bool _lrcLoading = false;
   bool _syncedMode = true;
+  // Timing shift declared by the LRC file itself, in milliseconds.
+  int _lrcFileOffsetMs = 0;
+  // User correction applied on top of the file offset, in milliseconds.
+  // Reset to 0 whenever the song changes, because a correction that fits
+  // one song never fits the next one.
+  int _lrcManualOffsetMs = 0;
+
+  /// Fixed height of a single synced lyric row. The list uses this as its
+  /// itemExtent, so the scroll estimate below is always exact.
+  static const double _kLrcLineHeight = 44;
+  /// Vertical target of the active row inside the viewport (0 top, 1 bottom).
+  static const double _kLrcTargetAlignment = 0.4;
+  static const int _kLrcOffsetStepMs = 100;
 
   @override
   void dispose() {
@@ -332,7 +344,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     setState(() => _isFetchingLyrics = false);
     // fetchLyricsOnly also refreshes the synced store, so reload the lines.
     _lrcSongId = null;
-    _lrcLineKeys.clear();
     await _maybeLoadSyncedLyrics(song);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -366,7 +377,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _lrcLoading = true;
     _lrcLines = [];
     _lrcIndex = -1;
-    _lrcLineKeys.clear();
+    _lrcFileOffsetMs = 0;
+    // A manual correction belongs to one song only, so drop it here.
+    _lrcManualOffsetMs = 0;
     _stopLrcFollow();
     try {
       final lrc = await DBHelper.instance.getSyncedLyrics(song.id);
@@ -377,6 +390,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _lrcLoading = false;
         _lrcLines = lines;
         _lrcIndex = -1;
+        // parseLrc already folded this into the timestamps; keep the value
+        // for display and for the manual offset readout.
+        _lrcFileOffsetMs =
+            (lrc == null || lrc.isEmpty) ? 0 : (parseLrcOffsetMs(lrc.split('\n')) ?? 0);
         // Default to synced view when lines exist, plain text otherwise.
         _syncedMode = lines.isNotEmpty;
       });
@@ -420,11 +437,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
+  /// Total timing shift in effect: file offset plus the manual correction.
+  int get _lrcTotalOffsetMs => _lrcFileOffsetMs + _lrcManualOffsetMs;
+
   /// Index of the last line whose timestamp is at or before [positionMs].
+  ///
+  /// The file offset is already baked into [_lrcLines], so only the manual
+  /// correction has to be applied here: it is equivalent to adding it to
+  /// every timestamp, so we subtract it from the playback position.
   int _lrcIndexFor(int positionMs) {
+    final effectiveMs = positionMs - _lrcManualOffsetMs;
     var idx = -1;
     for (var i = 0; i < _lrcLines.length; i++) {
-      if (_lrcLines[i].timeMs <= positionMs) {
+      if (_lrcLines[i].timeMs <= effectiveMs) {
         idx = i;
       } else {
         break;
@@ -433,19 +458,40 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return idx;
   }
 
-  /// Bring line [idx] into view after the highlight rebuild settles.
+  /// Scroll so that line [idx] sits near the upper third of the viewport.
+  ///
+  /// Uses the controller and the fixed row height instead of
+  /// Scrollable.ensureVisible with a GlobalKey: with ListView.builder the
+  /// far off-screen rows are never built, so their context is null and the
+  /// ensureVisible call silently does nothing on long lyrics.
   void _scrollToLrcLine(int idx) {
     if (idx < 0) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_lrcScrollController.hasClients) return;
-      final ctx = _lrcLineKeys[idx]?.currentContext;
-      if (ctx == null) return;
-      Scrollable.ensureVisible(
-        ctx,
+      if (!_syncedMode || _lrcLines.isEmpty) return;
+      final position = _lrcScrollController.position;
+      final viewport = position.viewportDimension;
+      final maxScroll = position.maxScrollExtent;
+      if (!viewport.isFinite || viewport <= 0) return;
+      final target = (idx * _kLrcLineHeight - viewport * _kLrcTargetAlignment)
+          .clamp(0.0, maxScroll.isFinite ? maxScroll : 0.0);
+      if ((position.pixels - target).abs() < 1) return;
+      _lrcScrollController.animateTo(
+        target,
         duration: const Duration(milliseconds: 350),
-        alignment: 0.4,
+        curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  /// Nudge the manual timing correction by [deltaMs] and re-evaluate the
+  /// active line immediately so the highlight and the list stay in sync.
+  void _nudgeLrcOffset(int deltaMs) {
+    if (!_syncedMode || _lrcLines.isEmpty) return;
+    setState(() => _lrcManualOffsetMs += deltaMs);
+    final idx = _lrcIndexFor(_player.player.position.inMilliseconds);
+    setState(() => _lrcIndex = idx);
+    _scrollToLrcLine(idx);
   }
 
   Future<void> _addLyricsManually(Song song) async {
@@ -582,31 +628,104 @@ class _PlayerScreenState extends State<PlayerScreen> {
             onSelectionChanged: (s) => _setSyncedMode(s.first),
           ),
         ),
+        _buildLrcOffsetControl(),
         Expanded(child: body),
       ],
     );
   }
 
+  /// Small manual timing correction row shown only for synced lyrics.
+  ///
+  /// Lets the user fix a wrong or missing `[offset:]` tag by 100 ms steps.
+  /// The value shown is the file offset plus the manual correction, so the
+  /// user can see the total shift currently in effect.
+  Widget _buildLrcOffsetControl() {
+    if (!_syncedMode || _lrcLines.isEmpty) return const SizedBox.shrink();
+    final totalMs = _lrcTotalOffsetMs;
+    final totalLabel = '${totalMs >= 0 ? '+' : '-'}${totalMs.abs()} ms';
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.playerLyricTiming,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+          const SizedBox(width: 8),
+          _buildOffsetButton(
+            icon: Icons.remove,
+            tooltip: AppLocalizations.of(context)!.playerLyricTimingEarlier,
+            onPressed: () => _nudgeLrcOffset(-_kLrcOffsetStepMs),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 76,
+            child: Text(
+              totalLabel,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildOffsetButton(
+            icon: Icons.add,
+            tooltip: AppLocalizations.of(context)!.playerLyricTimingLater,
+            onPressed: () => _nudgeLrcOffset(_kLrcOffsetStepMs),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOffsetButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: tooltip,
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        icon: Icon(icon, size: 18),
+      ),
+    );
+  }
+
   /// Synced lyrics list with the active line highlighted and kept visible.
+  ///
+  /// Every row uses the same fixed [_kLrcLineHeight] and the list sets
+  /// itemExtent to match, so the offset math in [_scrollToLrcLine] stays
+  /// exact no matter how long the lyrics are.
   Widget _buildSyncedLyricsView() {
     return ListView.builder(
       key: ValueKey('synced_$_lrcSongId'),
       controller: _lrcScrollController,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       itemCount: _lrcLines.length,
+      itemExtent: _kLrcLineHeight,
       itemBuilder: (context, i) {
         final line = _lrcLines[i];
         final active = i == _lrcIndex;
-        final key = _lrcLineKeys.putIfAbsent(i, () => GlobalKey());
         return Container(
-          key: key,
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          alignment: Alignment.center,
           child: Text(
             line.text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: active ? 18 : 15,
-              height: 1.6,
+              // Fixed size so the row height never depends on the content.
+              fontSize: 16,
+              height: 1.25,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
               color: active
                   ? Theme.of(context).colorScheme.primary

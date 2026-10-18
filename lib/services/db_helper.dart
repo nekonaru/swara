@@ -640,14 +640,77 @@ class DBHelper {
     await database.insert('listening_entries', e.toMap());
   }
 
+  /// Last heard moment per song, newest first, capped at [limit] songs.
+  ///
+  /// Smart shuffle needs the last play time of every song for its staleness
+  /// weight. That used to live only in memory in PlayerService, so a restart
+  /// left every song with a null stamp, every song scored 1.0 staleness, and
+  /// 40 percent of the weight became a no-op. Reading it back here keeps the
+  /// feature working on the very first shuffle after a launch.
+  ///
+  /// Details that matter for restored backups:
+  /// - ordering goes through julianday(), never a string compare, because the
+  ///   table can hold short forms (2024-01-02) and timezone offsets
+  ///   (...+07:00) next to full local ISO8601 strings. This is the same
+  ///   reasoning as the age pass of pruneListeningEntries.
+  /// - the value is converted from the Julian day number in Dart with a
+  ///   tryParse style guard on the numeric result, so a corrupt row is skipped
+  ///   instead of failing the whole load.
+  ///
+  /// [limit] defaults to 500 to match the cap used for the play counts in
+  /// PlayerService.refreshSmartShuffleStats: on a large library both maps are
+  /// built from the same 500 songs, so the weighting stays consistent.
+  Future<Map<int, DateTime>> getLastPlayedStamps({int limit = 500}) async {
+    final safeLimit = limit < 1 ? 500 : limit;
+    final database = await db;
+    final rows = await database.rawQuery('''
+      SELECT songId, MAX(julianday(timestamp)) AS latest
+      FROM listening_entries
+      WHERE songId IS NOT NULL AND julianday(timestamp) IS NOT NULL
+      GROUP BY songId
+      ORDER BY latest DESC
+      LIMIT ?
+    ''', [safeLimit]);
+
+    // 2440587.5 is the Julian day number of 1970-01-01T00:00:00Z, the Unix
+    // epoch, so this is the standard day number to millisecond conversion.
+    const epochJulianDay = 2440587.5;
+    const msPerDay = 86400000.0;
+
+    final result = <int, DateTime>{};
+    for (final r in rows) {
+      final songId = (r['songId'] as num?)?.toInt();
+      if (songId == null) continue;
+      final latest = (r['latest'] as num?)?.toDouble();
+      if (latest == null) continue;
+      if (latest.isNaN || latest.isInfinite) continue;
+      final stamp = DateTime.fromMillisecondsSinceEpoch(
+        ((latest - epochJulianDay) * msPerDay).round(),
+        isUtc: true,
+      ).toLocal();
+      if (stamp.millisecondsSinceEpoch <= 0) continue;
+      result[songId] = stamp;
+    }
+    return result;
+  }
+
   /// Total ms listened per day for the last 7 days (for the dashboard chart)
   Future<Map<DateTime, int>> getDailyListeningLast7Days() async {
     final database = await db;
     final since = DateTime.now().subtract(const Duration(days: 6));
     final sinceStr =
         DateTime(since.year, since.month, since.day).toIso8601String();
-    final rows = await database.query('listening_entries',
-        where: 'timestamp >= ?', whereArgs: [sinceStr]);
+    // julianday() instead of a string compare: a restored backup can hold short
+    // forms (2024-01-02) or timezone offsets (...+07:00) next to full local
+    // ISO8601 strings, and those do not sort correctly as plain text. This is
+    // the same comparison pruneListeningEntries uses, see pass 2 there.
+    // The cost is that idx_listening_ts cannot serve this range scan; the
+    // window is seven days, so the scan stays small. The schema is unchanged.
+    final rows = await database.rawQuery(
+      'SELECT timestamp, listenedMs FROM listening_entries '
+      'WHERE julianday(timestamp) >= julianday(?)',
+      [sinceStr],
+    );
 
     final Map<DateTime, int> result = {};
     for (int i = 0; i < 7; i++) {
@@ -765,18 +828,18 @@ class DBHelper {
   // Optional label stored per playlist. Empty string means ungrouped.
 
   /// Move one playlist into [folder]. Pass '' to remove it from any folder.
+  ///
+  /// Errors are deliberately not swallowed: the folder move is a user action,
+  /// so a failure has to surface as an error in the caller instead of looking
+  /// like the move silently worked. The signature is unchanged.
   Future<void> setPlaylistFolder(int playlistId, String folder) async {
-    try {
-      final database = await db;
-      await database.update(
-        'playlists',
-        {'folder': folder.trim()},
-        where: 'id = ?',
-        whereArgs: [playlistId],
-      );
-    } catch (_) {
-      // Best effort only, the list still renders without the folder change.
-    }
+    final database = await db;
+    await database.update(
+      'playlists',
+      {'folder': folder.trim()},
+      where: 'id = ?',
+      whereArgs: [playlistId],
+    );
   }
 
   /// Distinct non-empty folder names, sorted A to Z.
@@ -1015,13 +1078,16 @@ class DBHelper {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, 1).toIso8601String();
     final result = await database.rawQuery(
-        'SELECT COALESCE(SUM(listenedMs), 0) as total FROM listening_entries WHERE timestamp >= ?',
+        'SELECT COALESCE(SUM(listenedMs), 0) as total FROM listening_entries '
+        'WHERE julianday(timestamp) >= julianday(?)',
         [start]);
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  /// Top songs filtered by timestamp >= [isoStart].
+  /// Top songs listened to at or after [isoStart].
   /// Same shape as [getTopSongIds], no schema change.
+  /// The date filter compares with julianday(), never as text, for the same
+  /// reason getDailyListeningLast7Days does.
   Future<List<MapEntry<int, int>>> getTopSongIdsSince(String isoStart,
       {int limit = 10}) async {
     final database = await db;
@@ -1029,7 +1095,7 @@ class DBHelper {
     final rows = await database.rawQuery('''
       SELECT songId, COUNT(*) as playCount
       FROM listening_entries
-      WHERE timestamp >= ?
+      WHERE julianday(timestamp) >= julianday(?)
       GROUP BY songId
       ORDER BY playCount DESC
       LIMIT ?
@@ -1040,8 +1106,9 @@ class DBHelper {
         .toList();
   }
 
-  /// Top artists filtered by timestamp >= [isoStart].
+  /// Top artists listened to at or after [isoStart].
   /// Same shape as [getTopArtists], no schema change.
+  /// The date filter compares with julianday(), never as text.
   Future<List<MapEntry<String, int>>> getTopArtistsSince(String isoStart,
       {int limit = 10}) async {
     final database = await db;
@@ -1050,7 +1117,7 @@ class DBHelper {
       SELECT s.artist as artist, COUNT(*) as playCount
       FROM listening_entries le
       JOIN songs s ON s.id = le.songId
-      WHERE le.timestamp >= ?
+      WHERE julianday(le.timestamp) >= julianday(?)
       GROUP BY s.artist
       ORDER BY playCount DESC
       LIMIT ?
@@ -1062,12 +1129,14 @@ class DBHelper {
         .toList();
   }
 
-  /// Total listening time (ms) filtered by timestamp >= [isoStart].
+  /// Total listening time (ms) from [isoStart] onwards.
   /// Same shape as [getTotalListeningMs], no schema change.
+  /// The date filter compares with julianday(), never as text.
   Future<int> getListeningMsSince(String isoStart) async {
     final database = await db;
     final result = await database.rawQuery(
-        'SELECT COALESCE(SUM(listenedMs), 0) as total FROM listening_entries WHERE timestamp >= ?',
+        'SELECT COALESCE(SUM(listenedMs), 0) as total FROM listening_entries '
+        'WHERE julianday(timestamp) >= julianday(?)',
         [isoStart]);
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -1204,6 +1273,7 @@ class DBHelper {
 
   /// Most played genre this month, or null when there is no history yet.
   /// No schema change: joins listening_entries against songs.
+  /// The date filter compares with julianday(), never as text.
   Future<String?> getTopGenreThisMonth() async {
     final database = await db;
     final now = DateTime.now();
@@ -1212,7 +1282,7 @@ class DBHelper {
       SELECT s.genre as genre, COUNT(*) as cnt
       FROM listening_entries le
       JOIN songs s ON s.id = le.songId
-      WHERE le.timestamp >= ? AND s.genre IS NOT NULL AND s.genre != ''
+      WHERE julianday(le.timestamp) >= julianday(?) AND s.genre IS NOT NULL AND s.genre != ''
       GROUP BY s.genre
       ORDER BY cnt DESC
       LIMIT 1
