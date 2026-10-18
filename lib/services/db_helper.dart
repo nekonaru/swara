@@ -562,6 +562,33 @@ class DBHelper {
     await database.update('songs', map, where: 'id = ?', whereArgs: [s.id]);
   }
 
+  /// Update the metadata of many songs in one transaction.
+  ///
+  /// The single row path reads isFavorite per row and the caller reloads the
+  /// whole library per row, so a 500 song bulk edit ran 500 full table reads.
+  /// Here the favorite flags are read once for the whole batch and every
+  /// update commits together.
+  Future<void> updateSongMetadataBulk(List<Song> songs) async {
+    if (songs.isEmpty) return;
+    final database = await db;
+    final ids = songs.map((s) => s.id).toSet().toList();
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final favoriteRows = await database.rawQuery(
+      'SELECT id, isFavorite FROM songs WHERE id IN ($placeholders)',
+      ids,
+    );
+    final favorites = {
+      for (final row in favoriteRows) row['id'] as int: row['isFavorite'],
+    };
+    final batch = database.batch();
+    for (final s in songs) {
+      final map = s.toMap();
+      if (favorites.containsKey(s.id)) map['isFavorite'] = favorites[s.id];
+      batch.update('songs', map, where: 'id = ?', whereArgs: [s.id]);
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<void> setFavorite(int songId, bool value) async {
     final database = await db;
     await database.update('songs', {'isFavorite': value ? 1 : 0},

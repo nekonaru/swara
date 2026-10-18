@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equalizer_flutter/equalizer_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
@@ -62,14 +64,18 @@ class EqualizerService {
   String get preset => _preset;
   bool get isReady => _ready;
 
-  Future<bool> _run(Future<void> Function() op, String what) async {
-    try {
-      await op().timeout(_pluginTimeout);
-      return true;
-    } catch (e) {
+  // Send a command to the plugin WITHOUT waiting for its Future.
+  //
+  // equalizer_flutter 0.0.1 has an incomplete MethodChannel: the native
+  // handler for init, enable, release, setBandLevel and setPreset never calls
+  // result.success or result.error, so the Dart Future for those calls never
+  // completes. Awaiting them always timed out, which left _ready false and
+  // meant no gain ever reached the audio. Readiness is therefore probed with
+  // getCenterBandFreqs, which does reply.
+  void _fire(Future<void> Function() op, String what) {
+    unawaited(op().timeout(_pluginTimeout).then<void>((_) {}).catchError((Object e) {
       debugPrint('Equalizer $what failed: $e');
-      return false;
-    }
+    }));
   }
 
   Future<List<int>?> _getList(
@@ -93,11 +99,16 @@ class EqualizerService {
       return true;
     }
     await release();
-    final attached =
-        await _run(() => EqualizerFlutter.init(sessionId), 'init');
-    if (!attached) {
+    // init never replies, so it is sent without awaiting and readiness is
+    // confirmed through a call that does reply.
+    _fire(() => EqualizerFlutter.init(sessionId), 'init');
+    final probe = await _getList(
+        () => EqualizerFlutter.getCenterBandFreqs(), 'probe freqs');
+    if (probe == null || probe.isEmpty) {
       _ready = false;
       _sessionId = null;
+      debugPrint('Equalizer: no usable band configuration on this device, '
+          'the equalizer stays disabled.');
       return false;
     }
     _sessionId = sessionId;
@@ -125,10 +136,10 @@ class EqualizerService {
 
   Future<void> _applyBands() async {
     if (_preset == 'Flat') {
-      await _run(() => EqualizerFlutter.setEnabled(false), 'disable');
+      _fire(() => EqualizerFlutter.setEnabled(false), 'disable');
       return;
     }
-    await _run(() => EqualizerFlutter.setEnabled(true), 'enable');
+    _fire(() => EqualizerFlutter.setEnabled(true), 'enable');
     final List<double> curve;
     if (_preset == 'Custom') {
       curve = List.of(_customGains);
@@ -136,31 +147,31 @@ class EqualizerService {
       curve = kEqCurves[_preset] ?? kEqCurves['Flat']!;
     }
     var bandCount = 5;
-    var minMb = -1500;
-    var maxMb = 1500;
+    // getBandLevelRange is documented as dB, and setBandLevel takes dB too
+    // (this plugin multiplies by 100 to reach native millibels). The previous
+    // code multiplied by 100 as well, which asked the device for +40 dB and
+    // made every band fail with IllegalArgumentException.
+    var minDb = -15;
+    var maxDb = 15;
     final range =
         await _getList(() => EqualizerFlutter.getBandLevelRange(), 'range');
     if (range != null && range.length >= 2) {
-      minMb = range[0];
-      maxMb = range[1];
+      minDb = range[0];
+      maxDb = range[1];
     }
     final freqs = await _getList(
         () => EqualizerFlutter.getCenterBandFreqs(), 'freqs');
     if (freqs != null && freqs.isNotEmpty) bandCount = freqs.length;
     final gains = resampleCurve(curve, bandCount);
     for (int i = 0; i < bandCount; i++) {
-      // Curve values are relative dB. NOTE: this old plugin divides the
-      // Android millibel range by 100 on read, but setBandLevel still
-      // takes raw millibels, so scale both sides back up here.
-      final mb =
-          (gains[i] * 100).round().clamp(minMb * 100, maxMb * 100);
-      await _run(() => EqualizerFlutter.setBandLevel(i, mb), 'band $i');
+      final db = gains[i].clamp(minDb.toDouble(), maxDb.toDouble()).round();
+      _fire(() => EqualizerFlutter.setBandLevel(i, db), 'band $i');
     }
   }
 
   Future<void> release() async {
     if (!_ready) return;
-    await _run(() => EqualizerFlutter.release(), 'release');
+    _fire(() => EqualizerFlutter.release(), 'release');
     _ready = false;
     _sessionId = null;
   }

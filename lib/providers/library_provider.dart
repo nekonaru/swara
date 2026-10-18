@@ -468,6 +468,14 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   Future<List<Song>> getMostPlayed({int limit = 50}) async {
-    return DBHelper.instance.getMostPlayedSongs(limit: limit);
+    // Hidden folders must not show up here either. The DB query cannot know
+    // about them, so filter afterwards and over fetch to still fill the list.
+    final all = await DBHelper.instance.getMostPlayedSongs(limit: limit * 4);
+    final excluded = await DBHelper.instance.getExcludedFolders();
+    if (excluded.isEmpty) return all.take(limit).toList();
+    return all
+        .where((s) => !excluded.contains(folderOf(s.filePath)))
+        .take(limit)
+        .toList();
   }
 }

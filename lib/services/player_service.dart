@@ -306,7 +306,14 @@ class PlayerService extends ChangeNotifier {
     await _playerStateSub?.cancel();
     await _unsubscribePosition();
     _playerStateSub = _player.playerStateStream.listen((state) {
-      if (state.processingState == ProcessingState.completed && !_usingCrossfadePlayer) {
+      // A running crossfade ends this track on its own and advances the
+      // position itself. Without this guard the natural completion event
+      // fired in the middle of the fade, called next(), bumped the play
+      // generation and aborted the fade loop: an audible jump plus the
+      // incoming song restarting from its first second.
+      if (state.processingState == ProcessingState.completed &&
+          !_usingCrossfadePlayer &&
+          _crossfadeActiveGeneration == -1) {
         _logListening();
         _onTrackFinished();
       }
@@ -318,7 +325,9 @@ class PlayerService extends ChangeNotifier {
     if (standby != null) {
       await _crossfadeStateSub?.cancel();
       _crossfadeStateSub = standby.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed && _usingCrossfadePlayer) {
+        if (state.processingState == ProcessingState.completed &&
+            _usingCrossfadePlayer &&
+            _crossfadeActiveGeneration == -1) {
           _logListening();
           _onTrackFinished();
         }
@@ -466,6 +475,34 @@ class PlayerService extends ChangeNotifier {
   ///
   /// Exposed so the queue screen can leave that song alone while the user
   /// clears everything after the current one.
+  /// Cancel a crossfade that is still in flight because the queue is about to
+  /// change shape.
+  ///
+  /// The fade captured the target slot before it started, so any insert,
+  /// remove or reorder while it runs makes that captured index point at a
+  /// different song. Cancelling is safe: the outgoing player was never
+  /// paused, so playback continues uninterrupted. The standby player is paused
+  /// and its volume restored, otherwise it would keep playing faintly in the
+  /// background.
+  void _abortCrossfadeForQueueEdit() {
+    if (!isCrossfadeActive) return;
+    _cancelCrossfade();
+    _stopStandbyPlayer();
+  }
+
+  /// Pause the standby player and restore its volume, so a cancelled fade
+  /// cannot keep playing faintly in the background.
+  void _stopStandbyPlayer() {
+    final standby = _crossfadePlayer;
+    if (standby == null) return;
+    unawaited(standby.pause().catchError((Object e) {
+      debugPrint('Failed to stop the standby player: $e');
+    }));
+    unawaited(standby.setVolume(1).catchError((Object e) {
+      debugPrint('Failed to restore the standby volume: $e');
+    }));
+  }
+
   int? get pendingCrossfadePosition {
     if (!isCrossfadeActive) return null;
     final next = _computeNextPosition();
@@ -826,6 +863,10 @@ class PlayerService extends ChangeNotifier {
       await setQueueAndPlay([song], 0);
       return;
     }
+    // Inserting right after the current slot would shift the song an in
+    // flight crossfade already captured its target position for, so the fade
+    // would land on the wrong song. Drop the pending transition instead.
+    _abortCrossfadeForQueueEdit();
     queueVersion++;
     _queue.add(song);
     _playOrder.insert(_posInOrder + 1, _queue.length - 1);
@@ -839,6 +880,7 @@ class PlayerService extends ChangeNotifier {
       await setQueueAndPlay([song], 0);
       return;
     }
+    _abortCrossfadeForQueueEdit();
     queueVersion++;
     _queue.add(song);
     _playOrder.add(_queue.length - 1);
@@ -1137,6 +1179,10 @@ class PlayerService extends ChangeNotifier {
     if (a < Duration.zero || a >= b) return false;
     final dur = _activePlayer.duration;
     if (dur != null && (b > dur || a >= dur)) return false;
+    // A crossfade in flight would end this track and silently drop the A-B
+    // segment a moment later, leaving the UI showing a loop that no longer
+    // runs. A deliberate A-B choice wins over a pending automatic fade.
+    _abortCrossfadeForQueueEdit();
     _abRepeatA = a;
     _abRepeatB = b;
     notifyListeners();
@@ -1536,8 +1582,14 @@ class PlayerService extends ChangeNotifier {
     if (decision == _TrackEndDecision.stop) return;
 
     if (decision == _TrackEndDecision.repeatOne) {
+      // Repeat one restarts the same song on the main player. Without bumping
+      // the generation and stopping the standby player, a crossfade that was
+      // still fading in kept playing at a low volume in the background.
+      _playGeneration++;
+      _stopStandbyPlayer();
       _usingCrossfadePlayer = false;
       _cancelCrossfade();
+      _cancelPauseFade();
       if (!crossfadeEnabled) _releaseCrossfadePlayer();
       _playCurrent().then((_) {}, onError: (Object e) {
         debugPrint('Failed repeat-one: $e');

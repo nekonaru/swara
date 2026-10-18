@@ -22,6 +22,16 @@ class ArtCacheService {
   String? _dirPath;
   final Map<String, Future<File?>> _inflight = {};
   final Map<String, String> _knownPaths = {};
+  // Hash to path index built once from the cache directory listing, so the
+  // synchronous build path can answer without touching the disk.
+  final Map<String, String> _knownPathsByHash = {};
+  bool _indexPreloaded = false;
+
+  // The hash portion of the cache file name, used as the index key.
+  String _hashOf(String url) {
+    final name = _fileNameFor(url);
+    return name.substring(4, name.length - 4);
+  }
 
   // Simple non crypto hash of the URL, stable across launches.
   // Two 32 bit lanes are combined to keep collision risk low.
@@ -43,7 +53,10 @@ class ArtCacheService {
     try {
       if (_dirPath != null) {
         final dir = Directory(_dirPath!);
-        if (await dir.exists()) return dir;
+        if (await dir.exists()) {
+          await _preloadIndex(dir);
+          return dir;
+        }
       }
       final tmp = await getTemporaryDirectory();
       final dir = Directory(p.join(tmp.path, 'art_cache'));
@@ -51,33 +64,47 @@ class ArtCacheService {
         await dir.create(recursive: true);
       }
       _dirPath = dir.path;
+      await _preloadIndex(dir);
       return dir;
     } catch (_) {
       return null;
     }
   }
 
-  // Sync fast path for already resolved files. Returns null when the
-  // file is unknown or no longer on disk. Never throws.
-  File? peekSync(String url) {
+  // Fill the url to path index once, so peekSync can stay memory only.
+  // Runs a single time per app run; a failure just means the async resolve
+  // path does the work per cover.
+  Future<void> _preloadIndex(Directory dir) async {
+    if (_indexPreloaded) return;
+    _indexPreloaded = true;
     try {
-      final path = _knownPaths[url];
-      if (path != null) {
-        final file = File(path);
-        if (file.existsSync()) return file;
-        _knownPaths.remove(url);
-      }
-      if (_dirPath != null) {
-        final file = File(p.join(_dirPath!, _fileNameFor(url)));
-        if (file.existsSync() && file.lengthSync() > 0) {
-          _knownPaths[url] = file.path;
-          return file;
-        }
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        final name = p.basename(entity.path);
+        if (!name.startsWith('art_') || !name.endsWith('.jpg')) continue;
+        final hash = name.substring(4, name.length - 4);
+        if (!hash.contains('_')) continue;
+        // Only the path is cached here. Whether the file has content is
+        // confirmed by the async path, so a truncated file is never shown as
+        // a valid image.
+        _knownPathsByHash[hash] = entity.path;
       }
     } catch (_) {
-      // Best effort only.
+      // Best effort index only.
     }
-    return null;
+  }
+
+  // Sync fast path for already resolved files. Memory only on purpose: this
+  // runs from build(), so touching the disk here meant two syscalls per cover
+  // per frame while scrolling. Disk confirmation happens in the async resolve
+  // path, and _cacheDir preloads the index once at startup.
+  File? peekSync(String url) {
+    final path = _knownPaths[url];
+    if (path != null) return File(path);
+    final indexed = _knownPathsByHash[_hashOf(url)];
+    if (indexed == null) return null;
+    _knownPaths[url] = indexed;
+    return File(indexed);
   }
 
   // Resolve the cached file for [url], downloading it once on a miss.
@@ -173,7 +200,13 @@ class ArtCacheService {
         try {
           await f.delete();
           total -= sizes[f.path] ?? 0;
+          // Both indexes must drop the evicted file, otherwise the sync
+          // build path would keep handing out a deleted file.
           _knownPaths.removeWhere((_, v) => v == f.path);
+          final base = p.basename(f.path);
+          if (base.startsWith('art_') && base.endsWith('.jpg')) {
+            _knownPathsByHash.remove(base.substring(4, base.length - 4));
+          }
         } catch (_) {
           // Keep going with the next file.
         }

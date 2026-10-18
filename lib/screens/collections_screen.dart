@@ -43,6 +43,8 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   // that row; it is recreated on the next visit or manual refresh.
   bool _autoSyncing = false;
   bool _autoSynced = false;
+  // Library version the auto playlists were built from.
+  int _autoSyncedVersion = -1;
   // Extra salt added to the date seed when the user taps refresh.
   int _dailySalt = 0;
 
@@ -385,7 +387,13 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   // playlists with the same name are updated in place.
   Future<void> _ensureAutoPlaylists(
       PlaylistProvider prov, LibraryProvider lib) async {
-    if (_autoSynced || _autoSyncing || lib.songs.isEmpty) return;
+    if (_autoSyncing || lib.songs.isEmpty) return;
+    // Key the auto playlist sync to the library version, not to a one time
+    // flag. Hiding a folder or rescanning changes the version, and Daily Mix
+    // or Unplayed would otherwise keep listing songs that are no longer
+    // visible until the app was restarted.
+    if (_autoSynced && _autoSyncedVersion == lib.songsVersion) return;
+    _autoSyncedVersion = lib.songsVersion;
     _autoSyncing = true;
     await _syncDailyMix(prov, lib);
     if (!mounted) return;
@@ -771,9 +779,11 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
 
     return Consumer2<PlaylistProvider, LibraryProvider>(
       builder: (context, playlists, lib, _) {
-        // Sync the auto playlists once the library is available.
-        // Post frame avoids calling provider methods during build.
-        if (!_autoSynced && !_autoSyncing && lib.songs.isNotEmpty) {
+        // Sync the auto playlists whenever the library changed. Post frame
+        // avoids calling provider methods during build.
+        if (!_autoSyncing &&
+            lib.songs.isNotEmpty &&
+            (!_autoSynced || _autoSyncedVersion != lib.songsVersion)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _ensureAutoPlaylists(playlists, lib);
           });

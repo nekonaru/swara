@@ -19,14 +19,41 @@ String normalizeDuplicatePart(String input) {
   return s;
 }
 
-// Pure helper: normalized grouping key in the form "title | artist".
-String duplicateGroupKey(String title, String artist) {
-  return '${normalizeDuplicatePart(title)} | ${normalizeDuplicatePart(artist)}';
+// Pure helper: normalized grouping key "title | artist | album | duration".
+//
+// Album and a coarse duration bucket are part of the key on purpose. With
+// only title and artist, a studio track and a live or remix version of the
+// same song land in one group, and the bulk delete then removes a completely
+// different recording together with its playlist entries and history.
+String duplicateGroupKey(String title, String artist,
+    {String? album, int durationMs = 0}) {
+  // Two seconds of slack absorbs re-encodes and rounding, while still
+  // separating versions whose length differs noticeably.
+  final bucket = (durationMs / 2000).round();
+  return '${normalizeDuplicatePart(title)} | ${normalizeDuplicatePart(artist)}'
+      ' | ${normalizeDuplicatePart(album ?? '')} | $bucket';
 }
 
 // Pure helper: grouping key for one song.
 String duplicateGroupKeyForSong(Song song) {
-  return duplicateGroupKey(song.title, song.artist);
+  return duplicateGroupKey(
+    song.title,
+    song.artist,
+    album: song.album,
+    durationMs: song.durationMs,
+  );
+}
+
+/// Whether [candidate] really is another copy of [keeper] and not a different
+/// recording that happens to share a title. Guard for every delete path.
+bool isSameRecording(Song candidate, Song keeper) {
+  if (normalizeDuplicatePart(candidate.album) !=
+      normalizeDuplicatePart(keeper.album)) {
+    return false;
+  }
+  final delta = (candidate.durationMs - keeper.durationMs).abs();
+  // 2.5 seconds of slack; different versions are far beyond that.
+  return delta < 2500;
 }
 
 // Pure helper: group songs by normalized key, keep only groups of 2 or more.

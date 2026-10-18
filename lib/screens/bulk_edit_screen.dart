@@ -3,6 +3,7 @@ import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
+import '../services/db_helper.dart';
 
 // Bulk edit screen for genre and artist across many songs at once.
 // Empty field means do not change that field for any song.
@@ -51,9 +52,12 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     int failed = 0;
     try {
       final lib = context.read<LibraryProvider>();
+      // Build every updated row first, then write them all in one batch and
+      // reload the library once. The previous per song path reloaded the whole
+      // library for every row, which froze the UI on a large selection.
+      final updates = <Song>[];
       for (final s in widget.songs) {
-        // Build a copy first so the in memory song is only touched on success.
-        final updated = Song(
+        updates.add(Song(
           id: s.id,
           filePath: s.filePath,
           title: s.title,
@@ -68,16 +72,19 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
           isFavorite: s.isFavorite,
           addedAt: s.addedAt,
           metadataScanned: s.metadataScanned,
-        );
-        try {
-          await lib.updateMetadata(updated);
-          // Keep the list item in sync after the DB write succeeds.
+        ));
+      }
+      try {
+        await DBHelper.instance.updateSongMetadataBulk(updates);
+        await lib.loadFromDb();
+        ok = updates.length;
+        // Keep the list items in sync after the write succeeded.
+        for (final s in widget.songs) {
           if (!artist.isEmpty) s.artist = artist;
           if (!genre.isEmpty) s.genre = genre;
-          ok++;
-        } catch (_) {
-          failed++;
         }
+      } catch (_) {
+        failed = widget.songs.length;
       }
     } catch (_) {
       // A provider level failure counts every remaining song as failed.
