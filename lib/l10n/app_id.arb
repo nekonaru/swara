@@ -2085,5 +2085,14 @@
     "eqUnavailable":  "EQ tidak tersedia di perangkat ini",
     "@eqUnavailable":  {
                          "description":  "Status equalizer tidak tersedia"
-                     }
+                     },
+    "searchDidYouMean":  "Maksudmu \"{suggestion}\"?",
+    "@searchDidYouMean":  {
+                            "description":  "Saran ejaan",
+                            "placeholders":  {
+                                                 "suggestion":  {
+                                                               "type":  "String"
+                                                           }
+                                             }
+                        }
 }

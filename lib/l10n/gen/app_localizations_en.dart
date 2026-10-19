@@ -1853,4 +1853,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eqUnavailable => 'EQ unavailable on this device';
+
+  @override
+  String searchDidYouMean(String suggestion) {
+    return 'Did you mean \"$suggestion\"?';
+  }
 }

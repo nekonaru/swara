@@ -3266,6 +3266,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'EQ unavailable on this device'**
   String get eqUnavailable;
+
+  /// Spelling suggestion
+  ///
+  /// In en, this message translates to:
+  /// **'Did you mean \"{suggestion}\"?'**
+  String searchDidYouMean(String suggestion);
 }
 
 class _AppLocalizationsDelegate

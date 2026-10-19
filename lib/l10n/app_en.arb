@@ -2085,5 +2085,14 @@
     "eqUnavailable":  "EQ unavailable on this device",
     "@eqUnavailable":  {
                          "description":  "Equalizer unavailable status"
-                     }
+                     },
+    "searchDidYouMean":  "Did you mean \"{suggestion}\"?",
+    "@searchDidYouMean":  {
+                            "description":  "Spelling suggestion",
+                            "placeholders":  {
+                                                 "suggestion":  {
+                                                               "type":  "String"
+                                                           }
+                                             }
+                        }
 }

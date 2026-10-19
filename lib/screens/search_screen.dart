@@ -47,6 +47,8 @@ class _SearchScreenState extends State<SearchScreen> {
   // Filtered songs for the active query, published from the async search only
   // after the generation check above passes.
   List<Song> _results = const <Song>[];
+  // Spelling hint shown when nothing matched at all, for example "fadde".
+  String? _suggestion;
 
   // LibraryProvider.songsVersion used for the last published search. The
   // version changes on content edits too (a metadata scan that renames rows
@@ -442,31 +444,43 @@ class _SearchScreenState extends State<SearchScreen> {
     final List<Song> matched;
     // Use tolerant matching so separators and token order do not matter.
     // Each filter builds one haystack per song from its own fields.
-    switch (_filter) {
-      case _SearchFilter.lagu:
-        matched = songs
-            .where((s) => fuzzyMatch('${s.title} ${s.artist}', query))
-            .toList();
-        break;
-      case _SearchFilter.album:
-        matched = songs.where((s) => fuzzyMatch(s.album, query)).toList();
-        break;
-      case _SearchFilter.artis:
-        matched = songs.where((s) => fuzzyMatch(s.artist, query)).toList();
-        break;
-      case _SearchFilter.folder:
-        matched = songs.where((s) {
+    //
+    // Two passes: exact substring matches first, then typo tolerant matches
+    // appended after them. Running one loose pass over everything would let a
+    // near miss outrank the song the user actually typed.
+    String haystackFor(Song s) {
+      switch (_filter) {
+        case _SearchFilter.lagu:
+          return '${s.title} ${s.artist}';
+        case _SearchFilter.album:
+          return s.album;
+        case _SearchFilter.artis:
+          return s.artist;
+        case _SearchFilter.folder:
           final parts = s.filePath.split('/');
-          final folderName =
-              parts.length > 1 ? parts[parts.length - 2] : '';
-          return fuzzyMatch(folderName, query);
-        }).toList();
-        break;
-      case _SearchFilter.genre:
-        matched =
-            songs.where((s) => fuzzyMatch(s.genre ?? '', query)).toList();
-        break;
+          return parts.length > 1 ? parts[parts.length - 2] : '';
+        case _SearchFilter.genre:
+          return s.genre ?? '';
+      }
     }
+
+    final exact = <Song>[];
+    final loose = <Song>[];
+    for (final s in songs) {
+      final haystack = haystackFor(s);
+      if (fuzzyMatch(haystack, query)) {
+        exact.add(s);
+      } else if (fuzzyMatchLoose(haystack, query)) {
+        loose.add(s);
+      }
+    }
+    // Only offer a spelling hint when the typo pass found nothing, otherwise
+    // it would nag while real results are on screen.
+    _suggestion = exact.isEmpty && loose.isEmpty
+        ? suggestFor(
+            query, songs.map((s) => '${s.title} ${s.artist} ${s.album}'))
+        : null;
+    matched = exact.isEmpty ? loose : [...exact, ...loose];
     // Safety cap only, never a paging window.
     return matched.length > _resultsLimit
         ? matched.take(_resultsLimit).toList(growable: false)
@@ -769,6 +783,27 @@ class _SearchScreenState extends State<SearchScreen> {
               l.searchNotFound(_query),
               style: TextStyle(fontSize: 13, color: Colors.grey[500]),
             ),
+            // Spelling hint for a near miss, for example "fadde" when the
+            // library has "Faded".
+            if (_suggestion != null) ...[
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () {
+                  final suggestion = _suggestion;
+                  if (suggestion == null) return;
+                  _controller.text = suggestion;
+                  _controller.selection = TextSelection.collapsed(
+                      offset: suggestion.length);
+                  _pendingQuery = suggestion;
+                  _startSearch();
+                },
+                icon: const Icon(Icons.auto_fix_high, size: 18),
+                label: Text(
+                  AppLocalizations.of(context)!
+                      .searchDidYouMean(_suggestion!),
+                ),
+              ),
+            ],
           ],
         ),
       );

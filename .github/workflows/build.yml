@@ -225,32 +225,23 @@ jobs:
           body: |
             # English
 
-            **Swara v2.8.0 - Lyric timing, smoother equalizer, calmer dashboard**
+            **Swara v2.9.0 - Search that forgives typos**
 
             ## ✨ New features
 
-            - **Lyric timing control.** Sync lyrics now read the standard offset tag from .lrc files, which many tracks ship with, and two buttons let you nudge the lyrics by 100 ms in either direction. The correction resets when the song changes, because a timing tuned to one track means nothing on the next.
+            - **Typo tolerant search.** Search now tolerates swapped letters and single mistakes, so "fadde" or "wlaeker" find "Faded" and "Walker". Exact matches always come first, so a near miss can never push the song you actually typed down the list.
+            - **A spelling hint when nothing matches.** If a query returns nothing and a close word exists, the empty state offers it as a one tap suggestion.
 
-            ## 🐛 Bug fixes
+            ## ⚙️ How forgiving it is
 
-            - **Long lyrics now scroll to the active line.** The highlight could move while the visible text stayed frozen, more often the longer the lyric was, because rows outside the viewport were never built.
-            - **The equalizer slider no longer fights itself.** Dragging a band fired dozens of competing writes and a preview repaint per pixel, so the curve could settle on a blend of values instead of the one you chose.
-            - **The equalizer tells you whether it works.** Settings now shows EQ active or EQ unavailable on this device instead of pretending.
-            - **Smart shuffle remembers what you have not played in a while.** After every app restart that half of the ranking was dead, so everything looked equally stale.
-            - **The notification cannot freeze permanently.** A stop request from Android or a headset used to detach the handler for the rest of the session, after which the title, position and shuffle buttons stopped moving.
-            - **Dashboard counts now match what you see.** Songs from folders you hid were still counted, listed and playable, so the dashboard could claim more songs than the library showed.
-            - **Moving a playlist to a folder can no longer fail silently.** A failed move used to close the dialog with no message at all.
-            - **Settings are always saved.** Two quick taps could leave the stored value disagreeing with the screen until the next restart.
-
-            ## ⚡ Performance
-
-            - **Playlist covers are built off the main thread.** Composing one decoded four full resolution images on the UI isolate froze the app for seconds, and the old cache only compared the song count, so a swapped song kept a stale cover.
-            - **Cover art lookups are memory only**, indexed once at startup.
-            - **Playlist collage writes are atomic**, so a kill mid write can no longer leave a half written cover that looks valid.
+            - Short words of four letters or fewer are matched exactly, because allowing one edit there would match most of the dictionary.
+            - Five and six letter words allow one edit, seven letters or more allow two.
+            - Swapped letters count as a single edit. Plain Levenshtein counts them as two, which would have forced a tolerance so loose the search became useless.
+            - Beyond two edits nothing is guessed. A wrong suggestion is worse than no suggestion, and a wrong result is worse than no result.
 
             ## 🧪 Verification
 
-            - 139 tests. New coverage for lyric offset parsing, equalizer serialization, handler teardown, collage fingerprinting and dashboard folder filtering.
+            - 169 tests, with a dedicated suite for the edit distance, the tolerance rules and the suggestion logic.
 
             ## 📦 Install / Update
 
@@ -264,32 +255,23 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.8.0 - Waktu lirik, equalizer lebih halus, dashboard lebih tenang**
+            **Swara v2.9.0 - Search yang memaafkan salah ketik**
 
             ## ✨ Fitur baru
 
-            - **Kontrol waktu lirik.** Lirik sinkron sekarang membaca tag offset standar dari file .lrc, yang dipakai banyak lagu, plus dua tombol untuk menggeser lirik 100 ms ke arah mana pun. Koreksinya kembali ke nol saat lagu berganti, karena 설정 yang dipoles untuk satu track tidak berarti apa-apa di lagu berikutnya.
+            - **Search tahan salah ketik.** Search sekarang memaafkan huruf yang tertukar dan salah ketik tunggal, jadi "fadde" atau "wlaeker" menemukan "Faded" dan "Walker". Hasil yang cocok persis selalu didahulukan, sehingga tebakan yang hanya mendekati tidak bisa mendongkar lagu yang benar-benar kamu ketik.
+            - **Saran ejaan saat tidak ada yang cocok.** Kalau pencarian kosong padahal ada kata yang mirip, layar kosong menawarkan kata itu sebagai saran sekali ketuk.
 
-            ## 🐛 Perbaikan bug
+            ## ⚙️ Seberapa tolerannya
 
-            - **Lirik panjang sekarang ikut bergulir ke baris aktif.** Highlight bisa berubah sementara teks yang terlihat membeku, semakin sering semakin panjang liriknya, karena baris di luar viewport tidak pernah dibangun.
-            - **Slider equalizer tidak lagi melawan dirinya sendiri.** Menggeser satu band memicu puluhan tulisan yang saling menimpa dan gambar ulang tiap pixel, sehingga kurva bisa berhenti di campuran nilai.
-            - **Equalizer memberi tahu apakah ia bekerja.** Pengaturan kini menampilkan EQ aktif atau EQ tidak tersedia di perangkat ini, bukan berpura-pura.
-            - **Acak pintar ingat lagu yang belum kamu dengar lama.** Setelah tiap app ditutup, separuh peringkat ini mati sehingga semua lagu seemed sama basahnya.
-            - **Notifikasi tidak lagi bisa beku selamanya.** Permintaan stop dari Android atau headset dulu melepas handler untuk sisa sesi, setelah itu judul, posisi, dan tombol acak berhenti bergerak.
-            - **Angka dashboard kini sesuai dengan yang kamu lihat.** Lagu dari folder tersembunyi masih ikut dihitung, ditampilkan, dan bisa diputar, sehingga dashboard bisa mengklaim lebih banyak lagu daripada yang library perlihatkan.
-            - **Memindahkan playlist ke folder tidak lagi bisa gagal diam-diam.** Perpindahan yang gagal dulu menutup dialog tanpa pesan apa pun.
-            - **Pengaturan selalu tersimpan.** Dua ketukan cepat bisa membuat nilai tersimpan tidak sesuai dengan layar sampai app ditutup.
-
-            ## ⚡ Performa
-
-            - **Cover playlist dibuat di luar thread utama.** Menggabungkan empat gambar resolusi penuh di UI isolate membekukan app beberapa detik, dan cache lama hanya membandingkan jumlah lagu sehingga lagu yang tertukar memakai cover basi.
-            - **Pencarian cover hanya di memori**, diindeks sekali saat app mulai.
-            - **Penulisan collage bersifat atomik**, jadi proses yang mati di tengah tidak lagi meninggalkan cover setengah jadi yang terbaca utuh.
+            - Kata pendek empat huruf atau lebih pendek dicocokkan persis, karena satu saja sudah akan cocok dengan hampir semua kata.
+            - Kata lima dan enam huruf boleh satu kesalahan, tujuh huruf atau lebih boleh dua.
+            - Huruf yang tertukar dihitung satu kesalahan. Levenshtein biasa menghitungnya dua, dan itu memaksa toleransi yang terlalu longgar sehingga search jadi tidak berguna.
+            - Lebih dari dua kesalahan tidak ditebak. Saran yang salah lebih buruk daripada tidak ada saran, dan hasil yang salah lebih buruk daripada tidak ada hasil.
 
             ## 🧪 Verifikasi
 
-            - 139 test. Cakupan baru untuk parsing offset lirik, serialisasi equalizer, pelepasan handler, sidik jari collage, dan filter folder dashboard.
+            - 169 test, termasuk suite khusus untuk jarak edit, aturan toleransi, dan logika saran.
             ## 📦 Instalasi / Update
 
             Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26).
