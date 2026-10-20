@@ -21,12 +21,17 @@ class LanguageProvider extends ChangeNotifier {
 
   // Loads the saved language code from disk, if any.
   Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_prefsKey);
-    if (saved == 'id') {
-      locale = const Locale('id');
-    } else {
-      // Fall back to English for missing or unrecognized values.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_prefsKey);
+      if (saved == 'id') {
+        locale = const Locale('id');
+      } else {
+        // Fall back to English for missing or unrecognized values.
+        locale = const Locale('en');
+      }
+    } catch (e) {
+      debugPrint('LanguageProvider load failed: $e');
       locale = const Locale('en');
     }
     notifyListeners();
@@ -38,7 +43,11 @@ class LanguageProvider extends ChangeNotifier {
     final code = value.languageCode == 'id' ? 'id' : 'en';
     locale = Locale(code);
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, code);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefsKey, code);
+    } catch (e) {
+      debugPrint('LanguageProvider setLocale failed: $e');
+    }
   }
 }

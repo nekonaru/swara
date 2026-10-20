@@ -117,8 +117,13 @@ class LibraryProvider extends ChangeNotifier {
     await loadFromDb();
 
     // Step 2: check whether a device scan is needed
-    final prefs = await SharedPreferences.getInstance();
-    final lastMs = prefs.getInt(_kLastDeviceScan) ?? 0;
+    int lastMs = 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      lastMs = prefs.getInt(_kLastDeviceScan) ?? 0;
+    } catch (e) {
+      debugPrint('LibraryProvider autoLoadAndScanIfNeeded prefs read failed: $e');
+    }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final elapsed = nowMs - lastMs;
 
@@ -127,7 +132,12 @@ class LibraryProvider extends ChangeNotifier {
 
     // Scan the device (no internet) in the background
     await scanDevice();
-    await prefs.setInt(_kLastDeviceScan, nowMs);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_kLastDeviceScan, nowMs);
+    } catch (e) {
+      debugPrint('LibraryProvider autoLoadAndScanIfNeeded prefs write failed: $e');
+    }
   }
 
   /// Scan files from the phone (detect new/removed songs).
@@ -158,8 +168,12 @@ class LibraryProvider extends ChangeNotifier {
   /// Force a device scan and refresh the timestamp
   Future<void> forceScanDevice({bool autoFetchMetadata = false}) async {
     await scanDevice(autoFetchMetadata: autoFetchMetadata);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kLastDeviceScan, DateTime.now().millisecondsSinceEpoch);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_kLastDeviceScan, DateTime.now().millisecondsSinceEpoch);
+    } catch (e) {
+      debugPrint('LibraryProvider forceScanDevice prefs write failed: $e');
+    }
   }
 
   Future<void> bulkScanMetadata({bool onlyMissing = false}) async {

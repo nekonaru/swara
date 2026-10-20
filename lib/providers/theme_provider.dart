@@ -50,41 +50,49 @@ class ThemeProvider extends ChangeNotifier {
 
   Color get accentColor => kAccentColors[accentColorIndex];
 
-  Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_prefsKey);
-    if (saved != null) {
-      themeMode = ThemeMode.values.firstWhere(
-        (e) => e.name == saved,
-        orElse: () => ThemeMode.dark,
-      );
-    }
-    accentColorIndex = (prefs.getInt(_accentKey) ?? 0)
-        .clamp(0, kAccentColors.length - 1);
-    equalizerPreset = prefs.getString(_equalizerPresetKey) ?? 'Flat';
-    // Fall back to 1.0 when nothing is stored or the stored value is unknown.
-    final savedScale = prefs.getDouble(_textScaleKey) ?? 1.0;
-    textScale = kTextScales.contains(savedScale) ? savedScale : 1.0;
-    customEqGains = _readCustomGains(prefs);
-    amoledBlack = prefs.getBool(_amoledBlackKey) ?? false;
-    notifyListeners();
-  }
-
-  // Writes are chained so two quick taps cannot land out of order.
-  //
-  // Without this, each setter awaited getInstance() on its own and the slower
-  // write could finish last, leaving the stored value disagreeing with what
-  // the screen showed until the next app restart.
+  // Write chain serializes SharedPreferences writes so two quick taps cannot
+  // land out of order. Each setter awaits the chain before starting its own
+  // write, so a slower write cannot overtake a faster one.
   Future<void> _writeChain = Future<void>.value();
 
-  Future<void> _write(Future<void> Function(SharedPreferences) op) {
-    _writeChain = _writeChain.then((_) async {
+  Future<void> _write(Future<void> Function(SharedPreferences) op) async {
+    await _writeChain;
+    _writeChain = _doWrite(op);
+    await _writeChain;
+  }
+
+  Future<void> _doWrite(Future<void> Function(SharedPreferences) op) async {
+    try {
       final prefs = await SharedPreferences.getInstance();
       await op(prefs);
-    }).catchError((Object e) {
+    } catch (e) {
       debugPrint('ThemeProvider write failed: $e');
-    });
-    return _writeChain;
+    }
+  }
+
+  Future<void> load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_prefsKey);
+      if (saved != null) {
+        themeMode = ThemeMode.values.firstWhere(
+          (e) => e.name == saved,
+          orElse: () => ThemeMode.dark,
+        );
+      }
+      accentColorIndex = (prefs.getInt(_accentKey) ?? 0)
+          .clamp(0, kAccentColors.length - 1);
+      equalizerPreset = prefs.getString(_equalizerPresetKey) ?? 'Flat';
+      // Fall back to 1.0 when nothing is stored or the stored value is unknown.
+      final savedScale = prefs.getDouble(_textScaleKey) ?? 1.0;
+      textScale = kTextScales.contains(savedScale) ? savedScale : 1.0;
+      customEqGains = _readCustomGains(prefs);
+      amoledBlack = prefs.getBool(_amoledBlackKey) ?? false;
+    } catch (e) {
+      // Keep defaults if storage is unavailable.
+      debugPrint('ThemeProvider load failed: $e');
+    }
+    notifyListeners();
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -102,8 +110,7 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setEqualizerPreset(String preset) async {
     equalizerPreset = preset;
     notifyListeners();
-    await _write(
-        (prefs) => prefs.setString(_equalizerPresetKey, preset));
+    await _write((prefs) => prefs.setString(_equalizerPresetKey, preset));
   }
 
   // Persist the selected text scale and notify listeners at once.
@@ -141,8 +148,7 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setAmoledBlack(bool value) async {
     amoledBlack = value;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_amoledBlackKey, value);
+    await _write((prefs) => prefs.setBool(_amoledBlackKey, value));
   }
 
   // Dark theme for main to use. Returns the plain dark theme normally,
