@@ -249,7 +249,10 @@ class MetadataService {
       return false;
     }
     try {
-      final lyricsUrl = Uri.https('api.lyrics.ovh', '/v1/${song.artist}/${song.title}');
+      final lyricsUrl = Uri.https(
+  'api.lyrics.ovh',
+  '/v1/${Uri.encodeComponent(song.artist)}/${Uri.encodeComponent(song.title)}',
+);
       final res = await _client
           .get(lyricsUrl, headers: {'User-Agent': 'Swara/1.0'})
           .timeout(const Duration(seconds: 8));

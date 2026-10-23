@@ -220,7 +220,7 @@ class M3uService {
     final value = path.replaceAll('\\', '/');
     final idx = value.lastIndexOf('/');
     if (idx <= 0) return value;
-    return path.substring(0, idx);
+    return value.substring(0, idx);
   }
 
   // Playlist default name: file name without its extension.

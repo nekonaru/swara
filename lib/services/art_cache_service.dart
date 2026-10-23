@@ -146,7 +146,15 @@ class ArtCacheService {
           .get(uri, headers: const {'Accept': 'image/*'})
           .timeout(const Duration(seconds: 15));
       if (res.statusCode != 200 || res.bodyBytes.isEmpty) return null;
-      await file.writeAsBytes(res.bodyBytes, flush: true);
+    final contentType = res.headers['content-type'] ?? '';
+    if (!contentType.toLowerCase().startsWith('image/')) return null;
+    if (res.bodyBytes.length > 5 * 1024 * 1024) return null;
+    final b = res.bodyBytes;
+    final isJpeg = b.length >= 2 && b[0] == 0xFF && b[1] == 0xD8;
+    final isPng = b.length >= 8 &&
+        b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
+    if (!isJpeg && !isPng) return null;
+    await file.writeAsBytes(res.bodyBytes, flush: true);
       _knownPaths[url] = file.path;
       await _enforceCap(dir);
       return file;
