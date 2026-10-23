@@ -506,7 +506,8 @@ class DBHelper {
     // rows would look like files that disappeared.
     final allDbIds = knownDbIds ??
         (await database.query('songs', columns: ['id']))
-            .map((r) => r['id'] as int)
+            .map((r) => (r['id'] as num?)?.toInt())
+            .whereType<int>()
             .toSet();
     final ghostIds = allDbIds.difference(existingIds);
     if (ghostIds.isEmpty) return 0;
@@ -527,7 +528,10 @@ class DBHelper {
   Future<Set<int>> getScannedSongIds() async {
     final database = await db;
     final rows = await database.query('songs', where: 'metadataScanned = 1', columns: ['id']);
-    return rows.map((r) => r['id'] as int).toSet();
+    return rows
+        .map((r) => (r['id'] as num?)?.toInt())
+        .whereType<int>()
+        .toSet();
   }
 
   /// Songs ordered by the time they were actually added to the library,
@@ -743,7 +747,10 @@ class DBHelper {
       LIMIT ?
     ''', [limit]);
     return rows
-        .map((r) => MapEntry(r['songId'] as int, r['playCount'] as int))
+        .map((r) => MapEntry(
+            (r['songId'] as num?)?.toInt() ?? 0,
+            (r['playCount'] as num?)?.toInt() ?? 0,
+          ))
         .toList();
   }
 
@@ -759,7 +766,10 @@ class DBHelper {
       LIMIT ?
     ''', [limit]);
     return rows
-        .map((r) => MapEntry(r['artist'] as String, r['playCount'] as int))
+        .map((r) => MapEntry(
+            (r['artist'] as String?) ?? 'Unknown Artist',
+            (r['playCount'] as num?)?.toInt() ?? 0,
+          ))
         .toList();
   }
 
@@ -770,7 +780,11 @@ class DBHelper {
       SELECT COALESCE(genre, 'Tidak diketahui') as genre, COUNT(*) as cnt
       FROM songs GROUP BY genre ORDER BY cnt DESC
     ''');
-    return {for (final r in rows) r['genre'] as String: r['cnt'] as int};
+    return {
+      for (final r in rows)
+        if (r['genre'] is String)
+          r['genre'] as String: (r['cnt'] as num?)?.toInt() ?? 0,
+    };
   }
 
   /// Song origin-region distribution
@@ -780,7 +794,11 @@ class DBHelper {
       SELECT COALESCE(region, 'Tidak diketahui') as region, COUNT(*) as cnt
       FROM songs GROUP BY region ORDER BY cnt DESC
     ''');
-    return {for (final r in rows) r['region'] as String: r['cnt'] as int};
+    return {
+      for (final r in rows)
+        if (r['region'] is String)
+          r['region'] as String: (r['cnt'] as num?)?.toInt() ?? 0,
+    };
   }
 
   /// Total listening time (ms) per hour of day (0-23).
