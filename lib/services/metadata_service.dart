@@ -143,10 +143,15 @@ class MetadataService {
         rateLimited = true;
         _rateLimitUntil = DateTime.now().add(_rateLimitBackoff);
         debugPrint('iTunes rate-limit (429), skip enrich ${song.title}');
-      } else if (res.statusCode == 404) {
+      } else if (res.statusCode == 404 && _looksLikeItunesResponse(res)) {
         // Definitive HTTP miss: remember it so later scans skip the
         // network. Other statuses and exceptions below are not cached,
         // so offline songs are retried instead of poisoned.
+        //
+        // A captive portal (hotel, airport, campus WiFi) can return a 404
+        // with an HTML body for an iTunes URL. Treating that as definitive
+        // would lock every song as "not found" for 90 days. Only commit the
+        // miss when the response actually looks like iTunes.
         try {
           await DBHelper.instance.putMetadataCache(cacheKey, _cacheMissMarker);
         } catch (_) {
@@ -373,6 +378,19 @@ class MetadataService {
   /// Apply a cached iTunes JSON body to [song] using the same field
   /// mapping as a live 200 response. Returns false when the body is
   /// corrupt so the caller can fall back to the network.
+  // A captive portal (hotel, airport, campus WiFi) can return a 404 with an
+  // HTML body for an iTunes URL. Treating that as definitive would lock
+  // every song as "not found" for 90 days. Only commit the miss when the
+  // response actually looks like iTunes.
+  bool _looksLikeItunesResponse(http.Response res) {
+    try {
+      final data = jsonDecode(res.body);
+      return data is Map && data.containsKey('resultCount');
+    } catch (_) {
+      return false;
+    }
+  }
+
   bool _applyItunesResponseBody(Song song, String body) {
     try {
       final data = jsonDecode(body);

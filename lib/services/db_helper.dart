@@ -1250,10 +1250,14 @@ class DBHelper {
       if (latest != null) break;
     }
     if (latest == null) return 0;
-    final gap = today.difference(latest).inDays;
+    // Calendar day difference, NOT 24-hour difference. subtract(Duration(days:1))
+    // can land at 23:00 on DST transition nights and break the streak one day
+    // early.
+    final latestDay = DateTime(latest.year, latest.month, latest.day);
+    final gap = today.difference(latestDay).inDays;
     if (gap > 1) return 0;
     var cursor = gap == 1
-        ? today.subtract(const Duration(days: 1))
+        ? DateTime(today.year, today.month, today.day - 1)
         : today;
     var streak = 0;
     for (final r in rows) {
@@ -1261,10 +1265,11 @@ class DBHelper {
       if (raw.isEmpty) continue;
       final day = DateTime.tryParse('${raw}T00:00:00');
       if (day == null) continue;
-      if (day == cursor) {
+      final dayOnly = DateTime(day.year, day.month, day.day);
+      if (dayOnly == cursor) {
         streak++;
-        cursor = cursor.subtract(const Duration(days: 1));
-      } else if (day.isBefore(cursor)) {
+        cursor = DateTime(cursor.year, cursor.month, cursor.day - 1);
+      } else if (dayOnly.isBefore(cursor)) {
         break;
       }
     }
