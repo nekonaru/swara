@@ -225,23 +225,18 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.0 - Search that forgives typos**
+            **Swara v2.9.2 - DST streak, captive portal, and dashboard hidden folders**
 
-            ## ✨ New features
+            ## 🐛 Bug fixes
 
-            - **Typo tolerant search.** Search now tolerates swapped letters and single mistakes, so "fadde" or "wlaeker" find "Faded" and "Walker". Exact matches always come first, so a near miss can never push the song you actually typed down the list.
-            - **A spelling hint when nothing matches.** If a query returns nothing and a close word exists, the empty state offers it as a one tap suggestion.
-
-            ## ⚙️ How forgiving it is
-
-            - Short words of four letters or fewer are matched exactly, because allowing one edit there would match most of the dictionary.
-            - Five and six letter words allow one edit, seven letters or more allow two.
-            - Swapped letters count as a single edit. Plain Levenshtein counts them as two, which would have forced a tolerance so loose the search became useless.
-            - Beyond two edits nothing is guessed. A wrong suggestion is worse than no suggestion, and a wrong result is worse than no result.
+            - **Listening streak no longer breaks on DST transition nights.** The streak calculation used 24-hour subtraction, which could land at 23:00 on daylight saving time change nights and cut the streak one day early.
+            - **Captive portal 404s no longer lock songs as "not found."** A captive portal (hotel, airport, campus WiFi) can return a 404 with an HTML body for an iTunes URL. This was treated as a definitive "song not found on iTunes" result, locking every affected song's metadata as unavailable for 90 days. Now only responses that actually look like iTunes are committed as misses.
+            - **Dashboard now respects hidden folders.** Songs from hidden folders were still counted in the dashboard totals, listed in "never played" and "play all" would start hidden songs.
 
             ## 🧪 Verification
 
-            - 169 tests, with a dedicated suite for the edit distance, the tolerance rules and the suggestion logic.
+            - 169 tests pass
+            - flutter analyze: no issues
 
             ## 📦 Install / Update
 
@@ -255,23 +250,18 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.0 - Search yang memaafkan salah ketik**
+            **Swara v2.9.2 - DST streak, captive portal, dan dashboard hidden folders**
 
-            ## ✨ Fitur baru
+            ## 🐛 Perbaikan bug
 
-            - **Search tahan salah ketik.** Search sekarang memaafkan huruf yang tertukar dan salah ketik tunggal, jadi "fadde" atau "wlaeker" menemukan "Faded" dan "Walker". Hasil yang cocok persis selalu didahulukan, sehingga tebakan yang hanya mendekati tidak bisa mendongkar lagu yang benar-benar kamu ketik.
-            - **Saran ejaan saat tidak ada yang cocok.** Kalau pencarian kosong padahal ada kata yang mirip, layar kosong menawarkan kata itu sebagai saran sekali ketuk.
-
-            ## ⚙️ Seberapa tolerannya
-
-            - Kata pendek empat huruf atau lebih pendek dicocokkan persis, karena satu saja sudah akan cocok dengan hampir semua kata.
-            - Kata lima dan enam huruf boleh satu kesalahan, tujuh huruf atau lebih boleh dua.
-            - Huruf yang tertukar dihitung satu kesalahan. Levenshtein biasa menghitungnya dua, dan itu memaksa toleransi yang terlalu longgar sehingga search jadi tidak berguna.
-            - Lebih dari dua kesalahan tidak ditebak. Saran yang salah lebih buruk daripada tidak ada saran, dan hasil yang salah lebih buruk daripada tidak ada hasil.
+            - **Streak pendengaran tidak lagi rusak di malam pergantian DST.** Perhitungan streak memakai pengurangan 24 jam, yang bisa jatuh di jam 23 pada malam pergantian daylight saving time dan memotong streak satu hari lebih awal.
+            - **404 dari captive portal tidak lagi mengunci lagu sebagai "tidak ditemukan."** Captive portal (WiFi hotel, bandara, kampus) bisa mengembalikan 404 dengan body HTML untuk URL iTunes. Ini diperlakukan sebagai "lagu tidak ada di iTunes" yang definitif, mengunci metadata setiap lagu yang terdampak sebagai tidak tersedia selama 90 hari. Sekarang hanya respons yang benar-benar terlihat seperti iTunes yang dicatat sebagai miss.
+            - **Dashboard kini menghormati folder tersembunyi.** Lagu dari folder tersembunyi masih ikut dihitung, ditampilkan di "belum pernah diputar", dan "putar semua" akan memulai lagu yang sengaja disembunyikan.
 
             ## 🧪 Verifikasi
 
-            - 169 test, termasuk suite khusus untuk jarak edit, aturan toleransi, dan logika saran.
+            - 169 test lolos
+            - flutter analyze: no issues
             ## 📦 Instalasi / Update
 
             Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26).
