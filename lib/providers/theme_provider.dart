@@ -41,8 +41,9 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.dark;
   int accentColorIndex = 0;
   String equalizerPreset = 'Flat';
-  // App text scale factor. Applied to MediaQuery by another workstream.
-  double textScale = 1.0;
+  // App text scale factor. 0.85 (kecil) is the default so the app feels
+  // lighter on screen and fits more rows without scrolling.
+  double textScale = 0.85;
   // Custom 5-band EQ gains (low to high). Used only with the Custom preset.
   List<double> customEqGains = [0, 0, 0, 0, 0];
   // Pitch black background for the dark theme. Wired in main by someone else.
@@ -85,7 +86,7 @@ class ThemeProvider extends ChangeNotifier {
       equalizerPreset = prefs.getString(_equalizerPresetKey) ?? 'Flat';
       // Fall back to 1.0 when nothing is stored or the stored value is unknown.
       final savedScale = prefs.getDouble(_textScaleKey) ?? 1.0;
-      textScale = kTextScales.contains(savedScale) ? savedScale : 1.0;
+      textScale = kTextScales.contains(savedScale) ? savedScale : 0.85;
       customEqGains = _readCustomGains(prefs);
       amoledBlack = prefs.getBool(_amoledBlackKey) ?? false;
     } catch (e) {
@@ -117,7 +118,7 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setTextScale(double scale) async {
     // Validate against the same whitelist load() uses, so a value that is
     // not an offered option cannot be stored and then silently reset later.
-    textScale = kTextScales.contains(scale) ? scale : 1.0;
+    textScale = kTextScales.contains(scale) ? scale : 0.85;
     notifyListeners();
     await _write((prefs) => prefs.setDouble(_textScaleKey, textScale));
   }

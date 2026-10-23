@@ -111,7 +111,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   // The whole filtered and sorted list is rendered. Rendering stays lazy
   // because the sliver uses a fixed item extent, so a list of 20k rows
   // costs the same per frame as a list of 200 rows.
-  static const double _azStickyThreshold = 400.0;
+  // Removed: the jump to playing FAB was driven by a scroll listener that
+  // called setState on every fling and blocked gesture handling on large
+  // libraries. The A-Z rail and sort/play buttons already cover navigation.
 
   // Letter to row index map, rebuilt only when the visible list changes.
   // A-Z jumps are therefore a scroll offset lookup instead of a DB query.
@@ -130,8 +132,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Map<int, int> _rowIndexById = const <int, int>{};
   int _rowIndexVersion = -1;
 
-  // Show the "jump to playing song" affordance while scrolled away.
-  bool _playingRowHidden = false;
+  // Jump to playing FAB removed: see the note on the removed scroll listener.
 
   // Playlists are loaded lazily on first use to keep startup cheap.
   bool _playlistsRequested = false;
@@ -139,12 +140,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -152,42 +151,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
   // Track whether the currently playing row is far outside the viewport so
   // the jump button can appear. Only a boolean flips, never a setState per
   // pixel, because the state changes are compared before rebuilding.
-  void _onScroll() {
-    if (!mounted || !_scrollController.hasClients) return;
-    final position = _scrollController.position;
-    final song = PlayerService.instance.currentSong;
-    if (song == null) {
-      if (_playingRowHidden) setState(() => _playingRowHidden = false);
-      return;
-    }
-    final hidden = _playingRowHidden;
-    var next = hidden;
-    final extent = position.viewportDimension;
-    if (extent > 0) {
-      final row = _visibleIndexOfSongId(song.id);
-      if (row >= 0) {
-        // Distance of the row top from the current viewport top.
-        final distance = (row * _itemHeight) - position.pixels;
-        next = distance > _azStickyThreshold + extent ||
-            distance < -_azStickyThreshold;
-      }
-    }
-    if (next != hidden) setState(() => _playingRowHidden = next);
-  }
-
-  void _jumpToPlayingRow() {
-    final song = PlayerService.instance.currentSong;
-    if (song == null || !_scrollController.hasClients) return;
-    final row = _visibleIndexOfSongId(song.id);
-    if (row < 0) return;
-    final offset = (row * _itemHeight - 24)
-        .clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.animateTo(
-      offset,
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutCubic,
-    );
-  }
+// The scroll listener that drove the jump to playing button has been
+  // removed: it called setState on every fling, which rebuilt the whole
+  // library screen and blocked gesture handling on large libraries. The
+  // A-Z rail and the sort/play buttons already cover navigation.
 
   // Rebuild the id to row index map only when the library version changed, so
   // it is never rebuilt on an unrelated rebuild of this screen.
@@ -198,10 +165,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
     _rowIndexVersion = version;
     _rowIndexById = {for (var i = 0; i < songs.length; i++) songs[i].id: i};
   }
-
-  // Index of a song inside the last rendered list. Kept in a field so the
-  // scroll listener does not rebuild the list just to look the id up.
-  int _visibleIndexOfSongId(int id) => _rowIndexById[id] ?? -1;
 
   // Load playlists once when first needed. Guarded by mounted.
   Future<void> _ensurePlaylistsLoaded() async {
@@ -778,25 +741,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           _jumpToLetter(letter, azIndex),
                     ),
                   ),
-                // Jump back to the playing song when it is off screen.
-                if (_playingRowHidden && !_multiSelectMode)
-                  Positioned(
-                    right: showAz ? 34 : 16,
-                    bottom: 16,
-                    child: Selector<PlayerService, int?>(
-                      selector: (_, ps) => ps.currentSong?.id,
-                      builder: (context, id, _) {
-                        if (id == null) return const SizedBox.shrink();
-                        return FloatingActionButton.small(
-                          heroTag: 'jumpToPlaying',
-                          onPressed: _jumpToPlayingRow,
-                          tooltip:
-                              AppLocalizations.of(context)!.libraryJumpPlaying,
-                          child: const Icon(Icons.graphic_eq),
-                        );
-                      },
-                    ),
-                  ),
+                // Jump to playing FAB removed: it was driven by a scroll listener that
+                // called setState on every fling and blocked gesture handling
+                // on large libraries. The A-Z rail and sort/play buttons
+                // already cover navigation.
               ],
             ),
           ),
