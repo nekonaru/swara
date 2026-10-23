@@ -225,13 +225,13 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.2 - DST streak, captive portal, and dashboard hidden folders**
+            **Swara v2.9.5 - Lighter scrolling and smaller default text**
 
-            ## 🐛 Bug fixes
+            ## ⚡ Performance
 
-            - **Listening streak no longer breaks on DST transition nights.** The streak calculation used 24-hour subtraction, which could land at 23:00 on daylight saving time change nights and cut the streak one day early.
-            - **Captive portal 404s no longer lock songs as "not found."** A captive portal (hotel, airport, campus WiFi) can return a 404 with an HTML body for an iTunes URL. This was treated as a definitive "song not found on iTunes" result, locking every affected song's metadata as unavailable for 90 days. Now only responses that actually look like iTunes are committed as misses.
-            - **Dashboard now respects hidden folders.** Songs from hidden folders were still counted in the dashboard totals, listed in "never played" and "play all" would start hidden songs.
+            - **Scrolling the large library no longer freezes.** The scroll listener called `setState` on every fling, rebuilding the whole library screen and blocking gesture handling on lists with thousands of songs.
+            - **Default text scale is now 0.85.** The app opens with smaller text so more rows fit on screen without scrolling.
+            - **Cover art lookups are memory only.** The index is built once at startup, so scrolling no longer touches the disk per frame.
 
             ## 🧪 Verification
 
@@ -250,13 +250,13 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.2 - DST streak, captive portal, dan dashboard hidden folders**
+            **Swara v2.9.5 - Scrolling lebih ringan dan teks default lebih kecil**
 
-            ## 🐛 Perbaikan bug
+            ## ⚡ Performa
 
-            - **Streak pendengaran tidak lagi rusak di malam pergantian DST.** Perhitungan streak memakai pengurangan 24 jam, yang bisa jatuh di jam 23 pada malam pergantian daylight saving time dan memotong streak satu hari lebih awal.
-            - **404 dari captive portal tidak lagi mengunci lagu sebagai "tidak ditemukan."** Captive portal (WiFi hotel, bandara, kampus) bisa mengembalikan 404 dengan body HTML untuk URL iTunes. Ini diperlakukan sebagai "lagu tidak ada di iTunes" yang definitif, mengunci metadata setiap lagu yang terdampak sebagai tidak tersedia selama 90 hari. Sekarang hanya respons yang benar-benar terlihat seperti iTunes yang dicatat sebagai miss.
-            - **Dashboard kini menghormati folder tersembunyi.** Lagu dari folder tersembunyi masih ikut dihitung, ditampilkan di "belum pernah diputar", dan "putar semua" akan memulai lagu yang sengaja disembunyikan.
+            - **Scrolling pustaka besar tidak lagi membekukan.** Scroll listener memanggil `setState` tiap fling, yang membangun ulang seluruh layar library dan mengganggu penanganan gesture di pustaka dengan ribuan lagu.
+            - **Ukuran teks default sekarang 0.85.** App dibuka dengan teks lebih kecil sehingga lebih banyak baris muat di layar tanpa scroll.
+            - **Pencarian cover hanya di memori.** Indeks dibangun sekali saat startup, jadi scrolling tidak lagi menyentuh disk tiap frame.
 
             ## 🧪 Verifikasi
 
