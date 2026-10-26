@@ -455,6 +455,7 @@
     "songOptionsAddToPlaylist":  "Add to Playlist",
     "songOptionsRename":  "Rename Song",
     "songOptionsEditMetadata":  "Edit Metadata",
+    "songOptionsScanMetadata":  "Scan metadata",
     "songOptionsRemoveFromPlaylist":  "Remove from This Playlist",
     "songOptionsRemoveFromPlaylistFailed":  "Failed to remove from playlist: {error}",
     "@songOptionsRemoveFromPlaylistFailed":  {

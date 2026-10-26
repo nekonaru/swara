@@ -3,10 +3,148 @@ import 'package:swara/providers/language_provider.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:flutter/foundation.dart';
 import '../models/song.dart';
 import 'db_helper.dart';
-import 'metadata_service.dart';
 import '../utils/format.dart';
+
+// ── Isolate data shapes ───────────────────────────────────────────────
+// Plain serialisable stand-ins for SongModel so track data can cross the
+// isolate boundary. Only the fields needed for merge/upsert are carried.
+
+class _RawTrack {
+  final int id;
+  final String data;
+  final String title;
+  final String artist;
+  final String album;
+  final int? duration;
+  _RawTrack({
+    required this.id,
+    required this.data,
+    required this.title,
+    required this.artist,
+    required this.album,
+    this.duration,
+  });
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'data': data,
+    'title': title,
+    'artist': artist,
+    'album': album,
+    'duration': duration,
+  };
+  factory _RawTrack.fromJson(Map<String, dynamic> j) => _RawTrack(
+    id: j['id'] as int,
+    data: j['data'] as String,
+    title: j['title'] as String,
+    artist: j['artist'] as String,
+    album: j['album'] as String,
+    duration: j['duration'] as int?,
+  );
+}
+
+class _ScanResult {
+  final List<Map<String, dynamic>> pendingMaps;
+  final List<Map<String, dynamic>> pendingUpdates;
+  final List<int> updateIds;
+  final List<Song> result;
+  final List<Song> needsMetadata;
+  final Set<int> allDeviceIds;
+  _ScanResult({
+    required this.pendingMaps,
+    required this.pendingUpdates,
+    required this.updateIds,
+    required this.result,
+    required this.needsMetadata,
+    required this.allDeviceIds,
+  });
+}
+
+/// Isolate entry: process raw tracks off the main thread.
+/// folderOf and _titleFromFilename are duplicated inside via closures
+/// encoded as small helper maps to avoid depending on any Flutter/SQFlite
+/// plugin inside the isolate.
+_ScanResult _processTracksIsolate(Map<String, dynamic> input) {
+  final tracksJson = (input['tracks'] as List).cast<Map<String, dynamic>>();
+  final excluded = (input['excluded'] as List).cast<String>();
+  final existingById = (input['existingById'] as Map<String, dynamic>);
+  final alreadyScannedIds =
+      (input['alreadyScannedIds'] as List).cast<int>().toSet();
+
+  final folderOf = (input['folderSeparator'] as String?) ?? '/';
+
+  String _titleFromFilename(String path) {
+    final normalized = path.replaceAll(r'\\', '/');
+    final name = normalized.substring(normalized.lastIndexOf('/') + 1);
+    return name
+        .replaceAll(RegExp(r'\.(mp3|flac|wav|m4a|ogg|opus|aac|wma)$',
+            caseSensitive: false), '')
+        .trim();
+  }
+
+  final pendingMaps = <Map<String, dynamic>>[];
+  final pendingUpdates = <Map<String, dynamic>>[];
+  final updateIds = <int>[];
+  final result = <Song>[];
+  final needsMetadata = <Song>[];
+  final allDeviceIds = <int>{};
+
+  for (final tj in tracksJson) {
+    final track = _RawTrack.fromJson(tj);
+    allDeviceIds.add(track.id);
+    final folderEnd = track.data.lastIndexOf(folderOf);
+    final folder = folderEnd >= 0 ? track.data.substring(0, folderEnd) : '';
+    if (excluded.contains(folder)) continue;
+
+    final title = (track.title.isNotEmpty)
+        ? track.title
+        : _titleFromFilename(track.data);
+    final artist = (track.artist != null &&
+            track.artist!.isNotEmpty &&
+            track.artist != '<unknown>')
+        ? track.artist!
+        : 'Unknown Artist';
+    final album = (track.album?.isNotEmpty == true) ? track.album! : 'Unknown Album';
+    final song = Song(
+      id: track.id,
+      filePath: track.data,
+      title: title,
+      artist: artist,
+      album: album,
+      durationMs: track.duration ?? 0,
+    );
+    final existing = existingById[song.id];
+    if (existing != null) {
+      pendingUpdates.add({
+        'filePath': song.filePath,
+        'durationMs': song.durationMs,
+      });
+      updateIds.add(song.id);
+      result.add(song);
+      if (!alreadyScannedIds.contains(song.id)) {
+        needsMetadata.add(song);
+      }
+      continue;
+    }
+    final map = song.toMap();
+    map['addedAt'] = DateTime.now().toIso8601String();
+    pendingMaps.add(map);
+    result.add(song);
+    if (!alreadyScannedIds.contains(song.id)) {
+      needsMetadata.add(song);
+    }
+  }
+  return _ScanResult(
+    pendingMaps: pendingMaps,
+    pendingUpdates: pendingUpdates,
+    updateIds: updateIds,
+    result: result,
+    needsMetadata: needsMetadata,
+    allDeviceIds: allDeviceIds,
+  );
+}
 
 class LibraryScanner {
   final OnAudioQuery _audioQuery = OnAudioQuery();
@@ -25,10 +163,10 @@ class LibraryScanner {
     return Permission.audio.isPermanentlyDenied;
   }
 
-  /// Scan every music file on the device, store new ones in the DB,
-  /// then (optionally) run auto-fetch metadata ONLY for songs that
-  /// were truly never scanned before (checked from the DB, not the transient object).
-  Future<List<Song>> scanAndSync({bool autoFetchMetadata = true}) async {
+  /// Scan every music file on the device and store new ones in the DB.
+  /// Metadata fetching is never automatic; call bulkScanMetadata or
+  /// rescanSingleMetadata manually when the user asks for it.
+  Future<List<Song>> scanAndSync() async {
     final granted = await requestPermission();
     if (!granted) {
       throw Exception(lookupAppLocalizations(LanguageProvider.instance.locale).corePermissionDenied);
@@ -64,7 +202,7 @@ class LibraryScanner {
     // IDs of ALL songs that truly still exist on the device (including ones in
     // hidden folders) - used to clean up "ghost" songs without also deleting
     // songs that are merely hidden (not really gone).
-    final allDeviceIds = tracks.map((t) => t.id).toSet();
+    final allDeviceIdsOnMain = tracks.map((t) => t.id).toSet();
 
     // Safety guard: never delete anything when querySongs() looks like it
     // returned a suspicious result - the MediaStore may not have finished
@@ -79,80 +217,45 @@ class LibraryScanner {
     //      DB in a single scan - a normal drop is only a few songs (files the
     //      user really deleted), never half the library at once.
     final bool safeToDelete;
-    if (allDeviceIds.isEmpty) {
-      // No songs detected at all - almost certainly not a normal state.
+    if (allDeviceIdsOnMain.isEmpty) {
       safeToDelete = false;
     } else {
       final dbCount = await DBHelper.instance.getSongCount();
-      if (dbCount > 0 && allDeviceIds.length < dbCount * 0.5) {
-        // The device reports fewer than 50% of the songs in the DB: suspect a partial query.
+      if (dbCount > 0 && allDeviceIdsOnMain.length < dbCount * 0.5) {
         safeToDelete = false;
       } else {
         safeToDelete = true;
       }
     }
 
-    final List<Song> result = [];
-    final List<Song> needsMetadata = [];
-    // Merge device rows against the preloaded map, then flush with ONE
-    // batch commit. Preserved field semantics match upsertSong: keep the
-    // stored favorite, lastPlayedAt, and addedAt, and OR the scanned flag
-    // so a rescan never resets stored metadata state.
-    final pendingMaps = <Map<String, Object?>>[];
-    // Rows that already exist: only file facts are refreshed, see below.
-    final pendingUpdates = <Map<String, Object?>>[];
-    final updateIds = <int>[];
-    for (final track in tracks) {
-      final folder = folderOf(track.data);
-      if (excluded.contains(folder)) continue;
+    // Move the heavy per-track processing off the main thread. querySongs()
+    // is a platform channel call so it stays on the main thread above; the
+    // folder exclusion checks, Song construction, and pending-operation
+    // building happen inside an isolate.
+    final tracksJson = tracks
+        .map((t) => _RawTrack(
+              id: t.id,
+              data: t.data,
+              title: t.title ?? '',
+              artist: t.artist ?? '',
+              album: t.album ?? '',
+              duration: t.duration,
+            ).toJson())
+        .toList();
+    final scanResult = await compute(_processTracksIsolate, <String, dynamic>{
+      'tracks': tracksJson,
+      'excluded': excluded,
+      'existingById': existingById,
+      'alreadyScannedIds': alreadyScannedIds.toList(),
+      'folderSeparator': '/',
+    });
 
-      final song = Song(
-        id: track.id,
-        filePath: track.data,
-        title: (track.title.isNotEmpty)
-            ? track.title
-            : _titleFromFilename(track.data),
-        artist: (track.artist != null &&
-                track.artist!.isNotEmpty &&
-                track.artist != '<unknown>')
-            ? track.artist!
-            : 'Unknown Artist',
-        album: (track.album?.isNotEmpty == true)
-            ? track.album!
-            : 'Unknown Album',
-        durationMs: track.duration ?? 0,
-      );
-      final existing = existingById[song.id];
-      if (existing != null) {
-        // The row is already in the DB. Only the facts that come from the
-        // file itself may be refreshed. Writing the full row here used to
-        // blank out genre, region, album art and lyrics, because the object
-        // above has none of them and SQLite REPLACE deletes the old row
-        // first. That wiped every enriched cover and genre on each rescan.
-        pendingUpdates.add({
-          'filePath': song.filePath,
-          'durationMs': song.durationMs,
-        });
-        updateIds.add(song.id);
-        result.add(song);
-
-        // Check the REAL status from the preloaded map (not the freshly built
-        // `song` object, which always has metadataScanned false even when the
-        // data is already stored in the DB).
-        if (!alreadyScannedIds.contains(song.id)) {
-          needsMetadata.add(song);
-        }
-        continue;
-      }
-      final map = song.toMap();
-      map['addedAt'] = DateTime.now().toIso8601String();
-      pendingMaps.add(map);
-      result.add(song);
-
-      if (!alreadyScannedIds.contains(song.id)) {
-        needsMetadata.add(song);
-      }
-    }
+    final pendingMaps = scanResult.pendingMaps;
+    final pendingUpdates = scanResult.pendingUpdates;
+    final updateIds = scanResult.updateIds;
+    final result = scanResult.result;
+    final needsMetadata = scanResult.needsMetadata;
+    final allDeviceIds = scanResult.allDeviceIds;
     if (pendingMaps.isNotEmpty || pendingUpdates.isNotEmpty) {
       final batch = database.batch();
       for (final map in pendingMaps) {
@@ -180,19 +283,6 @@ class LibraryScanner {
         allDeviceIds,
         knownDbIds: dbIdsAtScanStart,
       );
-    }
-
-    if (autoFetchMetadata && needsMetadata.isNotEmpty) {
-      // Same stop on rate limit pattern as bulkScanMetadata: enrichBatch
-      // returns true on iTunes 429, so later batches are skipped and the
-      // leftovers keep metadataScanned false for a later scan.
-      const batchSize = 5;
-      for (int i = 0; i < needsMetadata.length; i += batchSize) {
-        final end = (i + batchSize).clamp(0, needsMetadata.length);
-        final limited = await MetadataService.instance
-            .enrichBatch(needsMetadata.sublist(i, end));
-        if (limited) break;
-      }
     }
 
     return result;

@@ -4,6 +4,73 @@ import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import 'db_helper.dart';
 
+// ── Isolate entry points ──────────────────────────────────────────────
+// Top-level functions used by compute(). They receive plain serialisable
+// data and return plain results so the isolate never touches the
+// singleton's state or sqflite. A fresh http.Client is created inside
+// each entry because it is not transferable across isolate boundaries.
+
+/// iTunes lookup isolate entry point: only HTTP, no sqflite.
+Future<Map<String, dynamic>> _itunesLookupIsolate(Map<String, dynamic> params) async {
+  final artist = params['artist'] as String;
+  final title = params['title'] as String;
+  final client = http.Client();
+  try {
+    final url = Uri.https('itunes.apple.com', '/search', {
+      'term': '$artist $title'.trim(),
+      'entity': 'song',
+      'limit': '1',
+    });
+    final resp = await client
+        .get(url, headers: {'User-Agent': 'Swara/1.0'})
+        .timeout(const Duration(seconds: 8));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      if (data is Map && (data['resultCount'] as int?) != null && (data['resultCount'] as int) > 0) {
+        return Map<String, dynamic>.from(data['results'][0] as Map);
+      }
+      return <String, dynamic>{};
+    }
+    if (resp.statusCode == 429) return <String, dynamic>{'rateLimited': true};
+    return <String, dynamic>{};
+  } catch (_) {
+    return <String, dynamic>{};
+  } finally {
+    client.close();
+  }
+}
+
+/// Lyrics fetch isolate entry point: only HTTP, no sqflite.
+Future<Map<String, dynamic>> _lyricsFetchIsolate(Map<String, dynamic> params) async {
+  final artist = params['artist'] as String;
+  final title = params['title'] as String;
+  if (artist.isEmpty || title.isEmpty) return <String, dynamic>{};
+  final client = http.Client();
+  try {
+    final url = Uri.https(
+      'api.lyrics.ovh',
+      '/v1/${Uri.encodeComponent(artist)}/${Uri.encodeComponent(title)}',
+    );
+    final resp = await client
+        .get(url, headers: {'User-Agent': 'Swara/1.0'})
+        .timeout(const Duration(seconds: 8));
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body);
+      final lyrics = data is Map ? data['lyrics']?.toString().trim() : null;
+      if (lyrics != null && lyrics.isNotEmpty) {
+        final capped = lyrics.length > 100 * 1024 ? lyrics.substring(0, 100 * 1024) : lyrics;
+        return <String, dynamic>{'lyrics': capped};
+      }
+    }
+    if (resp.statusCode == 429) return <String, dynamic>{'rateLimited': true};
+    return <String, dynamic>{};
+  } catch (_) {
+    return <String, dynamic>{};
+  } finally {
+    client.close();
+  }
+}
+
 /// Guesses and completes song metadata from the title/file name:
 /// - Album art via the iTunes Search API (free, no API key)
 /// - Lyrics via lyrics.ovh (free, no API key)
@@ -57,6 +124,8 @@ class MetadataService {
   /// Returns true when iTunes rate limited the request (HTTP 429) or the
   /// backoff window is still active, so batch callers can stop at once.
   /// Returns false otherwise. Success behavior is unchanged.
+  /// The iTunes HTTP call is dispatched to an isolate via compute() so
+  /// network I/O does not hold the main thread.
   Future<bool> enrichSong(Song song, {bool bypassCache = false}) async {
     // Inside the backoff window: skip the network and leave the song
     // unscanned so a later scan retries it. No retry loop here.
@@ -79,7 +148,7 @@ class MetadataService {
         if (applied) {
           song.region ??= 'Tidak diketahui';
           song.genre ??= 'Tidak diketahui';
-          await fetchLyricsOnly(song);
+          await fetchLyricsOnly(song, bypassCache: bypassCache);
           song.metadataScanned = true;
           await DBHelper.instance.upsertSong(song);
           return false;
@@ -87,90 +156,60 @@ class MetadataService {
       } else {
         song.region ??= 'Tidak diketahui';
         song.genre ??= 'Tidak diketahui';
-        await fetchLyricsOnly(song);
+        await fetchLyricsOnly(song, bypassCache: bypassCache);
         song.metadataScanned = true;
         await DBHelper.instance.upsertSong(song);
         return false;
       }
     }
     bool rateLimited = false;
-    // True when the iTunes part failed without a definitive answer
-    // (exception/offline or unexpected status). Definitive outcomes are
-    // a hit, an empty result, or HTTP 404. Only definitive outcomes may
-    // write a MISS marker or set metadataScanned true, so transient
-    // failures stay retryable on the next scan.
     bool itunesFailed = false;
+    // Dispatch the iTunes HTTP call to an isolate so the main thread stays
+    // responsive during network I/O. Cache/DB reads happen on the main
+    // thread; only the HTTP round-trip moves off-thread.
+    Map<String, dynamic>? itunesResult;
     try {
-      final url = Uri.https('itunes.apple.com', '/search', {
-        'term': '${song.artist} ${song.title}'.trim(),
-        'entity': 'song',
-        'limit': '1',
-      });
-      final res = await _client
-          .get(url, headers: {'User-Agent': 'Swara/1.0'})
-          .timeout(const Duration(seconds: 8));
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        if (data['resultCount'] != null && data['resultCount'] > 0) {
-          final track = data['results'][0];
-          song.title = _sanitizeField(track['trackName'], song.title);
-          song.artist = _sanitizeField(track['artistName'], song.artist);
-          song.album = _sanitizeField(track['collectionName'], song.album);
-          final genre = track['primaryGenreName']?.toString();
-          song.genre = genre != null ? _sanitizeField(genre, genre) : song.genre;
-          song.albumArtUrl = (track['artworkUrl100'] as String?)
-              ?.replaceAll('100x100', '600x600');
-          song.region = _guessRegion(track['country']?.toString(), song.artist);
-          // Remember successful lookups so reinstalls reuse them.
-          try {
-            await DBHelper.instance.putMetadataCache(cacheKey, res.body);
-          } catch (_) {
-            // Cache write failure must never break enrichment.
-          }
-        } else {
-          // Empty result: remember the miss so later scans skip the network.
-          try {
-            await DBHelper.instance.putMetadataCache(cacheKey, _cacheMissMarker);
-          } catch (_) {
-            // Cache write failure must never break enrichment.
-          }
-        }
-      } else if (res.statusCode == 429) {
-        // iTunes rate limit during a bulk scan: start a single 30 second
-        // backoff and leave this song unscanned for the next scan.
-        // No retry loop here, the batch caller stops at once.
-        rateLimited = true;
-        _rateLimitUntil = DateTime.now().add(_rateLimitBackoff);
-        debugPrint('iTunes rate-limit (429), skip enrich ${song.title}');
-      } else if (res.statusCode == 404 && _looksLikeItunesResponse(res)) {
-        // Definitive HTTP miss: remember it so later scans skip the
-        // network. Other statuses and exceptions below are not cached,
-        // so offline songs are retried instead of poisoned.
-        //
-        // A captive portal (hotel, airport, campus WiFi) can return a 404
-        // with an HTML body for an iTunes URL. Treating that as definitive
-        // would lock every song as "not found" for 90 days. Only commit the
-        // miss when the response actually looks like iTunes.
-        try {
-          await DBHelper.instance.putMetadataCache(cacheKey, _cacheMissMarker);
-        } catch (_) {
-          // Cache write failure must never break enrichment.
-        }
-      } else {
-        // Unexpected status (for example 500): treat like an exception,
-        // no MISS marker and no scanned flag, so a later scan retries it.
-        itunesFailed = true;
-      }
+      itunesResult = await compute(
+        _itunesLookupIsolate,
+        <String, dynamic>{
+          'artist': song.artist,
+          'title': song.title,
+        },
+      );
     } catch (_) {
-      // Fetch failed (offline/network error): no MISS marker and no
-      // scanned flag, so a later scan retries it. Keep whatever
-      // metadata is already there.
+      itunesFailed = true;
+    }
+    if (itunesResult != null && itunesResult['rateLimited'] == true) {
+      rateLimited = true;
+      _rateLimitUntil = DateTime.now().add(_rateLimitBackoff);
+      debugPrint('iTunes rate-limit (429), skip enrich ${song.title}');
+    } else if (itunesResult != null && itunesResult.isNotEmpty) {
+      // Apply the isolate result on the main thread.
+      song.title = _sanitizeField(itunesResult['trackName'], song.title);
+      song.artist = _sanitizeField(itunesResult['artistName'], song.artist);
+      song.album = _sanitizeField(itunesResult['collectionName'], song.album);
+      final genre = itunesResult['primaryGenreName']?.toString();
+      song.genre = genre != null ? _sanitizeField(genre, genre) : song.genre;
+      song.albumArtUrl =
+          (itunesResult['artworkUrl100'] as String?)?.replaceAll('100x100', '600x600');
+      song.region = _guessRegion(itunesResult['country']?.toString(), song.artist);
+      // Cache the response so reinstalls and later scans reuse it.
+      final respBody = jsonEncode(itunesResult);
+      try {
+        await DBHelper.instance.putMetadataCache(cacheKey, respBody);
+      } catch (_) {}
+    } else if (itunesResult != null && itunesResult.isEmpty) {
+      // Empty result from isolate (definitive miss, e.g. resultCount==0).
+      // Cache the MISS marker so later scans skip the network for 90 days.
+      try {
+        await DBHelper.instance.putMetadataCache(cacheKey, _cacheMissMarker);
+      } catch (_) {}
+    } else {
+      // itunesResult is null (compute threw) or other: transient failure,
+      // no MISS marker so a later scan retries.
       itunesFailed = true;
     }
     if (rateLimited) {
-      // Persist harmless fallbacks but keep metadataScanned false so the
-      // next scan retries this song and the rest of the batch.
       song.region ??= 'Tidak diketahui';
       song.genre ??= 'Tidak diketahui';
       song.metadataScanned = false;
@@ -178,24 +217,18 @@ class MetadataService {
       return true;
     }
     if (itunesFailed) {
-      // iTunes part failed without a definitive answer: persist harmless
-      // fallbacks but keep metadataScanned false so a later scan retries
-      // this song. Lyrics fetch is still attempted best effort below.
       song.region ??= 'Tidak diketahui';
       song.genre ??= 'Tidak diketahui';
-      await fetchLyricsOnly(song);
+      await fetchLyricsOnly(song, bypassCache: bypassCache);
       song.metadataScanned = false;
       await DBHelper.instance.upsertSong(song);
       return false;
     }
-    // This fallback MUST stay outside the try-catch so it still runs when the
-    // request succeeds but the song is simply not found on iTunes (resultCount == 0) -
-    // the common case for local/indie songs that are not listed there.
     song.region ??= 'Tidak diketahui';
     song.genre ??= 'Tidak diketahui';
 
-    // Fetch lyrics separately
-    await fetchLyricsOnly(song);
+    // Fetch lyrics separately (small response, stays on main thread).
+    await fetchLyricsOnly(song, bypassCache: bypassCache);
 
     song.metadataScanned = true;
     await DBHelper.instance.upsertSong(song);
@@ -219,7 +252,7 @@ class MetadataService {
   /// Uses the shared metadata_cache table with a "lyrics|" key prefix:
   /// a MISS marker hit returns false without HTTP (90 day TTL, same as
   /// iTunes misses), a valid hit applies the cached lyrics directly.
-  Future<bool> fetchLyricsOnly(Song song) async {
+  Future<bool> fetchLyricsOnly(Song song, {bool bypassCache = false}) async {
     // Never call the API with empty/unknown fields - guaranteed 404 + wasted quota.
     if (song.artist.isEmpty ||
         song.title.isEmpty ||
@@ -235,8 +268,10 @@ class MetadataService {
       // Synced fetch must never break the plain lyric fetch.
     }
     final lyricsKey = _lyricsCacheKeyFor(song);
-    // Serve a fresh cache entry before touching the network.
-    final cachedLyrics = await _readValidCache(lyricsKey);
+    // Serve a fresh disk cache entry before touching the network, unless
+    // the caller explicitly wants to bypass it (manual rescan).
+    final cachedLyrics =
+        bypassCache ? null : await _readValidCache(lyricsKey);
     if (cachedLyrics != null) {
       if (cachedLyrics == _cacheMissMarker) {
         return false;
@@ -248,55 +283,31 @@ class MetadataService {
       // Empty cached body should behave like a miss.
       return false;
     }
-    try {
-      final lyricsUrl = Uri.https(
-  'api.lyrics.ovh',
-  '/v1/${Uri.encodeComponent(song.artist)}/${Uri.encodeComponent(song.title)}',
-);
-      final res = await _client
-          .get(lyricsUrl, headers: {'User-Agent': 'Swara/1.0'})
-          .timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        if (data['lyrics'] != null) {
-          var lyrics = data['lyrics'].toString().trim();
-          // Cap at 100KB so the DB does not bloat / OOM on anomalous lyrics.
-          if (lyrics.length > 100 * 1024) {
-            lyrics = lyrics.substring(0, 100 * 1024);
-          }
-          if (lyrics.isNotEmpty) {
-            song.lyrics = lyrics;
-            // Remember successful lookups so later calls skip the network.
-            try {
-              await DBHelper.instance.putMetadataCache(lyricsKey, lyrics);
-            } catch (_) {
-              // Cache write failure must never break lyric fetch.
-            }
-            return true;
-          }
-        }
-      }
-      if (res.statusCode == 429) {
-        // Rate limited: treat like a transient failure, no MISS marker
-        // and no scanned side effect, so a later call retries it.
-        return false;
-      }
-      // Definitive miss (HTTP 404 or 200 with empty lyrics): remember
-      // the miss so later calls skip the network for 90 days. Other
-      // statuses (including 429) are transient and must not poison
-      // the cache, so they return without a MISS marker.
-      if (res.statusCode == 404 || res.statusCode == 200) {
-        try {
-          await DBHelper.instance.putMetadataCache(lyricsKey, _cacheMissMarker);
-        } catch (_) {
-          // Cache write failure must never break lyric fetch.
-        }
-      }
-    } catch (_) {
-      // Transient failure (offline/network error): keep null so the user
-      // can fill lyrics via the edit feature. No MISS marker here so a
-      // later call retries instead of reusing a poisoned miss.
+    // Dispatch the lyrics HTTP call to an isolate so the main thread stays
+    // responsive during network I/O. Cache/DB reads/writes stay on main.
+    final result = await compute(
+      _lyricsFetchIsolate,
+      <String, dynamic>{
+        'artist': song.artist,
+        'title': song.title,
+      },
+    );
+    final lyrics = result['lyrics'] as String?;
+    if (lyrics != null && lyrics.isNotEmpty) {
+      song.lyrics = lyrics;
+      try {
+        await DBHelper.instance.putMetadataCache(lyricsKey, lyrics);
+      } catch (_) {}
+      return true;
     }
+    if (result['rateLimited'] == true) {
+      // Transient: do not poison cache, retry later.
+      return false;
+    }
+    // Definitive miss: remember so later scans skip the network for 90 days.
+    try {
+      await DBHelper.instance.putMetadataCache(lyricsKey, _cacheMissMarker);
+    } catch (_) {}
     return false;
   }
 
@@ -381,19 +392,6 @@ class MetadataService {
   /// Apply a cached iTunes JSON body to [song] using the same field
   /// mapping as a live 200 response. Returns false when the body is
   /// corrupt so the caller can fall back to the network.
-  // A captive portal (hotel, airport, campus WiFi) can return a 404 with an
-  // HTML body for an iTunes URL. Treating that as definitive would lock
-  // every song as "not found" for 90 days. Only commit the miss when the
-  // response actually looks like iTunes.
-  bool _looksLikeItunesResponse(http.Response res) {
-    try {
-      final data = jsonDecode(res.body);
-      return data is Map && data.containsKey('resultCount');
-    } catch (_) {
-      return false;
-    }
-  }
-
   bool _applyItunesResponseBody(Song song, String body) {
     try {
       final data = jsonDecode(body);

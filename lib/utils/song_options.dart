@@ -124,6 +124,29 @@ Future<void> showSongOptions(
             },
           ),
           ListTile(
+            leading: const Icon(Icons.cloud_sync_outlined),
+            title: Text(l.songOptionsScanMetadata),
+            onTap: () async {
+              Navigator.pop(ctx);
+              try {
+                final limited = await lib.rescanSingleMetadata(song);
+                if (!mounted) return;
+                final snack = limited
+                    ? l.editMetadataRescanRateLimited
+                    : l.artRefreshed;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(snack)),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text(l.editMetadataRescanFailed(e.toString()))),
+                );
+              }
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.share_outlined),
             title: Text(l.songShare),
             onTap: () async {

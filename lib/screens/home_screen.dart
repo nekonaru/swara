@@ -136,27 +136,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     late final LibraryProvider lib;
     try {
       lib = context.read<LibraryProvider>();
-      // Fast startup path only: DB load + device scan without internet fetch,
+      // Fast startup path: DB load + device scan without internet fetch,
       // so the song list shows right after the first frame.
       await lib.autoLoadAndScanIfNeeded();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
-            content: Text(AppLocalizations.of(context)!
-                .homeLoadLibraryFailed('$e'))),
-      );
-      return;
-    }
-    // Deferred heavy internet enrich: wait until after the first frame plus
-    // a short delay so startup stays light. Awaited, with mounted guards,
-    // so there is no unawaited Future and no setState after dispose.
-    await Future.delayed(const Duration(seconds: 3));
-    if (!mounted) return;
-    try {
-      await lib.bulkScanMetadata(onlyMissing: true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

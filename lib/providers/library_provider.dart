@@ -142,9 +142,8 @@ class LibraryProvider extends ChangeNotifier {
 
   /// Scan files from the phone (detect new/removed songs).
   /// Fast path: device read + DB write only, no internet fetch, so the
-  /// song list appears instantly at startup. Pass [autoFetchMetadata] true
-  /// only when the caller explicitly wants the slow internet enrich inline.
-  Future<void> scanDevice({bool autoFetchMetadata = false}) async {
+  /// song list appears instantly at startup.
+  Future<void> scanDevice() async {
     // Reentrancy guard. Two overlapping scans compared the songs table against
     // their own device snapshot, so the slower one deleted the songs the
     // faster one had just inserted, together with their playlist entries and
@@ -155,7 +154,7 @@ class LibraryProvider extends ChangeNotifier {
     scanError = null;
     notifyListeners();
     try {
-      await LibraryScanner().scanAndSync(autoFetchMetadata: autoFetchMetadata);
+      await LibraryScanner().scanAndSync();
       await loadFromDb();
     } catch (e) {
       scanError = '${lookupAppLocalizations(LanguageProvider.instance.locale).coreScanFailed}: $e';
@@ -166,8 +165,8 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   /// Force a device scan and refresh the timestamp
-  Future<void> forceScanDevice({bool autoFetchMetadata = false}) async {
-    await scanDevice(autoFetchMetadata: autoFetchMetadata);
+  Future<void> forceScanDevice() async {
+    await scanDevice();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_kLastDeviceScan, DateTime.now().millisecondsSinceEpoch);
@@ -190,15 +189,26 @@ class LibraryProvider extends ChangeNotifier {
 
     try {
       const batchSize = 5;
+      DateTime? _lastNotify;
+      // Throttle notifyListeners: only update at most every 10 songs or
+      // every 2 seconds, whichever comes first. The UI only needs coarse
+      // progress, not a rebuild per batch of 5.
+      void _maybeNotify(int done) {
+        final now = DateTime.now();
+        final byCount = done % 10 == 0;
+        final byTime = _lastNotify == null ||
+            now.difference(_lastNotify!).inMilliseconds >= 2000;
+        if (byCount || byTime) {
+          _lastNotify = now;
+          notifyListeners();
+        }
+      }
       for (int i = 0; i < targets.length; i += batchSize) {
         final batch = targets.skip(i).take(batchSize).toList();
-        // Await the batch and stop at once on iTunes 429: leftovers keep
-        // metadataScanned false and are retried on a later scan.
-        // Single backoff window lives in MetadataService, no retry loop here.
         final results =
             await Future.wait(batch.map((song) => MetadataService.instance.enrichSong(song)));
         bulkScanProgress += batch.length;
-        notifyListeners();
+        _maybeNotify(bulkScanProgress);
         if (results.any((limited) => limited)) break;
       }
 

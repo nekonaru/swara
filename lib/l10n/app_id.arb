@@ -455,6 +455,7 @@
     "songOptionsAddToPlaylist":  "Tambah ke Playlist",
     "songOptionsRename":  "Ganti Nama Lagu",
     "songOptionsEditMetadata":  "Edit Metadata",
+    "songOptionsScanMetadata":  "Scan Metadata",
     "songOptionsRemoveFromPlaylist":  "Hapus dari Playlist Ini",
     "songOptionsRemoveFromPlaylistFailed":  "Gagal hapus dari playlist: {error}",
     "@songOptionsRemoveFromPlaylistFailed":  {
