@@ -13,6 +13,10 @@ int _sortRank(String s) {
   return 0; // symbol/icon (#, [, etc)
 }
 
+/// Sort tier for one title, exposed so callers can precompute a sort key per
+/// song instead of calling [compareTitles] inside every comparison.
+int titleSortRank(String s) => _sortRank(s);
+
 /// Compare two titles in tier order: symbols < digits < letters < other scripts.
 int compareTitles(String a, String b) {
   final rankA = _sortRank(a);

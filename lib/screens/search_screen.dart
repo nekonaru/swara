@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,7 +11,7 @@ import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
 import '../services/art_cache_service.dart';
 import '../utils/format.dart';
-import '../utils/fuzzy.dart';
+import '../utils/search_filter.dart';
 import '../utils/song_options.dart';
 import '../widgets/playing_indicator.dart';
 import '../widgets/mini_player.dart';
@@ -63,6 +64,15 @@ class _SearchScreenState extends State<SearchScreen> {
   // debounce delay, filter changes re-filter this pending text so switching
   // tabs never drops what the user typed.
   String _pendingQuery = '';
+
+  // Haystacks for the active library version and filter tab. Rebuilt only
+  // when one of those changes, so a keystroke ships cached strings to the
+  // isolate instead of rebuilding a string per song on the UI thread.
+  List<String> _haystacks = const <String>[];
+  List<String> _suggestHaystacks = const <String>[];
+  int _haystackLibVersion = -1;
+  _SearchFilter? _haystackFilter;
+  int _haystackLength = -1;
 
   // Multi-select state for song results, mirrors library_screen pattern.
   // Session only, cleared when the query or filter changes.
@@ -214,10 +224,13 @@ class _SearchScreenState extends State<SearchScreen> {
     // Yield one turn so the guard below is meaningful even for small
     // libraries where the filter would otherwise finish synchronously.
     await Future<void>.delayed(Duration.zero);
-    final found = _filterSongs(source, query);
+    final found = await _filterSongs(source, query, version);
+    // Guard after the isolate hop: an outdated run must not publish its
+    // results or its spelling hint over a newer query.
     if (!mounted || gen != _queryGen) return;
     setState(() {
-      _results = found;
+      _results = found.songs;
+      _suggestion = found.suggestion;
       _resultsLibVersion = version;
     });
   }
@@ -437,54 +450,71 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // Filter the library with the given query text and the active filter tab.
-  // Returns the full match set, the caller renders it lazily.
-  List<Song> _filterSongs(List<Song> songs, String query) {
-    if (query.trim().isEmpty) return const <Song>[];
-    final List<Song> matched;
-    // Use tolerant matching so separators and token order do not matter.
-    // Each filter builds one haystack per song from its own fields.
-    //
-    // Two passes: exact substring matches first, then typo tolerant matches
-    // appended after them. Running one loose pass over everything would let a
-    // near miss outrank the song the user actually typed.
-    String haystackFor(Song s) {
-      switch (_filter) {
-        case _SearchFilter.lagu:
-          return '${s.title} ${s.artist}';
-        case _SearchFilter.album:
-          return s.album;
-        case _SearchFilter.artis:
-          return s.artist;
-        case _SearchFilter.folder:
-          final parts = s.filePath.split('/');
-          return parts.length > 1 ? parts[parts.length - 2] : '';
-        case _SearchFilter.genre:
-          return s.genre ?? '';
-      }
+  // Rebuild the haystacks only when the library content or the filter tab
+  // changed. A new query then reuses them instead of rebuilding a string
+  // per song on the UI thread before the isolate hop.
+  void _ensureHaystacks(List<Song> songs, int version) {
+    if (_haystackLibVersion == version &&
+        _haystackFilter == _filter &&
+        _haystackLength == songs.length &&
+        _suggestHaystacks.length == songs.length) {
+      return;
     }
+    _haystacks = <String>[for (final s in songs) _haystackFor(s)];
+    _suggestHaystacks = <String>[
+      for (final s in songs) '${s.title} ${s.artist} ${s.album}'
+    ];
+    _haystackLibVersion = version;
+    _haystackFilter = _filter;
+    _haystackLength = songs.length;
+  }
 
-    final exact = <Song>[];
-    final loose = <Song>[];
-    for (final s in songs) {
-      final haystack = haystackFor(s);
-      if (fuzzyMatch(haystack, query)) {
-        exact.add(s);
-      } else if (fuzzyMatchLoose(haystack, query)) {
-        loose.add(s);
-      }
+  // Filter the library with the given query text and the active filter tab.
+  // Returns the full match set plus an optional spelling hint; the caller
+  // renders the matches lazily.
+  //
+  // Matching runs in a background isolate: every haystack is normalized
+  // with regular expressions and the typo tolerant pass can run a bounded
+  // edit distance against every word of every song, which used to cost a
+  // frame per keystroke on a large library.
+  Future<({List<Song> songs, String? suggestion})> _filterSongs(
+      List<Song> songs, String query, int version) async {
+    if (query.trim().isEmpty) {
+      return (songs: const <Song>[], suggestion: null);
     }
-    // Only offer a spelling hint when the typo pass found nothing, otherwise
-    // it would nag while real results are on screen.
-    _suggestion = exact.isEmpty && loose.isEmpty
-        ? suggestFor(
-            query, songs.map((s) => '${s.title} ${s.artist} ${s.album}'))
-        : null;
-    matched = exact.isEmpty ? loose : [...exact, ...loose];
-    // Safety cap only, never a paging window.
-    return matched.length > _resultsLimit
-        ? matched.take(_resultsLimit).toList(growable: false)
-        : matched;
+    _ensureHaystacks(songs, version);
+    final res = await compute(filterSongsIsolate, <String, dynamic>{
+      'haystacks': _haystacks,
+      'suggestHaystacks': _suggestHaystacks,
+      'query': query,
+      'limit': _resultsLimit,
+    });
+    final indices = (res['indices'] as List).cast<int>();
+    // Map indices back to songs. The bounds check is cheap insurance against
+    // the list changing between the haystack build and this await.
+    return (
+      songs: [
+        for (final i in indices)
+          if (i >= 0 && i < songs.length) songs[i],
+      ],
+      suggestion: res['suggestion'] as String?,
+    );
+  }
+
+  String _haystackFor(Song s) {
+    switch (_filter) {
+      case _SearchFilter.lagu:
+        return '${s.title} ${s.artist}';
+      case _SearchFilter.album:
+        return s.album;
+      case _SearchFilter.artis:
+        return s.artist;
+      case _SearchFilter.folder:
+        final parts = s.filePath.split('/');
+        return parts.length > 1 ? parts[parts.length - 2] : '';
+      case _SearchFilter.genre:
+        return s.genre ?? '';
+    }
   }
 
   // Group results by album/artist/folder/genre for the grouped view

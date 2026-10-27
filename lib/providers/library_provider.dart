@@ -44,6 +44,13 @@ class LibraryProvider extends ChangeNotifier {
   // every read.
   int _totalDurationMs = 0;
 
+  // Lazily built id to song index, invalidated whenever the list content or
+  // order changes. Screens that look up one row per rebuild (the player
+  // screen resolves the playing song on every notification) used to scan the
+  // whole library for that.
+  Map<int, Song>? _byIdCache;
+  int _byIdCacheVersion = -1;
+
   static const _kSortOption = 'lib_sort_option';
   static const _kLastDeviceScan = 'last_device_scan_ms';
   // Auto scan only when more than 30 minutes have passed
@@ -234,7 +241,15 @@ class LibraryProvider extends ChangeNotifier {
     if (!limited) {
       await DBHelper.instance.applyEnrichedMetadata(song);
     }
-    await loadFromDb();
+    // The enrich can rewrite title/artist/album, so re-sort after patching.
+    // One row changed: no full table reload for it.
+    if (_patchSongInMemory(song)) {
+      _applySort();
+      _songsVersion++;
+      notifyListeners();
+    } else {
+      await loadFromDb();
+    }
     return limited;
   }
 
@@ -249,6 +264,73 @@ class LibraryProvider extends ChangeNotifier {
 
   /// Cheap change token for the current [songs] list, content and order.
   int get songsVersion => _songsVersion;
+
+  /// Song stored at [id] in the current library, or null when it is gone.
+  ///
+  /// Replaces an O(n) scan per lookup. The index is rebuilt only when the
+  /// version changed, and dropped by [_patchSongInMemory] when a row object
+  /// was swapped in place.
+  Song? songById(int id) {
+    final cache = _byIdCache;
+    if (cache == null ||
+        _byIdCacheVersion != _songsVersion ||
+        cache.length != songs.length) {
+      final rebuilt = <int, Song>{for (final s in songs) s.id: s};
+      _byIdCache = rebuilt;
+      _byIdCacheVersion = _songsVersion;
+      return rebuilt[id];
+    }
+    return cache[id];
+  }
+
+  /// Swap the stored row for [id] with the fresh field values of [source].
+  ///
+  /// Returns false when the id is not in the current library, so the caller
+  /// can fall back to a full reload. Single row actions (rename, one metadata
+  /// refresh) used to reload the whole table, re-sort the full list and
+  /// rebuild every consumer for one changed row.
+  ///
+  /// The existing row OBJECT is kept and only its mutable fields are copied
+  /// over, so any widget already holding that row sees the update and the id
+  /// index stays valid without a rebuild.
+  bool _patchSongInMemory(Song source) {
+    final list = songs;
+    for (var i = 0; i < list.length; i++) {
+      final row = list[i];
+      if (row.id != source.id) continue;
+      if (identical(row, source)) return true;
+      row.title = source.title;
+      row.artist = source.artist;
+      row.album = source.album;
+      row.genre = source.genre;
+      row.region = source.region;
+      row.albumArtPath = source.albumArtPath;
+      row.albumArtUrl = source.albumArtUrl;
+      row.lyrics = source.lyrics;
+      row.durationMs = source.durationMs;
+      row.isFavorite = source.isFavorite;
+      row.addedAt = source.addedAt;
+      row.metadataScanned = source.metadataScanned;
+      return true;
+    }
+    return false;
+  }
+
+  /// Flip the favorite flag on one stored row without touching anything else.
+  ///
+  /// The passed in object may be a copy loaded by another screen, so only the
+  /// flag is written and the library row keeps its own field values.
+  bool _setFavoriteInMemory(int id, bool value) {
+    final list = songs;
+    for (var i = 0; i < list.length; i++) {
+      final row = list[i];
+      if (row.id == id) {
+        row.isFavorite = value;
+        return true;
+      }
+    }
+    return false;
+  }
 
   /// ORDER BY key matching DBHelper.querySongsPage whitelist for [opt].
   /// Keeps DB paging order consistent with the in memory [_applySort].
@@ -319,24 +401,28 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   void _applySort() {
+    // Comparison keys are computed ONCE per song. The old comparators
+    // lowercased both sides inside every comparison, which for a large
+    // library meant hundreds of thousands of string allocations on every
+    // load and every sort change.
     switch (sortOption) {
       case SortOption.titleAZ:
-        songs.sort((a, b) => compareTitles(a.title, b.title));
+        _sortByTitle(descending: false);
         break;
       case SortOption.titleZA:
-        songs.sort((a, b) => compareTitles(b.title, a.title));
+        _sortByTitle(descending: true);
         break;
       case SortOption.artistAZ:
-        songs.sort((a, b) => a.artist.toLowerCase().compareTo(b.artist.toLowerCase()));
+        _sortByKey((s) => s.artist.toLowerCase(), descending: false);
         break;
       case SortOption.artistZA:
-        songs.sort((a, b) => b.artist.toLowerCase().compareTo(a.artist.toLowerCase()));
+        _sortByKey((s) => s.artist.toLowerCase(), descending: true);
         break;
       case SortOption.albumAZ:
-        songs.sort((a, b) => (a.album).toLowerCase().compareTo((b.album).toLowerCase()));
+        _sortByKey((s) => s.album.toLowerCase(), descending: false);
         break;
       case SortOption.albumZA:
-        songs.sort((a, b) => (b.album).toLowerCase().compareTo((a.album).toLowerCase()));
+        _sortByKey((s) => s.album.toLowerCase(), descending: true);
         break;
       case SortOption.dateAddedNewest:
         songs.sort((a, b) {
@@ -364,6 +450,35 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
+  /// Sort titles in tier order (symbols < digits < letters < other scripts),
+  /// same result as calling compareTitles per comparison but with the lower
+  /// case form and the tier computed once per song.
+  void _sortByTitle({required bool descending}) {
+    final decorated = <(int, String, Song)>[
+      for (final s in songs) (titleSortRank(s.title), s.title.toLowerCase(), s),
+    ];
+    decorated.sort((a, b) {
+      if (a.$1 != b.$1) {
+        final cmp = a.$1.compareTo(b.$1);
+        return descending ? -cmp : cmp;
+      }
+      final cmp = a.$2.compareTo(b.$2);
+      return descending ? -cmp : cmp;
+    });
+    songs.setAll(0, [for (final d in decorated) d.$3]);
+  }
+
+  /// Sort by a precomputed key string, in place so callers keep the same
+  /// list object they already hold.
+  void _sortByKey(String Function(Song) keyOf, {required bool descending}) {
+    final decorated = <(String, Song)>[for (final s in songs) (keyOf(s), s)];
+    decorated.sort((a, b) {
+      final cmp = a.$1.compareTo(b.$1);
+      return descending ? -cmp : cmp;
+    });
+    songs.setAll(0, [for (final d in decorated) d.$2]);
+  }
+
   List<Song> filteredSongs(String query) {
     if (query.trim().isEmpty) return songs;
     final q = query.toLowerCase();
@@ -380,17 +495,43 @@ class LibraryProvider extends ChangeNotifier {
 
   Future<void> toggleFavorite(Song song, bool value) async {
     await DBHelper.instance.setFavorite(song.id, value);
-    await loadFromDb();
+    // Keep the caller's object in sync (it may be a copy held by the player
+    // or a playlist screen), then patch the library row in place. A favorite
+    // is never a sort key, so no re-sort and no version bump are needed.
+    song.isFavorite = value;
+    if (!_setFavoriteInMemory(song.id, value)) {
+      // Not in the current list (deleted meanwhile): fall back to a reload.
+      await loadFromDb();
+      return;
+    }
+    // Version gates every derived cache, including the favorites screen
+    // list, so a favorite change must bump it even though the sort keys and
+    // the row order stay the same.
+    _songsVersion++;
+    notifyListeners();
   }
 
-  /// Set favorites for many songs at once: a single batch write to the DB
-  /// then ONE reload + notify (via loadFromDb). On failure -> scanError.
+  /// Set favorites for many songs at once: a single batch write to the DB,
+  /// then one in memory patch and a single notification. On failure -> scanError.
   Future<void> setFavoritesBulk(List<Song> songs, bool value) async {
     if (songs.isEmpty) return;
     try {
       await DBHelper.instance
           .setFavoritesBulk(songs.map((s) => s.id).toList(), value);
-      await loadFromDb();
+      var patched = 0;
+      for (final s in songs) {
+        s.isFavorite = value;
+        if (_setFavoriteInMemory(s.id, value)) patched++;
+      }
+      if (patched == songs.length) {
+        // Same reason as toggleFavorite: the favorites screen is version
+        // gated and must see the new state.
+        _songsVersion++;
+        notifyListeners();
+      } else {
+        // Something the list never saw (deleted rows): reload to resync.
+        await loadFromDb();
+      }
     } catch (e) {
       scanError = '${lookupAppLocalizations(LanguageProvider.instance.locale).coreUpdateFavoritesFailed}: $e';
       notifyListeners();
@@ -446,7 +587,16 @@ class LibraryProvider extends ChangeNotifier {
 
   Future<void> updateMetadata(Song song) async {
     await DBHelper.instance.updateSongMetadata(song);
-    await loadFromDb();
+    // A rename can change the sort keys, so the stored rows are patched and
+    // the list is re-sorted in memory. Reloading the whole table here cost a
+    // full query plus a full rebuild for one edited row.
+    if (!_patchSongInMemory(song)) {
+      await loadFromDb();
+      return;
+    }
+    _applySort();
+    _songsVersion++;
+    notifyListeners();
   }
 
   List<Song> get sortedByArtist =>

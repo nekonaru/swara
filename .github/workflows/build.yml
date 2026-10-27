@@ -225,28 +225,26 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.6 - Faster scans and a per-song metadata refresh**
+            **Swara v2.9.7 - Leaner search, sorting, and row updates**
 
             ## ✨ Features
 
-            - **Refresh one song from the internet.** The song menu now has a "Scan metadata" action that fetches title, album art, genre, and lyrics for that single song without touching the rest of the library.
+            - **No new features, on purpose.** This release is a pure weight reduction: everything you use behaves the same, it just costs fewer frames.
 
             ## ⚡ Performance
 
-            - **Library scan work moved off the main thread.** Folder checks, title fallbacks, and write batching now run in a background isolate, so the UI stays responsive while thousands of songs are scanned.
-            - **iTunes and lyrics lookups run off the main thread.** Metadata fetching no longer blocks frames during a bulk scan.
-            - **Startup stays light.** The background metadata pass starts 5 seconds after the first frame instead of running inline.
+            - **Search matching moved to a background isolate.** Fuzzy matching and the typo pass no longer run on the frame where you type, and their per-song text is built once per library version instead of on every keystroke.
+            - **Single row actions no longer reload the whole library.** Favoriting, renaming, and refreshing metadata for one song now patch that row in memory instead of re-querying, re-sorting, and rebuilding every consumer.
+            - **The player screen looks up the playing song by index** instead of scanning the entire library on every playback notification.
+            - **Sort keys are computed once per song.** Sorting no longer lowercases both sides inside every comparison, which used to allocate hundreds of thousands of strings per load.
 
             ## 🐛 Bug fixes
 
-            - **Build error fixed.** A missing `mounted` guard broke the CI build.
-            - **Captive portal protection restored.** Only answers that actually look like iTunes or lyrics.ovh are stored as a "not found" miss; HTML pages, 5xx responses, and other surprises stay retryable instead of locking a song out for 90 days.
-            - **Hidden folder exclusion behaves exactly as before** inside the new isolate path, including Windows style paths.
-            - **Tests are line ending agnostic**, so the source inspection guards pass on Windows checkouts too.
+            - **Favorites screen stays in sync** with the lighter in-memory updates: a favorite change now bumps the library version the favorites list is gated on.
 
             ## 🧪 Verification
 
-            - 169 tests pass
+            - 178 tests pass, including new guards that pin the isolate search path, the in-memory row patches, and the index lookup
             - flutter analyze: no issues
 
             ## 📦 Install / Update
@@ -261,29 +259,28 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.6 - Scan lebih cepat dan refresh metadata per lagu**
+            **Swara v2.9.7 - Pencarian, sort, dan update baris jadi lebih ringan**
 
             ## ✨ Fitur
 
-            - **Refresh satu lagu dari internet.** Menu lagu kini punya aksi "Scan metadata" yang mengambil judul, cover, genre, dan lirik untuk satu lagu itu saja tanpa menyentuh pustaka lain.
+            - **Tanpa fitur baru, sengaja.** Rilis ini murni pemangkasan beban: semua yang kamu pakai perilakunya sama, hanya biayanya lebih sedikit frame.
 
             ## ⚡ Performa
 
-            - **Kerja scan pustaka dipindah ke thread latar.** Cek folder, fallback judul, dan penyiapan tulisan kini berjalan di isolate latar, jadi UI tetap responsif saat ribuan lagu discan.
-            - **Lookup iTunes dan lirik berjalan di latar.** Pengambilan metadata tidak lagi memblokir frame saat scan massal.
-            - **Startup tetap ringan.** Pass metadata latar mulai 5 detik setelah frame pertama, bukan berjalan inline.
+            - **Matching pencarian pindah ke isolate latar.** Fuzzy match dan pass salah ketik tidak lagi berjalan di frame saat kamu mengetik, dan teks per lagunya dibangun sekali per versi pustaka alih-alih setiap ketukan.
+            - **Aksi satu baris tidak lagi reload pustaka penuh.** Favorit, rename, dan refresh metadata satu lagu kini menambal baris itu di memori alih-alih query ulang, sort ulang, dan membangun ulang semua konsumen.
+            - **Layar pemutar mencari lagu yang diputar lewat indeks**, bukan memindai seluruh pustaka di setiap notifikasi pemutaran.
+            - **Key sort dihitung sekali per lagu.** Sort tidak lagi mengecilkan kedua sisi di dalam setiap perbandingan, yang dulu mengalokasikan ratusan ribu string per pemuatan.
 
             ## 🐛 Perbaikan bug
 
-            - **Error build diperbaiki.** Guard `mounted` yang hilang membuat build CI gagal.
-            - **Perlindungan captive portal dipulihkan.** Hanya jawaban yang benar-benar terlihat seperti iTunes atau lyrics.ovh yang disimpan sebagai miss "tidak ditemukan"; halaman HTML, respons 5xx, dan kejutan lain tetap bisa dicoba ulang alih-alih mengunci lagu selama 90 hari.
-            - **Kecualian folder tersembunyi berperilaku persis seperti sebelumnya** di jalur isolate baru, termasuk path bergaya Windows.
-            - **Test tidak lagi peduli line ending**, jadi guard pemeriksaan sumber lolos di checkout Windows.
+            - **Layar Favorit tetap sinkron** dengan update in-memory yang lebih ringan: perubahan favorit kini menaikkan versi pustaka yang menjadi gate daftar favorit.
 
             ## 🧪 Verifikasi
 
-            - 169 test lolos
+            - 178 test lolos, termasuk guard baru yang mengunci jalur isolate untuk pencarian, tambal baris di memori, dan lookup indeks
             - flutter analyze: no issues
+
             ## 📦 Instalasi / Update
 
             Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26).

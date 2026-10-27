@@ -515,8 +515,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Widget _buildScaffold(Song song) {
     final lib = context.watch<LibraryProvider>();
-    final matchInLib = lib.songs.where((s) => s.id == song.id);
-    final isFavorite = matchInLib.isNotEmpty ? matchInLib.first.isFavorite : false;
+    // Index lookup instead of scanning the whole library on every rebuild of
+    // this screen, which happens for every playback state notification.
+    final inLibrary = lib.songById(song.id);
+    final isFavorite = inLibrary?.isFavorite ?? song.isFavorite;
 
     return GestureDetector(
       onVerticalDragStart: (details) {

@@ -74,6 +74,7 @@
 | 📊 **Dashboard** | Last-7-days chart, top songs and artists, genre and region distribution |
 | 🌍 **English and Indonesian UI** | English by default; switch to Bahasa Indonesia in Settings |
 | 🎨 **Themes** | Light, dark, or follow system, plus 10 accent colors |
+| 🪶 **Smooth on huge libraries** | Search, sorting, and single-row updates run off the main thread, so nothing stutters |
 
 ## 📦 Requirements
 
