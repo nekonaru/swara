@@ -803,6 +803,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
     if (mounted) {
       final lib = context.read<LibraryProvider>();
       await lib.loadFromDb();
+      if (!mounted) return;
       final updatedIds = _localSongs.map((s) => s.id).toSet();
       setState(() {
         _isScanning = false;

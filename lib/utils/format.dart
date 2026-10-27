@@ -1,5 +1,5 @@
-/// Sort-tier category: symbols/icons first, then digits, then latin letters,
-/// finally other scripts (Korean/Chinese/Japanese/etc).
+// Sort-tier category: symbols/icons first, then digits, then latin letters,
+// finally other scripts (Korean/Chinese/Japanese/etc).
 
 int _sortRank(String s) {
   if (s.isEmpty) return 0;

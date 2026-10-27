@@ -50,7 +50,7 @@ class ArtCacheService {
     }
     final a = h1.toRadixString(16).padLeft(8, '0');
     final b = h2.toRadixString(16).padLeft(8, '0');
-    return 'art_${a}_${b}.jpg';
+    return 'art_${a}_$b.jpg';
   }
 
   Future<Directory?> _cacheDir() async {

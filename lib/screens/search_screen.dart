@@ -724,7 +724,7 @@ class _SearchScreenState extends State<SearchScreen> {
           try {
             await PlayerService.instance.setQueueAndPlay(queue, index);
           } catch (e) {
-            if (context.mounted) {
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                     behavior: SnackBarBehavior.floating,

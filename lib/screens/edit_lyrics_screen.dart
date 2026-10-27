@@ -35,14 +35,13 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
 
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
     final clipboardText = data?.text ?? '';
     if (clipboardText.trim().isEmpty) {
-      if (mounted) {
-        final l = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.editLyricsClipboardEmpty)),
-        );
-      }
+      final l = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.editLyricsClipboardEmpty)),
+      );
       return;
     }
 

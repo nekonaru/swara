@@ -126,10 +126,12 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _load({bool forceRefresh = false}) async {
-    if (mounted) setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       // Only the summary numbers come from the cache. Detail lists are
@@ -891,7 +893,7 @@ class DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -986,7 +988,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         await PlayerService.instance
                             .setQueueAndPlay(_neverPlayed, 0);
                       } catch (e) {
-                        if (context.mounted) {
+                        if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                                 behavior: SnackBarBehavior.floating,

@@ -865,9 +865,9 @@ class DBHelper {
     try {
       final database = await db;
       final rows = await database.rawQuery(
-        "SELECT DISTINCT folder FROM playlists "
+        'SELECT DISTINCT folder FROM playlists '
         "WHERE folder IS NOT NULL AND TRIM(folder) != '' "
-        "ORDER BY folder COLLATE NOCASE ASC",
+        'ORDER BY folder COLLATE NOCASE ASC',
       );
       return rows
           .map((r) => ((r['folder'] as String?) ?? '').trim())

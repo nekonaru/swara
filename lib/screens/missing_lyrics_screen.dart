@@ -106,6 +106,7 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
         if (stoppedEarly) break;
       }
       // Reload once so the list reflects newly fetched lyrics.
+      if (!mounted) return;
       await context.read<LibraryProvider>().loadFromDb();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;

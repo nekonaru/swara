@@ -96,7 +96,7 @@ Future<void> showSongOptions(
                 }
                 return;
               }
-              Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
           ),
           ListTile(
@@ -169,7 +169,7 @@ Future<void> showSongOptions(
                   }
                   return;
                 }
-                Navigator.pop(ctx);
+                if (ctx.mounted) Navigator.pop(ctx);
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(l.songOptionsRemovedFromPlaylist)),

@@ -205,13 +205,14 @@ swara/
 
 ## 🧪 Testing
 
-There is no test suite yet. Static verification before every push:
+Verification before every push, both must be clean:
 
 ```bash
 flutter analyze
+flutter test
 ```
 
-It must report **No issues found** (zero errors, zero warnings).
+`flutter analyze` must report **No issues found** (zero errors, zero warnings). Lints are enforced through `analysis_options.yaml` (flutter_lints plus `prefer_single_quotes` and `sort_child_properties_last`). `flutter test` must pass the full suite.
 
 ## ❓ FAQ
 

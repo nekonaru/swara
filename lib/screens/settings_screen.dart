@@ -172,7 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             FilledButton(
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: json));
-                if (!mounted) return;
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 _showSnack(l10n.dataCopied);
               },
@@ -271,6 +271,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } catch (_) {
         // Non fatal: import already succeeded.
       }
+      if (!mounted) return;
       try {
         await context.read<PlaylistProvider>().load();
       } catch (_) {
@@ -316,6 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _busyData = true);
     try {
       final deleted = await BackupService.clearArtCache();
+      if (!mounted) return;
       try {
         await context.read<LibraryProvider>().loadFromDb();
       } catch (_) {

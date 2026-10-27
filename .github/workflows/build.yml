@@ -225,29 +225,25 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.8 - Lighter frames while scrolling and searching**
+            **Swara v2.9.9 - Permanent lint gate and stricter async context guards**
 
             ## ✨ Features
 
-            - **No new features, on purpose.** This release is a pure weight reduction: everything you use behaves the same, it just costs fewer frames.
+            - **No new features, on purpose.** This release tightens the project's internal quality gate and hardens a few async UI paths; what you see and hear does not change.
 
             ## ⚡ Performance
 
-            - **Search normalization runs once per row and once per query.** The typo-tolerant pass no longer rebuilds its regular expressions and no longer re-normalizes the query for every song, which halves the work per keystroke.
-            - **The playlist detail screen sorts and filters once, not once per rebuild.** Its sorted view and total duration are cached per source list, sort mode and query, so keyboard, favorite and playback updates no longer re-sort the whole playlist.
-            - **Sorting compares code units, not regular expressions.** The title sort tier check used a regex per comparison; it now reads the first character's ASCII range directly.
-            - **Favorites and the missing art or lyrics lists are cached per library version.** Those screens used to rebuild their filtered list on every scan progress notification.
-            - **The cover art cache updates file timestamps at most once every 10 minutes per cover.** Scrolling used to fire one filesystem call per tile just to keep the cache order fresh.
-            - **Scanned filename parsing and duplicate grouping hoist their regular expressions**, so a full rescan no longer compiles patterns once per file.
+            - **A permanent analyzer gate now runs on every change.** The project enables flutter_lints plus prefer_single_quotes and sort_child_properties_last through a new analysis_options.yaml, so style and correctness issues surface before they ship.
 
             ## 🐛 Bug fixes
 
-            - **No behavior changes, on purpose.** Every optimization in this release is internal; search results, sorting order, favorites, and the missing art or lyrics lists all behave exactly as before.
+            - **Fourteen use-after-await context sites now carry a proper mounted guard.** Snackbars, dialogs, and navigation after an async gap check that the widget is still alive, which removes a class of latent crashes when a screen is closed while work is still running.
+            - **Forty-two lint findings across the codebase are resolved.** These are mostly const constructors, single quotes, renamed shadowed locals, and hoisted comments; none of them change runtime behavior.
 
             ## 🧪 Verification
 
-            - 185 tests pass, including new guards that pin the hoisted regexes, the cached playlist view and favorites list, and the throttled art cache touch
-            - flutter analyze: no issues
+            - 185 tests pass
+            - flutter analyze: no issues, now enforced by a committed analysis_options.yaml
 
             ## 📦 Install / Update
 
@@ -261,29 +257,25 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.8 - Frame lebih ringan saat scroll dan cari**
+            **Swara v2.9.9 - Gerbang lint permanen dan guard context async yang lebih ketat**
 
             ## ✨ Fitur
 
-            - **Tanpa fitur baru, sengaja.** Rilis ini murni pemangkasan beban: semua yang kamu pakai perilakunya sama, hanya biayanya lebih sedikit frame.
+            - **Tanpa fitur baru, sengaja.** Rilis ini memperketat gerbang kualitas internal dan menguatkan beberapa jalur UI async; yang kamu lihat dan dengar tidak berubah.
 
             ## ⚡ Performa
 
-            - **Matching pencarian dinormalisasi sekali per baris dan sekali per query.** Pass toleran salah ketik tidak lagi membangun regex ulang dan tidak lagi menormalisasi query untuk setiap lagu, sehingga beban per ketukan berkurang separuh.
-            - **Layar detail playlist mengurutkan dan menyaring sekali, bukan sekali per rebuild.** View terurut dan total durasinya kini di-cache per daftar sumber, mode sort, dan query, sehingga update keyboard, favorit, dan pemutaran tidak lagi mengurutkan ulang seluruh playlist.
-            - **Sort membandingkan code unit, bukan regular expression.** Cek tingkat sort judul dulu memakai regex per perbandingan; kini langsung membaca rentang ASCII karakter pertama.
-            - **Favorit serta daftar artwork dan lirik yang hilang di-cache per versi pustaka.** Layar-layar itu dulu membangun ulang daftar tersaring di setiap notifikasi progres pemindaian.
-            - **Cache artwork memperbarui timestamp file paling sering tiap 10 menit per cover.** Scroll dulu memicu satu panggilan sistem per tile hanya untuk menjaga urutan cache.
-            - **Parsing nama file hasil pemindaian dan grouping duplikat meng-hoist regex-nya**, sehingga pemindaian penuh tidak lagi mengkompilasi pola per file.
+            - **Gerbang analyzer permanen kini berjalan di setiap perubahan.** Proyek mengaktifkan flutter_lints plus prefer_single_quotes dan sort_child_properties_last lewat analysis_options.yaml baru, sehingga masalah gaya dan kebenaran ketahuan sebelum rilis.
 
             ## 🐛 Perbaikan bug
 
-            - **Tidak ada perubahan perilaku, sengaja.** Semua optimasi di rilis ini bersifat internal; hasil pencarian, urutan sort, favorit, serta daftar artwork dan lirik yang hilang tetap berperilaku persis seperti sebelumnya.
+            - **Empat belas lokasi context setelah await kini punya guard mounted yang benar.** Snackbar, dialog, dan navigasi setelah jeda async kini memastikan widget masih hidup, menghilangkan satu kelas crash laten saat layar ditutup sementara kerja masih berjalan.
+            - **Empat puluh dua temuan lint di seluruh kode sudah diperbaiki.** Sebagian besar hanya const constructor, quote, rename local yang menimpa, dan komentar yang di-hoist; tidak ada yang mengubah perilaku runtime.
 
             ## 🧪 Verifikasi
 
-            - 185 test lolos, termasuk guard baru yang mengunci regex yang di-hoist, view playlist dan daftar favorit yang di-cache, serta sentuhan art cache yang di-throttle
-            - flutter analyze: no issues
+            - 185 test lolos
+            - flutter analyze: no issues, kini ditegakkan oleh analysis_options.yaml yang di-commit
 
             ## 📦 Instalasi / Update
 

@@ -60,7 +60,7 @@ void main() {
     });
 
     test('matches multi-field haystack built from song fields', () {
-      final haystack = 'Faded Alan Walker Different Album Pop';
+      const haystack = 'Faded Alan Walker Different Album Pop';
       expect(fuzzyMatch(haystack, 'faded pop'), isTrue);
       expect(fuzzyMatch(haystack, 'faded rock'), isFalse);
     });

@@ -9,7 +9,7 @@ import '../widgets/mini_player.dart';
 // Hoisted so the patterns are compiled once instead of twice per normalized
 // part. Duplicate grouping normalizes three parts per song, and the screen
 // rebuilds its groups whenever the library changes.
-final RegExp _dupPunctReg = RegExp(r"[.,;:!?()\[\]{}<>_/\-\\|@#\$%^&*~`+=]");
+final RegExp _dupPunctReg = RegExp(r'[.,;:!?()\[\]{}<>_/\-\\|@#\$%^&*~`+=]');
 final RegExp _dupWsReg = RegExp(r'\s+');
 
 // Pure helper: normalize one part (title or artist) for duplicate grouping.

@@ -84,7 +84,7 @@ _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
     return idx == -1 ? '' : normalized.substring(0, idx);
   }
 
-  String _titleFromFilename(String path) {
+  String titleFromFilename(String path) {
     final normalized = path.replaceAll(r'\\', '/');
     final name = normalized.substring(normalized.lastIndexOf('/') + 1);
     return name.replaceAll(_isolateFilenameExtReg, '').trim();
@@ -104,7 +104,7 @@ _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
 
     final title = (track.title.isNotEmpty)
         ? track.title
-        : _titleFromFilename(track.data);
+        : titleFromFilename(track.data);
     final artist = (track.artist.isNotEmpty && track.artist != '<unknown>')
         ? track.artist
         : 'Unknown Artist';

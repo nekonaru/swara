@@ -52,7 +52,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
         SnackBar(
           content: Text(AppLocalizations.of(context)!.artRefreshed),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -106,6 +106,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
         if (stoppedEarly) break;
       }
       // Reload once so the list reflects newly fetched covers.
+      if (!mounted) return;
       await context.read<LibraryProvider>().loadFromDb();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;

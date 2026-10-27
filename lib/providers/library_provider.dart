@@ -203,17 +203,17 @@ class LibraryProvider extends ChangeNotifier {
 
     try {
       const batchSize = 5;
-      DateTime? _lastNotify;
+      DateTime? lastNotify;
       // Throttle notifyListeners: only update at most every 10 songs or
       // every 2 seconds, whichever comes first. The UI only needs coarse
       // progress, not a rebuild per batch of 5.
-      void _maybeNotify(int done) {
+      void maybeNotify(int done) {
         final now = DateTime.now();
         final byCount = done % 10 == 0;
-        final byTime = _lastNotify == null ||
-            now.difference(_lastNotify!).inMilliseconds >= 2000;
+        final byTime = lastNotify == null ||
+            now.difference(lastNotify!).inMilliseconds >= 2000;
         if (byCount || byTime) {
-          _lastNotify = now;
+          lastNotify = now;
           notifyListeners();
         }
       }
@@ -222,7 +222,7 @@ class LibraryProvider extends ChangeNotifier {
         final results =
             await Future.wait(batch.map((song) => MetadataService.instance.enrichSong(song)));
         bulkScanProgress += batch.length;
-        _maybeNotify(bulkScanProgress);
+        maybeNotify(bulkScanProgress);
         if (results.any((limited) => limited)) break;
       }
 

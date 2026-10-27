@@ -1,11 +1,11 @@
-/// Pure LRC (synced lyrics) parser, no Flutter or DB dependencies.
-///
-/// Supported line shape: one or more `[mm:ss.xx]text` timestamps followed
-/// by the lyric text. Fractions may use `.` or `:` and carry 1 to 3 digits
-/// (decisecond, centisecond, or millisecond). Metadata tags such as
-/// `[ar:]`, `[ti:]`, `[al:]`, or `[length:]` carry no timing info and are
-/// skipped, as are lines without any timestamp or without lyric text.
-/// An `[offset:N]` tag shifts every timestamp by N milliseconds.
+// Pure LRC (synced lyrics) parser, no Flutter or DB dependencies.
+//
+// Supported line shape: one or more `[mm:ss.xx]text` timestamps followed
+// by the lyric text. Fractions may use `.` or `:` and carry 1 to 3 digits
+// (decisecond, centisecond, or millisecond). Metadata tags such as
+// `[ar:]`, `[ti:]`, `[al:]`, or `[length:]` carry no timing info and are
+// skipped, as are lines without any timestamp or without lyric text.
+// An `[offset:N]` tag shifts every timestamp by N milliseconds.
 
 /// One synced lyric line: display [text] starting at [timeMs].
 class LrcLine {
@@ -75,7 +75,7 @@ List<LrcLine> parseLrc(String raw) {
       final frac = m.group(3);
       if (frac != null) {
         // Normalize 1-3 digit fractions to milliseconds.
-        millis = int.parse((frac + '000').substring(0, 3));
+        millis = int.parse('${frac}000'.substring(0, 3));
       }
       lines.add(LrcLine(
         timeMs: minutes * 60000 + seconds * 1000 + millis + offsetMs,

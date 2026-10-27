@@ -636,7 +636,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       if (lib.isScanning && lib.songs.isEmpty) {
         return Column(
           children: [
-            Expanded(child: const _LibrarySkeleton()),
+            const Expanded(child: _LibrarySkeleton()),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Text(l.libraryScanningMusic,

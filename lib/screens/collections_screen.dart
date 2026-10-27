@@ -1001,16 +1001,16 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                     if (folders.isNotEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: EdgeInsets.fromLTRB(16, 12, 8, 4),
+                          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
                           child: Row(
                             children: [
-                              Icon(Icons.folder_outlined, size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.folder_outlined, size: 18),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                     AppLocalizations.of(context)!
                                         .plFolderUngrouped,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700)),
                               ),
@@ -1200,7 +1200,7 @@ class _HistorySheet extends StatelessWidget {
     appBar: AppBar(
         title:
             Text(AppLocalizations.of(context)!.collectionsRecentlyPlayedTitle)),
-    body: HistoryScreen(),
+    body: const HistoryScreen(),
     bottomNavigationBar: const MiniPlayer(),
   );
 }

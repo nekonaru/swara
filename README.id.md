@@ -206,13 +206,14 @@ swara/
 
 ## 🧪 Testing
 
-Belum ada test suite. Verifikasi statis sebelum setiap push:
+Verifikasi sebelum setiap push, keduanya harus bersih:
 
 ```bash
 flutter analyze
+flutter test
 ```
 
-Harus melaporkan **No issues found** (nol error, nol warning).
+`flutter analyze` harus melaporkan **No issues found** (nol error, nol warning). Lint ditegakkan lewat `analysis_options.yaml` (flutter_lints plus `prefer_single_quotes` dan `sort_child_properties_last`). `flutter test` harus lulus seluruh suite.
 
 ## ❓ FAQ
 

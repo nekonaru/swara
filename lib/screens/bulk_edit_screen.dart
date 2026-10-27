@@ -80,8 +80,8 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
         ok = updates.length;
         // Keep the list items in sync after the write succeeded.
         for (final s in widget.songs) {
-          if (!artist.isEmpty) s.artist = artist;
-          if (!genre.isEmpty) s.genre = genre;
+          if (artist.isNotEmpty) s.artist = artist;
+          if (genre.isNotEmpty) s.genre = genre;
         }
       } catch (_) {
         failed = widget.songs.length;

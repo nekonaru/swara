@@ -299,7 +299,7 @@ class _QueueScreenState extends State<QueueScreen> {
                           final song = queue[i];
                           final slotId = slotIds[i]; // Stable ID - unchanged even when the list refreshes
                           final isPlaying = i == currentIndex;
-                          return Container(
+                          return SizedBox(
                             key: ValueKey('queue_slot_$slotId'),
                             height: _itemHeight,
                             child: Dismissible(
