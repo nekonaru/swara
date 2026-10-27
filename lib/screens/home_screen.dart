@@ -148,6 +148,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             content: Text(AppLocalizations.of(context)!
                 .homeLoadLibraryFailed('$e'))),
       );
+      return;
+    }
+    // Deferred background enrich: only after the first frame plus a short
+    // delay so startup stays light. A failure here is silent because the
+    // same action is available manually from Settings and the library menu.
+    await Future.delayed(const Duration(seconds: 5));
+    if (!mounted) return;
+    try {
+      await lib.bulkScanMetadata(onlyMissing: true);
+    } catch (_) {
+      // Rate limited or offline: leftovers keep metadataScanned false and
+      // are retried on the next startup.
     }
   }
 

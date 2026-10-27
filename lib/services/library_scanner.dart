@@ -50,30 +50,34 @@ class _ScanResult {
   final List<Map<String, dynamic>> pendingUpdates;
   final List<int> updateIds;
   final List<Song> result;
-  final List<Song> needsMetadata;
   final Set<int> allDeviceIds;
   _ScanResult({
     required this.pendingMaps,
     required this.pendingUpdates,
     required this.updateIds,
     required this.result,
-    required this.needsMetadata,
     required this.allDeviceIds,
   });
 }
 
-/// Isolate entry: process raw tracks off the main thread.
-/// folderOf and _titleFromFilename are duplicated inside via closures
-/// encoded as small helper maps to avoid depending on any Flutter/SQFlite
-/// plugin inside the isolate.
+/// Isolate entry: process raw tracks off the main thread. Helpers that the
+/// main thread used to call (folderOf, title fallback) are duplicated here
+/// so the isolate never imports Flutter or sqflite code.
 _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
   final tracksJson = (input['tracks'] as List).cast<Map<String, dynamic>>();
   final excluded = (input['excluded'] as List).cast<String>();
-  final existingById = (input['existingById'] as Map<String, dynamic>);
-  final alreadyScannedIds =
-      (input['alreadyScannedIds'] as List).cast<int>().toSet();
+  // Copied across the isolate boundary with its original generic type, so
+  // it may be a Map<int, ...>. Read it as an untyped map and keep int keys.
+  final existingById = Map<Object?, Object?>.from(
+      input['existingById'] as Map);
 
-  final folderOf = (input['folderSeparator'] as String?) ?? '/';
+  // Mirrors utils/format.dart folderOf so the exclusion check matches what
+  // the main-thread version did before the work moved into the isolate.
+  String folderOfPath(String filePath) {
+    final normalized = filePath.replaceAll(r'\', '/');
+    final idx = normalized.lastIndexOf('/');
+    return idx == -1 ? '' : normalized.substring(0, idx);
+  }
 
   String _titleFromFilename(String path) {
     final normalized = path.replaceAll(r'\\', '/');
@@ -88,25 +92,21 @@ _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
   final pendingUpdates = <Map<String, dynamic>>[];
   final updateIds = <int>[];
   final result = <Song>[];
-  final needsMetadata = <Song>[];
   final allDeviceIds = <int>{};
 
   for (final tj in tracksJson) {
     final track = _RawTrack.fromJson(tj);
     allDeviceIds.add(track.id);
-    final folderEnd = track.data.lastIndexOf(folderOf);
-    final folder = folderEnd >= 0 ? track.data.substring(0, folderEnd) : '';
+    final folder = folderOfPath(track.data);
     if (excluded.contains(folder)) continue;
 
     final title = (track.title.isNotEmpty)
         ? track.title
         : _titleFromFilename(track.data);
-    final artist = (track.artist != null &&
-            track.artist!.isNotEmpty &&
-            track.artist != '<unknown>')
-        ? track.artist!
+    final artist = (track.artist.isNotEmpty && track.artist != '<unknown>')
+        ? track.artist
         : 'Unknown Artist';
-    final album = (track.album?.isNotEmpty == true) ? track.album! : 'Unknown Album';
+    final album = track.album.isNotEmpty ? track.album : 'Unknown Album';
     final song = Song(
       id: track.id,
       filePath: track.data,
@@ -123,25 +123,18 @@ _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
       });
       updateIds.add(song.id);
       result.add(song);
-      if (!alreadyScannedIds.contains(song.id)) {
-        needsMetadata.add(song);
-      }
       continue;
     }
     final map = song.toMap();
     map['addedAt'] = DateTime.now().toIso8601String();
     pendingMaps.add(map);
     result.add(song);
-    if (!alreadyScannedIds.contains(song.id)) {
-      needsMetadata.add(song);
-    }
   }
   return _ScanResult(
     pendingMaps: pendingMaps,
     pendingUpdates: pendingUpdates,
     updateIds: updateIds,
     result: result,
-    needsMetadata: needsMetadata,
     allDeviceIds: allDeviceIds,
   );
 }
@@ -177,21 +170,18 @@ class LibraryScanner {
     // Single SELECT for every stored row state needed below, keyed by id.
     // This replaces one SELECT per song inside upsertSong, so a library of
     // N songs costs 1 read plus 1 batched write instead of N round trips.
-    final existingRows = await database.query(
-      'songs',
-      columns: ['id', 'metadataScanned', 'addedAt', 'isFavorite', 'lastPlayedAt'],
-    );
+    final existingRows = await database.query('songs', columns: ['id']);
     // Snapshot of the ids present BEFORE querySongs() runs. The ghost cleanup
     // must compare against this snapshot, never a live read of the songs
     // table: a second scan running in parallel would insert new rows that the
     // first scan would then mistake for deleted files.
-    final dbIdsAtScanStart = existingRows.map((row) => row['id'] as int).toSet();
-    final existingById = <int, Map<String, Object?>>{
-      for (final row in existingRows) (row['id'] as int): row,
-    };
-    final alreadyScannedIds = <int>{
+    final dbIdsAtScanStart = <int>{
       for (final row in existingRows)
-        if (row['metadataScanned'] == 1) row['id'] as int,
+        if (row['id'] is int) row['id'] as int,
+    };
+    final existingById = <int, Map<String, Object?>>{
+      for (final row in existingRows)
+        if (row['id'] is int) row['id'] as int: row,
     };
     final tracks = await _audioQuery.querySongs(
       sortType: SongSortType.TITLE,
@@ -236,7 +226,7 @@ class LibraryScanner {
         .map((t) => _RawTrack(
               id: t.id,
               data: t.data,
-              title: t.title ?? '',
+              title: t.title,
               artist: t.artist ?? '',
               album: t.album ?? '',
               duration: t.duration,
@@ -246,15 +236,12 @@ class LibraryScanner {
       'tracks': tracksJson,
       'excluded': excluded,
       'existingById': existingById,
-      'alreadyScannedIds': alreadyScannedIds.toList(),
-      'folderSeparator': '/',
     });
 
     final pendingMaps = scanResult.pendingMaps;
     final pendingUpdates = scanResult.pendingUpdates;
     final updateIds = scanResult.updateIds;
     final result = scanResult.result;
-    final needsMetadata = scanResult.needsMetadata;
     final allDeviceIds = scanResult.allDeviceIds;
     if (pendingMaps.isNotEmpty || pendingUpdates.isNotEmpty) {
       final batch = database.batch();
@@ -302,16 +289,5 @@ class LibraryScanner {
     final all = await DBHelper.instance.getAllSongs();
     // Append a trailing '/' so '/storage/Music' never matches '/storage/Music2'
     return all.where((s) => s.filePath.startsWith('$folderPath/')).toList();
-  }
-
-  String _titleFromFilename(String path) {
-    final normalized = path.replaceAll('\\', '/');
-    final name = normalized.substring(normalized.lastIndexOf('/') + 1);
-    return name
-        .replaceAll(
-            RegExp(r'\.(mp3|flac|wav|m4a|ogg|opus|aac|wma)$',
-                caseSensitive: false),
-            '')
-        .trim();
   }
 }

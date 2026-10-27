@@ -544,6 +544,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get songOptionsEditMetadata => 'Edit Metadata';
 
   @override
+  String get songOptionsScanMetadata => 'Scan metadata';
+
+  @override
   String get songOptionsRemoveFromPlaylist => 'Remove from This Playlist';
 
   @override

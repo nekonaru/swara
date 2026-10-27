@@ -34,6 +34,7 @@
 | 📝 **Antrean putar** | Tambah lagu untuk diputar berikutnya atau di akhir, reorder dan hapus |
 | 👆 **Multi-select** | Long-press untuk pilih banyak lagu, lalu favoritkan atau tambah ke playlist sekaligus |
 | 🌐 **Metadata otomatis** | Judul, artis, cover album, dan genre via iTunes Search API |
+| 📡 **Refresh metadata per lagu** | "Scan metadata" di menu lagu mengambil ulang satu lagu dari internet |
 | 🎤 **Lirik otomatis** | Diambil via lyrics.ovh, bisa diedit manual, fallback cari di Google |
 | ✏️ **Edit manual** | Perbaiki metadata dan lirik per lagu kalau hasil otomatis kurang pas |
 | 📁 **Browse folder** | Jelajahi per folder asal, sembunyikan folder dari library |

@@ -225,13 +225,24 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.5 - Lighter scrolling and smaller default text**
+            **Swara v2.9.6 - Faster scans and a per-song metadata refresh**
+
+            ## ✨ Features
+
+            - **Refresh one song from the internet.** The song menu now has a "Scan metadata" action that fetches title, album art, genre, and lyrics for that single song without touching the rest of the library.
 
             ## ⚡ Performance
 
-            - **Scrolling the large library no longer freezes.** The scroll listener called `setState` on every fling, rebuilding the whole library screen and blocking gesture handling on lists with thousands of songs.
-            - **Default text scale is now 0.85.** The app opens with smaller text so more rows fit on screen without scrolling.
-            - **Cover art lookups are memory only.** The index is built once at startup, so scrolling no longer touches the disk per frame.
+            - **Library scan work moved off the main thread.** Folder checks, title fallbacks, and write batching now run in a background isolate, so the UI stays responsive while thousands of songs are scanned.
+            - **iTunes and lyrics lookups run off the main thread.** Metadata fetching no longer blocks frames during a bulk scan.
+            - **Startup stays light.** The background metadata pass starts 5 seconds after the first frame instead of running inline.
+
+            ## 🐛 Bug fixes
+
+            - **Build error fixed.** A missing `mounted` guard broke the CI build.
+            - **Captive portal protection restored.** Only answers that actually look like iTunes or lyrics.ovh are stored as a "not found" miss; HTML pages, 5xx responses, and other surprises stay retryable instead of locking a song out for 90 days.
+            - **Hidden folder exclusion behaves exactly as before** inside the new isolate path, including Windows style paths.
+            - **Tests are line ending agnostic**, so the source inspection guards pass on Windows checkouts too.
 
             ## 🧪 Verification
 
@@ -250,13 +261,24 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.5 - Scrolling lebih ringan dan teks default lebih kecil**
+            **Swara v2.9.6 - Scan lebih cepat dan refresh metadata per lagu**
+
+            ## ✨ Fitur
+
+            - **Refresh satu lagu dari internet.** Menu lagu kini punya aksi "Scan metadata" yang mengambil judul, cover, genre, dan lirik untuk satu lagu itu saja tanpa menyentuh pustaka lain.
 
             ## ⚡ Performa
 
-            - **Scrolling pustaka besar tidak lagi membekukan.** Scroll listener memanggil `setState` tiap fling, yang membangun ulang seluruh layar library dan mengganggu penanganan gesture di pustaka dengan ribuan lagu.
-            - **Ukuran teks default sekarang 0.85.** App dibuka dengan teks lebih kecil sehingga lebih banyak baris muat di layar tanpa scroll.
-            - **Pencarian cover hanya di memori.** Indeks dibangun sekali saat startup, jadi scrolling tidak lagi menyentuh disk tiap frame.
+            - **Kerja scan pustaka dipindah ke thread latar.** Cek folder, fallback judul, dan penyiapan tulisan kini berjalan di isolate latar, jadi UI tetap responsif saat ribuan lagu discan.
+            - **Lookup iTunes dan lirik berjalan di latar.** Pengambilan metadata tidak lagi memblokir frame saat scan massal.
+            - **Startup tetap ringan.** Pass metadata latar mulai 5 detik setelah frame pertama, bukan berjalan inline.
+
+            ## 🐛 Perbaikan bug
+
+            - **Error build diperbaiki.** Guard `mounted` yang hilang membuat build CI gagal.
+            - **Perlindungan captive portal dipulihkan.** Hanya jawaban yang benar-benar terlihat seperti iTunes atau lyrics.ovh yang disimpan sebagai miss "tidak ditemukan"; halaman HTML, respons 5xx, dan kejutan lain tetap bisa dicoba ulang alih-alih mengunci lagu selama 90 hari.
+            - **Kecualian folder tersembunyi berperilaku persis seperti sebelumnya** di jalur isolate baru, termasuk path bergaya Windows.
+            - **Test tidak lagi peduli line ending**, jadi guard pemeriksaan sumber lolos di checkout Windows.
 
             ## 🧪 Verifikasi
 

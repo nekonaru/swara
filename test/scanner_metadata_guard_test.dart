@@ -14,10 +14,15 @@ import 'package:flutter_test/flutter_test.dart';
 ///    just inserted, together with their playlist entries and history.
 void main() {
   String readScanner() =>
-      File('lib/services/library_scanner.dart').readAsStringSync();
-  String readDb() => File('lib/services/db_helper.dart').readAsStringSync();
-  String readProvider() =>
-      File('lib/providers/library_provider.dart').readAsStringSync();
+      File('lib/services/library_scanner.dart')
+          .readAsStringSync()
+          .replaceAll('\r\n', '\n');
+  String readDb() => File('lib/services/db_helper.dart')
+      .readAsStringSync()
+      .replaceAll('\r\n', '\n');
+  String readProvider() => File('lib/providers/library_provider.dart')
+      .readAsStringSync()
+      .replaceAll('\r\n', '\n');
 
   test('an existing song is updated, never replaced with a blank row', () {
     final source = readScanner();

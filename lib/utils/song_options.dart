@@ -130,7 +130,7 @@ Future<void> showSongOptions(
               Navigator.pop(ctx);
               try {
                 final limited = await lib.rescanSingleMetadata(song);
-                if (!mounted) return;
+                if (!context.mounted) return;
                 final snack = limited
                     ? l.editMetadataRescanRateLimited
                     : l.artRefreshed;

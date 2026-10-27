@@ -11,6 +11,13 @@ import 'db_helper.dart';
 // each entry because it is not transferable across isolate boundaries.
 
 /// iTunes lookup isolate entry point: only HTTP, no sqflite.
+///
+/// Return contract (kept explicit because a wrong guess poisons the cache):
+///   {'body': <raw 200 body>}  definitive hit, safe to apply and cache
+///   {'miss': true}            definitive miss, cache the MISS marker
+///   {'rateLimited': true}     HTTP 429, start the backoff window
+///   {}                        transient failure (offline, 5xx, captive
+///                             portal HTML), retry on a later scan
 Future<Map<String, dynamic>> _itunesLookupIsolate(Map<String, dynamic> params) async {
   final artist = params['artist'] as String;
   final title = params['title'] as String;
@@ -25,13 +32,37 @@ Future<Map<String, dynamic>> _itunesLookupIsolate(Map<String, dynamic> params) a
         .get(url, headers: {'User-Agent': 'Swara/1.0'})
         .timeout(const Duration(seconds: 8));
     if (resp.statusCode == 200) {
-      final data = jsonDecode(resp.body);
-      if (data is Map && (data['resultCount'] as int?) != null && (data['resultCount'] as int) > 0) {
-        return Map<String, dynamic>.from(data['results'][0] as Map);
+      // A captive portal (hotel, airport, campus WiFi) can return 200 with
+      // an HTML body. Only an iTunes shaped payload counts as an answer.
+      try {
+        final data = jsonDecode(resp.body);
+        if (data is Map && data.containsKey('resultCount')) {
+          final count = data['resultCount'];
+          if (count is num && count > 0) {
+            return <String, dynamic>{'body': resp.body};
+          }
+          return <String, dynamic>{'miss': true};
+        }
+      } catch (_) {
+        // Not JSON: fall through as a transient failure below.
       }
       return <String, dynamic>{};
     }
     if (resp.statusCode == 429) return <String, dynamic>{'rateLimited': true};
+    if (resp.statusCode == 404) {
+      // Commit a miss only when the body actually looks like iTunes,
+      // otherwise a captive portal 404 would lock the song for 90 days.
+      try {
+        final data = jsonDecode(resp.body);
+        if (data is Map && data.containsKey('resultCount')) {
+          return <String, dynamic>{'miss': true};
+        }
+      } catch (_) {
+        // HTML or truncated body: treat as transient below.
+      }
+      return <String, dynamic>{};
+    }
+    // Any other status (5xx and friends): transient, never cached.
     return <String, dynamic>{};
   } catch (_) {
     return <String, dynamic>{};
@@ -41,6 +72,10 @@ Future<Map<String, dynamic>> _itunesLookupIsolate(Map<String, dynamic> params) a
 }
 
 /// Lyrics fetch isolate entry point: only HTTP, no sqflite.
+///
+/// Same contract as the iTunes entry: {'lyrics': ...} on hit,
+/// {'miss': true} on a definitive miss, {'rateLimited': true} on 429,
+/// and {} for anything transient that must not poison the cache.
 Future<Map<String, dynamic>> _lyricsFetchIsolate(Map<String, dynamic> params) async {
   final artist = params['artist'] as String;
   final title = params['title'] as String;
@@ -55,14 +90,26 @@ Future<Map<String, dynamic>> _lyricsFetchIsolate(Map<String, dynamic> params) as
         .get(url, headers: {'User-Agent': 'Swara/1.0'})
         .timeout(const Duration(seconds: 8));
     if (resp.statusCode == 200) {
-      final data = jsonDecode(resp.body);
-      final lyrics = data is Map ? data['lyrics']?.toString().trim() : null;
-      if (lyrics != null && lyrics.isNotEmpty) {
-        final capped = lyrics.length > 100 * 1024 ? lyrics.substring(0, 100 * 1024) : lyrics;
-        return <String, dynamic>{'lyrics': capped};
+      try {
+        final data = jsonDecode(resp.body);
+        if (data is Map) {
+          final lyrics = data['lyrics']?.toString().trim() ?? '';
+          if (lyrics.isNotEmpty) {
+            final capped =
+                lyrics.length > 100 * 1024 ? lyrics.substring(0, 100 * 1024) : lyrics;
+            return <String, dynamic>{'lyrics': capped};
+          }
+          // 200 with valid JSON and no lyrics: the song has none.
+          return <String, dynamic>{'miss': true};
+        }
+      } catch (_) {
+        // Not JSON (captive portal page): transient below.
       }
+      return <String, dynamic>{};
     }
     if (resp.statusCode == 429) return <String, dynamic>{'rateLimited': true};
+    if (resp.statusCode == 404) return <String, dynamic>{'miss': true};
+    // 5xx and friends: transient, never cached.
     return <String, dynamic>{};
   } catch (_) {
     return <String, dynamic>{};
@@ -179,35 +226,32 @@ class MetadataService {
     } catch (_) {
       itunesFailed = true;
     }
-    if (itunesResult != null && itunesResult['rateLimited'] == true) {
+    if (itunesResult == null) {
+      // compute() itself threw: transient, no MISS marker.
+      itunesFailed = true;
+    } else if (itunesResult['rateLimited'] == true) {
       rateLimited = true;
       _rateLimitUntil = DateTime.now().add(_rateLimitBackoff);
       debugPrint('iTunes rate-limit (429), skip enrich ${song.title}');
-    } else if (itunesResult != null && itunesResult.isNotEmpty) {
-      // Apply the isolate result on the main thread.
-      song.title = _sanitizeField(itunesResult['trackName'], song.title);
-      song.artist = _sanitizeField(itunesResult['artistName'], song.artist);
-      song.album = _sanitizeField(itunesResult['collectionName'], song.album);
-      final genre = itunesResult['primaryGenreName']?.toString();
-      song.genre = genre != null ? _sanitizeField(genre, genre) : song.genre;
-      song.albumArtUrl =
-          (itunesResult['artworkUrl100'] as String?)?.replaceAll('100x100', '600x600');
-      song.region = _guessRegion(itunesResult['country']?.toString(), song.artist);
-      // Cache the response so reinstalls and later scans reuse it.
-      final respBody = jsonEncode(itunesResult);
-      try {
-        await DBHelper.instance.putMetadataCache(cacheKey, respBody);
-      } catch (_) {}
-    } else if (itunesResult != null && itunesResult.isEmpty) {
-      // Empty result from isolate (definitive miss, e.g. resultCount==0).
-      // Cache the MISS marker so later scans skip the network for 90 days.
+    } else if (itunesResult['miss'] == true) {
+      // Definitive miss confirmed by the isolate (iTunes shaped answer
+      // with no result). Cache it so later scans skip the network.
       try {
         await DBHelper.instance.putMetadataCache(cacheKey, _cacheMissMarker);
       } catch (_) {}
     } else {
-      // itunesResult is null (compute threw) or other: transient failure,
-      // no MISS marker so a later scan retries.
-      itunesFailed = true;
+      final body = itunesResult['body'] as String?;
+      if (body == null || !_applyItunesResponseBody(song, body)) {
+        // Empty map or an answer that does not apply: transient failure,
+        // keep the song retryable instead of locking it as missing.
+        itunesFailed = true;
+      } else {
+        // Cache the raw body so reinstalls and later scans reuse it in the
+        // same format _applyItunesResponseBody already understands.
+        try {
+          await DBHelper.instance.putMetadataCache(cacheKey, body);
+        } catch (_) {}
+      }
     }
     if (rateLimited) {
       song.region ??= 'Tidak diketahui';
@@ -285,13 +329,19 @@ class MetadataService {
     }
     // Dispatch the lyrics HTTP call to an isolate so the main thread stays
     // responsive during network I/O. Cache/DB reads/writes stay on main.
-    final result = await compute(
-      _lyricsFetchIsolate,
-      <String, dynamic>{
-        'artist': song.artist,
-        'title': song.title,
-      },
-    );
+    Map<String, dynamic> result;
+    try {
+      result = await compute(
+        _lyricsFetchIsolate,
+        <String, dynamic>{
+          'artist': song.artist,
+          'title': song.title,
+        },
+      );
+    } catch (_) {
+      // Transient (isolate or network failure): no MISS marker, retry later.
+      return false;
+    }
     final lyrics = result['lyrics'] as String?;
     if (lyrics != null && lyrics.isNotEmpty) {
       song.lyrics = lyrics;
@@ -304,10 +354,14 @@ class MetadataService {
       // Transient: do not poison cache, retry later.
       return false;
     }
-    // Definitive miss: remember so later scans skip the network for 90 days.
-    try {
-      await DBHelper.instance.putMetadataCache(lyricsKey, _cacheMissMarker);
-    } catch (_) {}
+    if (result['miss'] == true) {
+      // Definitive miss (404 or 200 with empty lyrics): remember so later
+      // scans skip the network for 90 days. Anything else stays uncached
+      // so a captive portal or a 5xx cannot lock the lyrics out.
+      try {
+        await DBHelper.instance.putMetadataCache(lyricsKey, _cacheMissMarker);
+      } catch (_) {}
+    }
     return false;
   }
 

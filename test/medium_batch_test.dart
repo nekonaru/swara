@@ -46,7 +46,8 @@ void main() {
   });
 
   group('source guards', () {
-    String read(String path) => File(path).readAsStringSync();
+    String read(String path) =>
+      File(path).readAsStringSync().replaceAll('\r\n', '\n');
 
     test('smart shuffle seeds the last played stamps from the database', () {
       final player = read('lib/services/player_service.dart');

@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Regression guards for bugs found while verifying existing features.
 void main() {
-  String read(String path) => File(path).readAsStringSync();
+  String read(String path) =>
+      File(path).readAsStringSync().replaceAll('\r\n', '\n');
 
   group('crossfade', () {
     test('the natural completion listener ignores a running fade', () {

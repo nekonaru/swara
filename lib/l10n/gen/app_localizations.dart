@@ -1040,6 +1040,12 @@ abstract class AppLocalizations {
   /// **'Edit Metadata'**
   String get songOptionsEditMetadata;
 
+  /// No description provided for @songOptionsScanMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan metadata'**
+  String get songOptionsScanMetadata;
+
   /// No description provided for @songOptionsRemoveFromPlaylist.
   ///
   /// In en, this message translates to:

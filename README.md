@@ -34,6 +34,7 @@
 | 📝 **Play queue** | Add songs to play next or at the end, reorder and remove |
 | 👆 **Multi-select** | Long-press to select many songs, then favorite or add to playlist in bulk |
 | 🌐 **Automatic metadata** | Titles, artists, album art, and genres via the iTunes Search API |
+| 📡 **Per-song metadata refresh** | "Scan metadata" in the song menu refetches one song from the internet |
 | 🎤 **Automatic lyrics** | Fetched via lyrics.ovh, editable manually, Google search fallback |
 | ✏️ **Manual editing** | Fix metadata and lyrics per song when auto-fetch gets it wrong |
 | 📁 **Folder browsing** | Browse by source folder, hide folders from the library |
