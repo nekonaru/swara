@@ -225,7 +225,7 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.7 - Leaner search, sorting, and row updates**
+            **Swara v2.9.8 - Lighter frames while scrolling and searching**
 
             ## ✨ Features
 
@@ -233,18 +233,20 @@ jobs:
 
             ## ⚡ Performance
 
-            - **Search matching moved to a background isolate.** Fuzzy matching and the typo pass no longer run on the frame where you type, and their per-song text is built once per library version instead of on every keystroke.
-            - **Single row actions no longer reload the whole library.** Favoriting, renaming, and refreshing metadata for one song now patch that row in memory instead of re-querying, re-sorting, and rebuilding every consumer.
-            - **The player screen looks up the playing song by index** instead of scanning the entire library on every playback notification.
-            - **Sort keys are computed once per song.** Sorting no longer lowercases both sides inside every comparison, which used to allocate hundreds of thousands of strings per load.
+            - **Search normalization runs once per row and once per query.** The typo-tolerant pass no longer rebuilds its regular expressions and no longer re-normalizes the query for every song, which halves the work per keystroke.
+            - **The playlist detail screen sorts and filters once, not once per rebuild.** Its sorted view and total duration are cached per source list, sort mode and query, so keyboard, favorite and playback updates no longer re-sort the whole playlist.
+            - **Sorting compares code units, not regular expressions.** The title sort tier check used a regex per comparison; it now reads the first character's ASCII range directly.
+            - **Favorites and the missing art or lyrics lists are cached per library version.** Those screens used to rebuild their filtered list on every scan progress notification.
+            - **The cover art cache updates file timestamps at most once every 10 minutes per cover.** Scrolling used to fire one filesystem call per tile just to keep the cache order fresh.
+            - **Scanned filename parsing and duplicate grouping hoist their regular expressions**, so a full rescan no longer compiles patterns once per file.
 
             ## 🐛 Bug fixes
 
-            - **Favorites screen stays in sync** with the lighter in-memory updates: a favorite change now bumps the library version the favorites list is gated on.
+            - **No behavior changes, on purpose.** Every optimization in this release is internal; search results, sorting order, favorites, and the missing art or lyrics lists all behave exactly as before.
 
             ## 🧪 Verification
 
-            - 178 tests pass, including new guards that pin the isolate search path, the in-memory row patches, and the index lookup
+            - 185 tests pass, including new guards that pin the hoisted regexes, the cached playlist view and favorites list, and the throttled art cache touch
             - flutter analyze: no issues
 
             ## 📦 Install / Update
@@ -259,7 +261,7 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.7 - Pencarian, sort, dan update baris jadi lebih ringan**
+            **Swara v2.9.8 - Frame lebih ringan saat scroll dan cari**
 
             ## ✨ Fitur
 
@@ -267,18 +269,20 @@ jobs:
 
             ## ⚡ Performa
 
-            - **Matching pencarian pindah ke isolate latar.** Fuzzy match dan pass salah ketik tidak lagi berjalan di frame saat kamu mengetik, dan teks per lagunya dibangun sekali per versi pustaka alih-alih setiap ketukan.
-            - **Aksi satu baris tidak lagi reload pustaka penuh.** Favorit, rename, dan refresh metadata satu lagu kini menambal baris itu di memori alih-alih query ulang, sort ulang, dan membangun ulang semua konsumen.
-            - **Layar pemutar mencari lagu yang diputar lewat indeks**, bukan memindai seluruh pustaka di setiap notifikasi pemutaran.
-            - **Key sort dihitung sekali per lagu.** Sort tidak lagi mengecilkan kedua sisi di dalam setiap perbandingan, yang dulu mengalokasikan ratusan ribu string per pemuatan.
+            - **Matching pencarian dinormalisasi sekali per baris dan sekali per query.** Pass toleran salah ketik tidak lagi membangun regex ulang dan tidak lagi menormalisasi query untuk setiap lagu, sehingga beban per ketukan berkurang separuh.
+            - **Layar detail playlist mengurutkan dan menyaring sekali, bukan sekali per rebuild.** View terurut dan total durasinya kini di-cache per daftar sumber, mode sort, dan query, sehingga update keyboard, favorit, dan pemutaran tidak lagi mengurutkan ulang seluruh playlist.
+            - **Sort membandingkan code unit, bukan regular expression.** Cek tingkat sort judul dulu memakai regex per perbandingan; kini langsung membaca rentang ASCII karakter pertama.
+            - **Favorit serta daftar artwork dan lirik yang hilang di-cache per versi pustaka.** Layar-layar itu dulu membangun ulang daftar tersaring di setiap notifikasi progres pemindaian.
+            - **Cache artwork memperbarui timestamp file paling sering tiap 10 menit per cover.** Scroll dulu memicu satu panggilan sistem per tile hanya untuk menjaga urutan cache.
+            - **Parsing nama file hasil pemindaian dan grouping duplikat meng-hoist regex-nya**, sehingga pemindaian penuh tidak lagi mengkompilasi pola per file.
 
             ## 🐛 Perbaikan bug
 
-            - **Layar Favorit tetap sinkron** dengan update in-memory yang lebih ringan: perubahan favorit kini menaikkan versi pustaka yang menjadi gate daftar favorit.
+            - **Tidak ada perubahan perilaku, sengaja.** Semua optimasi di rilis ini bersifat internal; hasil pencarian, urutan sort, favorit, serta daftar artwork dan lirik yang hilang tetap berperilaku persis seperti sebelumnya.
 
             ## 🧪 Verifikasi
 
-            - 178 test lolos, termasuk guard baru yang mengunci jalur isolate untuk pencarian, tambal baris di memori, dan lookup indeks
+            - 185 test lolos, termasuk guard baru yang mengunci regex yang di-hoist, view playlist dan daftar favorit yang di-cache, serta sentuhan art cache yang di-throttle
             - flutter analyze: no issues
 
             ## 📦 Instalasi / Update

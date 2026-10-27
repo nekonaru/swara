@@ -22,6 +22,10 @@ class ArtCacheService {
   String? _dirPath;
   final Map<String, Future<File?>> _inflight = {};
   final Map<String, String> _knownPaths = {};
+  // Last time each cache file's modified time was refreshed, to throttle the
+  // setLastModified syscall in _touch. Bounded by the cache file count.
+  final Map<String, DateTime> _lastTouchedAt = {};
+  static const _touchInterval = Duration(minutes: 10);
   // Hash to path index built once from the cache directory listing, so the
   // synchronous build path can answer without touching the disk.
   final Map<String, String> _knownPathsByHash = {};
@@ -165,8 +169,16 @@ class ArtCacheService {
 
   // Best effort LRU touch. Never throws.
   void _touch(File file) {
+    // Updating the modified time is what keeps a file from being evicted, but
+    // it is a filesystem syscall per tile init, and scrolling inits hundreds
+    // of tiles per minute for the same covers. One touch per file every 10
+    // minutes keeps the LRU order fresh at a fraction of the syscalls.
+    final now = DateTime.now();
+    final last = _lastTouchedAt[file.path];
+    if (last != null && now.difference(last) < _touchInterval) return;
+    _lastTouchedAt[file.path] = now;
     try {
-      file.setLastModified(DateTime.now());
+      file.setLastModified(now);
     } catch (_) {
       // Ignore.
     }
@@ -211,6 +223,7 @@ class ArtCacheService {
           // Both indexes must drop the evicted file, otherwise the sync
           // build path would keep handing out a deleted file.
           _knownPaths.removeWhere((_, v) => v == f.path);
+          _lastTouchedAt.remove(f.path);
           final base = p.basename(f.path);
           if (base.startsWith('art_') && base.endsWith('.jpg')) {
             _knownPathsByHash.remove(base.substring(4, base.length - 4));

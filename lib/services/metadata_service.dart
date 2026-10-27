@@ -148,6 +148,12 @@ class MetadataService {
   /// skip the network instead of refetching the same unknown song.
   static const _cacheMissMarker = 'MISS';
 
+  /// Hoisted so the filename patterns are compiled once instead of twice per
+  /// parsed file. A full rescan parses every file in the library.
+  static final RegExp _filenameExtReg =
+      RegExp(r'\.(mp3|flac|wav|m4a|ogg)$', caseSensitive: false);
+  static final RegExp _leadingTrackNoReg = RegExp(r'^\d+[\.\-_\s]*');
+
   /// True while inside the 429 backoff window.
   bool get isRateLimited =>
       _rateLimitUntil != null && DateTime.now().isBefore(_rateLimitUntil!);
@@ -156,8 +162,8 @@ class MetadataService {
   /// and tries to split an "Artist - Title.mp3" pattern
   Map<String, String> parseFromFilename(String filePath) {
     String name = filePath.substring(filePath.lastIndexOf('/') + 1);
-    name = name.replaceAll(RegExp(r'\.(mp3|flac|wav|m4a|ogg)$', caseSensitive: false), '');
-    name = name.replaceAll(RegExp(r'^\d+[\.\-_\s]*'), ''); // drop a leading track number
+    name = name.replaceAll(_filenameExtReg, '');
+    name = name.replaceAll(_leadingTrackNoReg, ''); // drop a leading track number
     name = name.replaceAll('_', ' ').trim();
 
     if (name.contains(' - ')) {

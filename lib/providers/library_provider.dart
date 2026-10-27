@@ -44,6 +44,13 @@ class LibraryProvider extends ChangeNotifier {
   // every read.
   int _totalDurationMs = 0;
 
+  // Cached favorite rows, rebuilt only when songsVersion changes. The
+  // collections screen reads favorites.length on every build, and scanning
+  // notifications fire often, so an uncached getter allocated a fresh list
+  // thousands of rows long per notification.
+  List<Song> _favoritesCache = const <Song>[];
+  int _favoritesVersion = -1;
+
   // Lazily built id to song index, invalidated whenever the list content or
   // order changes. Screens that look up one row per rebuild (the player
   // screen resolves the playing song on every notification) used to scan the
@@ -491,7 +498,13 @@ class LibraryProvider extends ChangeNotifier {
   int get totalCount => songs.length;
   int get totalDurationMs => _totalDurationMs;
 
-  List<Song> get favorites => songs.where((s) => s.isFavorite).toList();
+  List<Song> get favorites {
+    if (_favoritesVersion != _songsVersion) {
+      _favoritesVersion = _songsVersion;
+      _favoritesCache = songs.where((s) => s.isFavorite).toList();
+    }
+    return _favoritesCache;
+  }
 
   Future<void> toggleFavorite(Song song, bool value) async {
     await DBHelper.instance.setFavorite(song.id, value);
@@ -599,9 +612,6 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<Song> get sortedByArtist =>
-      [...songs]..sort((a, b) => a.artist.compareTo(b.artist));
-
   Map<String, List<Song>> get groupedByArtist {
     final Map<String, List<Song>> map = {};
     for (final s in songs) {
@@ -616,17 +626,6 @@ class LibraryProvider extends ChangeNotifier {
     final Map<String, List<Song>> map = {};
     for (final s in songs) {
       final key = s.genre ?? unknown;
-      map.putIfAbsent(key, () => []).add(s);
-    }
-    return map;
-  }
-
-  Map<String, List<Song>> get groupedByRegion {
-    final unknown =
-        lookupAppLocalizations(LanguageProvider.instance.locale).unknown;
-    final Map<String, List<Song>> map = {};
-    for (final s in songs) {
-      final key = s.region ?? unknown;
       map.putIfAbsent(key, () => []).add(s);
     }
     return map;

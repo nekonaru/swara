@@ -1,14 +1,15 @@
 /// Sort-tier category: symbols/icons first, then digits, then latin letters,
 /// finally other scripts (Korean/Chinese/Japanese/etc).
-final _latinReg = RegExp(r'[a-zA-Z]');
-final _digitReg = RegExp(r'[0-9]');
 
 int _sortRank(String s) {
   if (s.isEmpty) return 0;
   final c = s.codeUnitAt(0);
-  final ch = s[0];
-  if (_latinReg.hasMatch(ch)) return 2; // latin letter
-  if (_digitReg.hasMatch(ch)) return 1; // digit
+  // ASCII ranges checked directly: identical to the old [a-zA-Z] and [0-9]
+  // regex tests, but without running the regex engine on every comparison.
+  if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) {
+    return 2; // latin letter
+  }
+  if (c >= 0x30 && c <= 0x39) return 1; // digit
   if (c > 127) return 3; // non-latin script (CJK, etc)
   return 0; // symbol/icon (#, [, etc)
 }

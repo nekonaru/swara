@@ -1167,11 +1167,15 @@ class DBHelper {
         .replaceAll('_', r'\_');
   }
 
+  /// Hoisted so the whitespace pattern is compiled once instead of once per
+  /// query. Every song list read goes through the sanitizer.
+  static final RegExp _orderByWsReg = RegExp(r'\s+');
+
   /// Map a caller supplied order key to a safe ORDER BY fragment.
   /// Unknown values are ignored and fall back to title ASC.
   String _sanitizeSongsOrderBy(String? orderBy) {
     final normalized =
-        (orderBy ?? '').trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
+        (orderBy ?? '').trim().replaceAll(_orderByWsReg, ' ').toUpperCase();
     switch (normalized) {
       case 'TITLE ASC':
         return 'title COLLATE NOCASE ASC';

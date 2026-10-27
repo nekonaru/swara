@@ -27,8 +27,19 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
   int _done = 0;
   int _total = 0;
 
-  List<Song> _missing(List<Song> songs) =>
-      songs.where(_hasNoArt).toList();
+  // Cached filter result, rebuilt only when the library version changes.
+  // Scanning progress notifications rebuild this Consumer often, and the
+  // filter walks every song each time.
+  List<Song> _missingCache = const <Song>[];
+  int _missingVersion = -1;
+
+  List<Song> _missing(LibraryProvider lib) {
+    if (_missingVersion != lib.songsVersion) {
+      _missingVersion = lib.songsVersion;
+      _missingCache = lib.songs.where(_hasNoArt).toList();
+    }
+    return _missingCache;
+  }
 
   Future<void> _refreshOne(Song song) async {
     if (_refreshingIds.contains(song.id)) return;
@@ -131,7 +142,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
   Widget build(BuildContext context) {
     return Consumer<LibraryProvider>(
       builder: (context, lib, _) {
-        final missing = _missing(lib.songs);
+        final missing = _missing(lib);
         return Scaffold(
           appBar: AppBar(
             title: Text(AppLocalizations.of(context)!.artMissingTitle),

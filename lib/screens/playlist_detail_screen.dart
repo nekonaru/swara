@@ -16,6 +16,10 @@ import '../widgets/playing_indicator.dart';
 
 enum _PlsSortOption { custom, titleAZ, titleZA, artistAZ }
 
+// Hoisted so the pattern is compiled once instead of once per row (and once
+// per build) by the A-Z bar and the letter jumps.
+final RegExp _leadingLetterReg = RegExp(r'^[a-zA-Z]');
+
 class PlaylistDetailScreen extends StatefulWidget {
   final int playlistId;
   final String playlistName;
@@ -272,33 +276,71 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     }
   }
 
+  // Cache of the sorted and filtered view. Rebuilt only when the source list
+  // identity, the sort mode or the query changes, so a rebuild of this screen
+  // (keyboard, favorite change, playback tick) no longer re-sorts the whole
+  // playlist per build.
+  List<Song>? _displayedCache;
+  List<Song>? _displayedSource;
+  _PlsSortOption? _displayedSort;
+  String? _displayedQuery;
+  // Same idea for the total duration: one fold per source list, not per build.
+  int _totalMsCache = 0;
+  List<Song>? _totalMsSource;
+
   List<Song> get _displayed {
+    final source = _songs;
+    final cached = _displayedCache;
+    if (cached != null &&
+        identical(_displayedSource, source) &&
+        _displayedSort == _sortOption &&
+        _displayedQuery == _query) {
+      return cached;
+    }
     List<Song> list;
     switch (_sortOption) {
       case _PlsSortOption.custom:
-        list = List<Song>.of(_songs);
+        list = List<Song>.of(source);
         break;
       case _PlsSortOption.titleAZ:
-        list = List<Song>.of(_songs)..sort((a, b) => compareTitles(a.title, b.title));
+        list = List<Song>.of(source)..sort((a, b) => compareTitles(a.title, b.title));
         break;
       case _PlsSortOption.titleZA:
-        list = List<Song>.of(_songs)..sort((a, b) => compareTitles(b.title, a.title));
+        list = List<Song>.of(source)..sort((a, b) => compareTitles(b.title, a.title));
         break;
       case _PlsSortOption.artistAZ:
-        list = List<Song>.of(_songs)
+        list = List<Song>.of(source)
           ..sort((a, b) => a.artist.toLowerCase().compareTo(b.artist.toLowerCase()));
         break;
     }
-    if (_query.trim().isEmpty) return list;
-    final q = _query.toLowerCase();
-    return list.where((s) =>
-        s.title.toLowerCase().contains(q) || s.artist.toLowerCase().contains(q)).toList();
+    List<Song> result;
+    if (_query.trim().isEmpty) {
+      result = list;
+    } else {
+      final q = _query.toLowerCase();
+      result = list.where((s) =>
+          s.title.toLowerCase().contains(q) || s.artist.toLowerCase().contains(q)).toList();
+    }
+    _displayedCache = result;
+    _displayedSource = source;
+    _displayedSort = _sortOption;
+    _displayedQuery = _query;
+    return result;
+  }
+
+  int get _totalMs {
+    final source = _songs;
+    if (!identical(_totalMsSource, source)) {
+      _totalMsSource = source;
+      _totalMsCache = source.fold(0, (sum, s) => sum + s.durationMs);
+    }
+    return _totalMsCache;
   }
 
   void _jumpToLetter(String letter, List<Song> songs) {
     int index;
     if (letter == '#') {
-      index = songs.indexWhere((s) => !RegExp(r'^[a-zA-Z]').hasMatch(s.title));
+      index = songs.indexWhere((s) => !_leadingLetterReg.hasMatch(s.title));
     } else {
       index = songs.indexWhere((s) => s.title.toUpperCase().startsWith(letter));
     }
@@ -314,11 +356,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final displayed = _displayed;
-    final totalMs = _songs.fold(0, (sum, s) => sum + s.durationMs);
+    final totalMs = _totalMs;
     final showAzBar = _query.isEmpty && _sortOption == _PlsSortOption.titleAZ;
     final availableLetters = <String>{
       for (final s in displayed)
-        RegExp(r'^[a-zA-Z]').hasMatch(s.title) ? s.title[0].toUpperCase() : '#'
+        _leadingLetterReg.hasMatch(s.title) ? s.title[0].toUpperCase() : '#'
     };
 
     return Scaffold(

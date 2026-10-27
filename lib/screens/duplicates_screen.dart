@@ -6,16 +6,22 @@ import '../providers/library_provider.dart';
 import '../services/player_service.dart';
 import '../widgets/mini_player.dart';
 
+// Hoisted so the patterns are compiled once instead of twice per normalized
+// part. Duplicate grouping normalizes three parts per song, and the screen
+// rebuilds its groups whenever the library changes.
+final RegExp _dupPunctReg = RegExp(r"[.,;:!?()\[\]{}<>_/\-\\|@#\$%^&*~`+=]");
+final RegExp _dupWsReg = RegExp(r'\s+');
+
 // Pure helper: normalize one part (title or artist) for duplicate grouping.
 // Lowercases, trims, removes common punctuation, collapses whitespace.
 String normalizeDuplicatePart(String input) {
   var s = input.toLowerCase().trim();
   // Remove common punctuation so "Hello!" matches "hello".
-  s = s.replaceAll(RegExp(r"[.,;:!?()\[\]{}<>_/\-\\|@#\$%^&*~`+=]"), '');
+  s = s.replaceAll(_dupPunctReg, '');
   s = s.replaceAll("'", '');
   s = s.replaceAll('"', '');
   // Collapse repeated whitespace into a single space.
-  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  s = s.replaceAll(_dupWsReg, ' ').trim();
   return s;
 }
 

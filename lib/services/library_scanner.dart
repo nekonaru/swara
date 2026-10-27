@@ -60,6 +60,11 @@ class _ScanResult {
   });
 }
 
+/// Hoisted so the extension pattern is compiled once per isolate run instead
+/// of once per scanned file.
+final RegExp _isolateFilenameExtReg =
+    RegExp(r'\.(mp3|flac|wav|m4a|ogg|opus|aac|wma)$', caseSensitive: false);
+
 /// Isolate entry: process raw tracks off the main thread. Helpers that the
 /// main thread used to call (folderOf, title fallback) are duplicated here
 /// so the isolate never imports Flutter or sqflite code.
@@ -82,10 +87,7 @@ _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
   String _titleFromFilename(String path) {
     final normalized = path.replaceAll(r'\\', '/');
     final name = normalized.substring(normalized.lastIndexOf('/') + 1);
-    return name
-        .replaceAll(RegExp(r'\.(mp3|flac|wav|m4a|ogg|opus|aac|wma)$',
-            caseSensitive: false), '')
-        .trim();
+    return name.replaceAll(_isolateFilenameExtReg, '').trim();
   }
 
   final pendingMaps = <Map<String, dynamic>>[];

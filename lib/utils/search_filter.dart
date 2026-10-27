@@ -1,11 +1,11 @@
 // Search matching for the search screen, extracted so it can run inside a
 // background isolate.
 //
-// Why this must be off the UI thread: fuzzyMatch and fuzzyMatchLoose each
-// normalize the haystack with two regular expressions, and the typo pass can
-// run a bounded edit distance against every word of every song. On a library
-// of a few thousand songs that used to cost a whole frame per keystroke,
-// which showed up as stutter while typing a query.
+// Why this must be off the UI thread: matching normalizes every haystack with
+// two regular expressions, and the typo pass can run a bounded edit distance
+// against every word of every song. On a library of a few thousand songs that
+// used to cost a whole frame per keystroke, which showed up as stutter while
+// typing a query.
 
 import 'fuzzy.dart';
 
@@ -30,16 +30,21 @@ Map<String, dynamic> filterSongsIsolate(Map<String, dynamic> input) {
   final query = input['query'] as String;
   final limit = input['limit'] as int;
 
+  // Normalize the query once per run and each haystack once per row. The old
+  // path normalized both sides again inside every fuzzyMatch/fuzzyMatchLoose
+  // call, which multiplied the two regex passes by the library size twice.
+  final normalizedQuery = normalize(query);
+
   // Two passes: exact substring matches first, then typo tolerant matches
   // appended after them. Running one loose pass over everything would let a
   // near miss outrank the song the user actually typed.
   final exact = <int>[];
   final loose = <int>[];
   for (var i = 0; i < haystacks.length; i++) {
-    final haystack = haystacks[i];
-    if (fuzzyMatch(haystack, query)) {
+    final normalizedHaystack = normalize(haystacks[i]);
+    if (fuzzyMatchNormalized(normalizedHaystack, normalizedQuery)) {
       exact.add(i);
-    } else if (fuzzyMatchLoose(haystack, query)) {
+    } else if (fuzzyMatchLooseNormalized(normalizedHaystack, normalizedQuery)) {
       loose.add(i);
     }
   }

@@ -1,14 +1,19 @@
 // Tolerant search helpers used by the search screen.
 // Pure functions with no dependencies so they are easy to unit test.
 
+// Hoisted so the patterns are compiled once per app instead of twice per
+// normalize() call. normalize() runs for every song on every search query,
+// so recompiling regexes there dominated the search cost.
+final RegExp _nonAlnumRun = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+final RegExp _wsRun = RegExp(r'\s+');
+
 // Lowercase the text, replace every run of non-alphanumeric characters
 // with a single space, then collapse whitespace and trim.
 // Unicode letters and numbers are kept, so non-Latin scripts still work.
 String normalize(String text) {
   final lower = text.toLowerCase();
-  final spaced =
-      lower.replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ');
-  final collapsed = spaced.replaceAll(RegExp(r'\s+'), ' ');
+  final spaced = lower.replaceAll(_nonAlnumRun, ' ');
+  final collapsed = spaced.replaceAll(_wsRun, ' ');
   return collapsed.trim();
 }
 
@@ -17,9 +22,13 @@ String normalize(String text) {
 // "faded alan walker" matches "Faded - Alan Walker".
 // An empty or blank query matches everything (vacuous truth).
 // A non-empty query never matches an empty haystack.
-bool fuzzyMatch(String haystack, String query) {
-  final normalizedHaystack = normalize(haystack);
-  final normalizedQuery = normalize(query);
+bool fuzzyMatch(String haystack, String query) =>
+    fuzzyMatchNormalized(normalize(haystack), normalize(query));
+
+// Core of [fuzzyMatch] on already normalized text. The search isolate calls
+// this once per song with a query normalized once per run, so neither side
+// pays for two regex passes per row.
+bool fuzzyMatchNormalized(String normalizedHaystack, String normalizedQuery) {
   if (normalizedQuery.isEmpty) return true;
   if (normalizedHaystack.isEmpty) return false;
   final tokens = normalizedQuery.split(' ');
@@ -116,9 +125,13 @@ bool tokenMatchesWithTypos(String haystack, String token, int tolerance) {
 ///
 /// A token only matches tolerantly when NO word in the haystack contains it,
 /// so an exact hit is never displaced by a fuzzy one.
-bool fuzzyMatchLoose(String haystack, String query) {
-  final normalizedHaystack = normalize(haystack);
-  final normalizedQuery = normalize(query);
+bool fuzzyMatchLoose(String haystack, String query) =>
+    fuzzyMatchLooseNormalized(normalize(haystack), normalize(query));
+
+/// Core of [fuzzyMatchLoose] on already normalized text, same reasoning as
+/// [fuzzyMatchNormalized]: the isolate normalizes once per row and per run.
+bool fuzzyMatchLooseNormalized(
+    String normalizedHaystack, String normalizedQuery) {
   if (normalizedQuery.isEmpty) return true;
   if (normalizedHaystack.isEmpty) return false;
   for (final token in normalizedQuery.split(' ')) {

@@ -75,7 +75,7 @@
 | 📊 **Dashboard** | Grafik 7 hari terakhir, lagu dan artis teratas, distribusi genre dan region |
 | 🌍 **UI English dan Indonesia** | Default English; ganti ke Bahasa Indonesia di Pengaturan |
 | 🎨 **Tema** | Terang, gelap, atau ikuti sistem, plus 10 warna aksen |
-| 🪶 **Ringan di pustaka besar** | Pencarian, sort, dan update per baris berjalan di luar thread utama supaya tidak patah-patah |
+| 🪶 **Ringan di pustaka besar** | Pencarian, sort, dan update per baris berjalan di luar thread utama, dengan view turunan di-cache dan regex di-hoist, supaya tidak patah-patah |
 
 ## 📦 Requirements
 
