@@ -225,25 +225,25 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.11 - Reliable "Open Settings" shortcut for denied music access**
+            **Swara v2.9.12 - Scan fixed, it failed for every single song**
 
             ## ✨ Features
 
-            - **No new features, on purpose.** This release is a focused follow-up to v2.9.10 that makes the denied-permission path behave predictably.
+            - **No new features, on purpose.** This release fixes the bug that stopped the library from ever being filled, no matter how many songs were on the device.
 
             ## ⚡ Performance
 
-            - **No performance changes, on purpose.** The fixes are correctness and diagnostics only.
+            - **No performance changes, on purpose.** The fix is correctness only.
 
             ## 🐛 Bug fixes
 
-            - **The "Open Settings" button on the "No music yet" screen now actually appears when music access is denied.** It used to be decided by matching text inside an error message, which could silently fail to match. The app now tracks the denial explicitly, so the shortcut shows up reliably.
-            - **A denied permission is now checked on both the audio and legacy storage permission.** Older devices that fall back to storage reported the wrong state, so the shortcut never appeared there.
-            - **The permission check can no longer crash the scan.** It is wrapped in its own guard, so a failure there degrades to a plain error message instead of losing the scan result entirely.
+            - **Scanning now works again.** The off-thread scanner handed its work to a background isolate, and one of the values sent across that boundary was a set of excluded folders. It was read back as a list, and a set is not a list, so the type mismatch threw before a single song was looked at. That is why the library stayed empty even with permission granted and music on the phone. The value is now coerced instead of cast, and the sender passes an unambiguous plain list.
+            - **A bad value can no longer take a whole scan down with it.** The scanner now degrades an unexpected excluded-folders value to an empty set, so a mismatch can cost you the folder filter rather than every song.
+            - **A guard test now pins this exact failure.** The cast that broke the scan is checked for, so it cannot quietly come back.
 
             ## 🧪 Verification
 
-            - 188 tests pass, including the corrupt-row guards that keep one bad song from blanking the library
+            - 191 tests pass, including new guards for the isolate type mismatch
             - flutter analyze: no issues
 
             ## 📦 Install / Update
@@ -258,25 +258,25 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.11 - Tombol "Buka Pengaturan" kini andal saat izin musik ditolak**
+            **Swara v2.9.12 - Scan diperbaiki, dulu gagal untuk semua lagu**
 
             ## ✨ Fitur
 
-            - **Tanpa fitur baru, sengaja.** Rilis ini lanjutan fokus dari v2.9.10 supaya jalur izin ditolak berperilaku lebih dapat diprediksi.
+            - **Tanpa fitur baru, sengaja.** Rilis ini memperbaiki bug yang membuat library tidak pernah terisi, berapa pun banyak lagu di HP.
 
             ## ⚡ Performa
 
-            - **Tanpa perubahan performa, sengaja.** Perbaikan murni soal kebenaran dan diagnosa.
+            - **Tanpa perubahan performa, sengaja.** Perbaikan murni soal kebenaran.
 
             ## 🐛 Perbaikan bug
 
-            - **Tombol "Buka Pengaturan" di layar "Belum ada musik" kini benar-benar muncul saat akses musik ditolak.** Dulu keputusannya bergantung pada pencocokan teks di dalam pesan error, yang bisa gagal diam-diam. Aplikasi kini melacak penolakan itu secara eksplisit, jadi jalan pintasnya muncul secara andal.
-            - **Penolakan izin kini diperiksa di izin audio maupun izin penyimpanan lama.** Perangkat lama yang jatuh ke penyimpanan melaporkan status yang salah, sehingga jalan pintasnya tidak pernah muncul di sana.
-            - **Pemeriksaan izin tidak lagi bisa membuat scan gagal.** Pemeriksaan itu kini punya guard-nya sendiri, sehingga kegagalan di sana hanya merendah ke pesan biasa alih-alih kehilangan hasil scan sepenuhnya.
+            - **Pemindaian kini berfungsi lagi.** Scanner latar belakang mengirim kerjanya ke isolate terpisah, dan salah satu nilai yang menyeberang batas itu berupa daftar folder yang dikecualikan. Nilai itu dibaca kembali sebagai list, padahal aslinya sebuah set, sehingga ketidakcocokan tipe melempar error sebelum satu lagu pun diperiksa. Itulah sebabnya library tetap kosong meski izin sudah diberikan dan musik ada di HP. Nilai itu kini diubah bentuknya alih-alih di-cast, dan pengirim mengirim list biasa yang tidak ambigu.
+            - **Nilai yang tidak terduga kini tidak lagi menjatuhkan seluruh scan.** Scanner merendahkan nilai daftar-folder-kecualikan yang tak terduga menjadi set kosong, jadi ketidakcocokan hanya mengorbankan filter folder, bukan semua lagu.
+            - **Guard test kini mengunci kegagalan yang persis sama.** Cast yang membuat scan gagal kini diperiksa, sehingga ia tidak bisa kembali diam-diam.
 
             ## 🧪 Verifikasi
 
-            - 188 test lolos, termasuk guard baris rusak yang menjaga satu lagu buruk tidak mengosongkan seluruh library
+            - 191 test lolos, termasuk guard baru untuk ketidakcocokan tipe isolate
             - flutter analyze: no issues
 
             ## 📦 Instalasi / Update

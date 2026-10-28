@@ -65,12 +65,28 @@ class _ScanResult {
 final RegExp _isolateFilenameExtReg =
     RegExp(r'\.(mp3|flac|wav|m4a|ogg|opus|aac|wma)$', caseSensitive: false);
 
+/// Normalise the excluded-folder value that crossed the isolate boundary.
+///
+/// The main thread holds it as a Set<String>, and depending on how the
+/// message is copied it can arrive as either a List or a Set. Coercing both
+/// into a Set keeps the lookup cheap and, more importantly, keeps a type
+/// mismatch from aborting the whole scan before a single track is read.
+Set<String> _asStringCollection(Object? value) {
+  if (value is Iterable) {
+    return value.map((e) => e.toString()).toSet();
+  }
+  return <String>{};
+}
+
 /// Isolate entry: process raw tracks off the main thread. Helpers that the
 /// main thread used to call (folderOf, title fallback) are duplicated here
 /// so the isolate never imports Flutter or sqflite code.
 _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
   final tracksJson = (input['tracks'] as List).cast<Map<String, dynamic>>();
-  final excluded = (input['excluded'] as List).cast<String>();
+  // The exclusion list is a Set<String> on the main thread and crosses the
+  // isolate boundary as an untyped collection. Coerce it here instead of
+  // casting to List, so a Set can never fail the cast and abort the scan.
+  final excluded = _asStringCollection(input['excluded']);
   // Copied across the isolate boundary with its original generic type, so
   // it may be a Map<int, ...>. Read it as an untyped map and keep int keys.
   final existingById = Map<Object?, Object?>.from(
@@ -247,7 +263,10 @@ class LibraryScanner {
         .toList();
     final scanResult = await compute(_processTracksIsolate, <String, dynamic>{
       'tracks': tracksJson,
-      'excluded': excluded,
+      // getExcludedFolders returns a Set<String>, and the isolate entry
+      // casts this value to List<dynamic>. Sending the Set as-is made that
+      // cast throw, which failed every scan before any track was processed.
+      'excluded': excluded.toList(),
       'existingById': existingById,
     });
 
