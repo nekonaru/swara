@@ -584,6 +584,7 @@
     "libraryScanningMusic":  "Memindai musik...",
     "libraryNoMusic":  "Belum ada musik",
     "libraryScanMusic":  "Pindai Musik",
+    "libraryOpenSettings":  "Buka Pengaturan",
     "libraryScanMissing":  "Scan yang Belum Ada Metadata",
     "libraryRescanAll":  "Scan Ulang Semua",
     "libraryRescanConfirm":  "Ambil ulang metadata untuk {count} lagu?",

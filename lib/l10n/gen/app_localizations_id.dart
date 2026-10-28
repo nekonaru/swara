@@ -685,6 +685,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get libraryScanMusic => 'Pindai Musik';
 
   @override
+  String get libraryOpenSettings => 'Buka Pengaturan';
+
+  @override
   String get libraryScanMissing => 'Scan yang Belum Ada Metadata';
 
   @override

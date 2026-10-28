@@ -1274,6 +1274,12 @@ abstract class AppLocalizations {
   /// **'Scan Music'**
   String get libraryScanMusic;
 
+  /// No description provided for @libraryOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get libraryOpenSettings;
+
   /// No description provided for @libraryScanMissing.
   ///
   /// In en, this message translates to:

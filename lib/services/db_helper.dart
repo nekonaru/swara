@@ -479,7 +479,23 @@ class DBHelper {
   Future<List<Song>> getAllSongs() async {
     final database = await db;
     final rows = await database.query('songs', orderBy: 'title ASC');
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
+  }
+
+  /// Convert raw DB rows into Songs, skipping any corrupt row instead of
+  /// throwing. A single row with an empty or invalid filePath used to make
+  /// the whole map() call throw a FormatException, which blanked the entire
+  /// library even though every other song was fine.
+  static List<Song> _songsFromRows(List<Map<String, Object?>> rows) {
+    final songs = <Song>[];
+    for (final row in rows) {
+      try {
+        songs.add(Song.fromMap(row));
+      } catch (e) {
+        debugPrint('DBHelper: skipping corrupt songs row ${row['id']}: $e');
+      }
+    }
+    return songs;
   }
 
   /// Delete from the DB the songs whose original files no longer exist on the
@@ -539,7 +555,7 @@ class DBHelper {
   Future<List<Song>> getAllSongsByDateAdded() async {
     final database = await db;
     final rows = await database.query('songs', orderBy: 'addedAt DESC');
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
   }
 
   Future<void> deleteSong(int id) async {
@@ -619,7 +635,7 @@ class DBHelper {
     final database = await db;
     final rows =
         await database.query('songs', where: 'isFavorite = 1', orderBy: 'title ASC');
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
   }
 
   Future<void> markPlayed(int songId) async {
@@ -635,7 +651,7 @@ class DBHelper {
         where: 'lastPlayedAt IS NOT NULL',
         orderBy: 'lastPlayedAt DESC',
         limit: limit);
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
   }
 
   // ---------- Listening history (for the dashboard) ----------
@@ -1022,7 +1038,7 @@ class DBHelper {
       WHERE ps.playlistId = ?
       ORDER BY ps.position ASC, ps.addedAt ASC
     ''', [playlistId]);
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
   }
 
   /// Re-save the song order inside a playlist (called after a drag reorder)
@@ -1068,7 +1084,7 @@ class DBHelper {
       ORDER BY playCount DESC
       LIMIT ?
     ''', [limit]);
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
   }
 
   /// Songs that were never played at all
@@ -1079,7 +1095,7 @@ class DBHelper {
       where: 'lastPlayedAt IS NULL',
       orderBy: 'title ASC',
     );
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
   }
 
   /// Total all-time listening time (ms)
@@ -1247,7 +1263,7 @@ class DBHelper {
     sql.write(' ORDER BY $orderClause LIMIT ? OFFSET ?');
     args.addAll([safeLimit, safeOffset]);
     final rows = await database.rawQuery(sql.toString(), args);
-    return rows.map((r) => Song.fromMap(r)).toList();
+    return _songsFromRows(rows);
   }
 
   /// Consecutive days with at least one listening entry, ending today

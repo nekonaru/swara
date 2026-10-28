@@ -584,6 +584,7 @@
     "libraryScanningMusic":  "Scanning music...",
     "libraryNoMusic":  "No music yet",
     "libraryScanMusic":  "Scan Music",
+    "libraryOpenSettings":  "Open Settings",
     "libraryScanMissing":  "Scan missing metadata",
     "libraryRescanAll":  "Rescan all",
     "libraryRescanConfirm":  "Fetch metadata again for {count} songs?",

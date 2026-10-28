@@ -131,4 +131,28 @@ void main() {
       expect(Song.fromMap(legacyMap).lyrics, 'legacy plain lyrics');
     });
   });
+
+  // A row with an empty or invalid filePath cannot be played, so fromMap
+  // rejects it with a FormatException. The DB loaders must therefore skip
+  // such rows (see DBHelper._songsFromRows) instead of letting one bad row
+  // blank the whole library. These tests pin that contract.
+  group('Song.fromMap rejects corrupt rows', () {
+    test('throws FormatException on empty filePath', () {
+      final Map<String, dynamic> map = makeSong(null).toMap();
+      map['filePath'] = '';
+      expect(() => Song.fromMap(map), throwsFormatException);
+    });
+
+    test('throws FormatException on non-int id', () {
+      final Map<String, dynamic> map = makeSong(null).toMap();
+      map['id'] = 'not-an-int';
+      expect(() => Song.fromMap(map), throwsFormatException);
+    });
+
+    test('accepts a valid row with a real path', () {
+      final Map<String, dynamic> map = makeSong(null).toMap();
+      map['filePath'] = '/storage/emulated/0/Music/song.mp3';
+      expect(Song.fromMap(map).filePath, '/storage/emulated/0/Music/song.mp3');
+    });
+  });
 }

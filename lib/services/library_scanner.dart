@@ -99,6 +99,11 @@ _ScanResult _processTracksIsolate(Map<String, dynamic> input) {
   for (final tj in tracksJson) {
     final track = _RawTrack.fromJson(tj);
     allDeviceIds.add(track.id);
+    // MediaStore on scoped storage can report an empty data path. A song
+    // without a file path cannot be played and would throw when loaded back
+    // (Song.fromMap rejects an empty filePath), so drop it before it ever
+    // reaches the DB instead of letting it blank the whole library.
+    if (track.data.isEmpty) continue;
     final folder = folderOfPath(track.data);
     if (excluded.contains(folder)) continue;
 

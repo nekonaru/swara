@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../models/song.dart';
@@ -646,17 +647,39 @@ class _LibraryScreenState extends State<LibraryScreen> {
         );
       }
       if (lib.songs.isEmpty) {
+        final error = lib.scanError;
         return Center(
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(Icons.library_music_outlined, size: 72, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(l.libraryNoMusic,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          // Surface why the last scan found nothing instead of failing
+          // silently. Without this a denied permission or a MediaStore error
+          // looked identical to an empty library.
+          if (error != null) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(error,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+            ),
+          ],
           const SizedBox(height: 20),
           FilledButton.icon(
               onPressed: () => lib.forceScanDevice(),
               icon: const Icon(Icons.search),
               label: Text(l.libraryScanMusic)),
+          // A permanently denied permission can never be granted from the
+          // in-app dialog, so offer a direct jump to the app settings.
+          if (error != null && error.contains(l.corePermissionDenied)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+                onPressed: () => openAppSettings(),
+                icon: const Icon(Icons.settings),
+                label: Text(l.libraryOpenSettings)),
+          ],
         ]));
       }
 

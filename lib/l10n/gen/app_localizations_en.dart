@@ -687,6 +687,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryScanMusic => 'Scan Music';
 
   @override
+  String get libraryOpenSettings => 'Open Settings';
+
+  @override
   String get libraryScanMissing => 'Scan missing metadata';
 
   @override

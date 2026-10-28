@@ -225,25 +225,26 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.9 - Permanent lint gate and stricter async context guards**
+            **Swara v2.9.10 - Music detection fixed when storage access is granted**
 
             ## ✨ Features
 
-            - **No new features, on purpose.** This release tightens the project's internal quality gate and hardens a few async UI paths; what you see and hear does not change.
+            - **No new features, on purpose.** This release fixes the bug where the library showed "No music yet" even after storage permission was granted, plus a few related robustness gaps.
 
             ## ⚡ Performance
 
-            - **A permanent analyzer gate now runs on every change.** The project enables flutter_lints plus prefer_single_quotes and sort_child_properties_last through a new analysis_options.yaml, so style and correctness issues surface before they ship.
+            - **No performance changes, on purpose.** The fixes are correctness and diagnostics only.
 
             ## 🐛 Bug fixes
 
-            - **Fourteen use-after-await context sites now carry a proper mounted guard.** Snackbars, dialogs, and navigation after an async gap check that the widget is still alive, which removes a class of latent crashes when a screen is closed while work is still running.
-            - **Forty-two lint findings across the codebase are resolved.** These are mostly const constructors, single quotes, renamed shadowed locals, and hoisted comments; none of them change runtime behavior.
+            - **The library no longer goes blank because of a single bad row.** A song whose file path was empty (which MediaStore can report on scoped storage) used to throw while loading and hide every other song at once. The loaders now skip that one row instead of dropping the whole library.
+            - **Songs with an empty file path are never saved.** The scanner used to insert them straight into the database, which is what triggered the blank-library bug above. They are now filtered out during the off-thread scan.
+            - **A failed scan now explains itself.** The "No music yet" screen previously hid the reason a scan found nothing. It now shows the error, and when music access was permanently denied it offers a button straight to the app settings.
 
             ## 🧪 Verification
 
-            - 185 tests pass
-            - flutter analyze: no issues, now enforced by a committed analysis_options.yaml
+            - 188 tests pass, including new guards that pin the corrupt-row handling
+            - flutter analyze: no issues
 
             ## 📦 Install / Update
 
@@ -257,25 +258,26 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.9 - Gerbang lint permanen dan guard context async yang lebih ketat**
+            **Swara v2.9.10 - Deteksi musik diperbaiki saat akses penyimpanan sudah diberikan**
 
             ## ✨ Fitur
 
-            - **Tanpa fitur baru, sengaja.** Rilis ini memperketat gerbang kualitas internal dan menguatkan beberapa jalur UI async; yang kamu lihat dan dengar tidak berubah.
+            - **Tanpa fitur baru, sengaja.** Rilis ini memperbaiki bug "Belum ada musik" yang muncul meski izin penyimpanan sudah diberikan, plus beberapa celah ketahanan terkait.
 
             ## ⚡ Performa
 
-            - **Gerbang analyzer permanen kini berjalan di setiap perubahan.** Proyek mengaktifkan flutter_lints plus prefer_single_quotes dan sort_child_properties_last lewat analysis_options.yaml baru, sehingga masalah gaya dan kebenaran ketahuan sebelum rilis.
+            - **Tanpa perubahan performa, sengaja.** Perbaikan murni soal kebenaran dan diagnosa.
 
             ## 🐛 Perbaikan bug
 
-            - **Empat belas lokasi context setelah await kini punya guard mounted yang benar.** Snackbar, dialog, dan navigasi setelah jeda async kini memastikan widget masih hidup, menghilangkan satu kelas crash laten saat layar ditutup sementara kerja masih berjalan.
-            - **Empat puluh dua temuan lint di seluruh kode sudah diperbaiki.** Sebagian besar hanya const constructor, quote, rename local yang menimpa, dan komentar yang di-hoist; tidak ada yang mengubah perilaku runtime.
+            - **Library tidak lagi blank hanya gara-gara satu baris rusak.** Satu lagu dengan path file kosong (yang bisa dilaporkan MediaStore di scoped storage) dulu membuat seluruh pemuatan gagal dan lagu lain ikut hilang. Loader kini melewati baris itu alih-alih menjatuhkan seluruh library.
+            - **Lagu tanpa path file kini tidak pernah disimpan.** Scanner dulu langsung menyisipkannya ke database, dan itu pemicu bug library blank di atas. Kini lagu seperti itu disaring saat pemindaian di thread terpisah.
+            - **Scan yang gagal kini menjelaskan dirinya.** Layar "Belum ada musik" dulu menyembunyikan alasan scan menemukan nol lagu. Kini ia menampilkan errornya, dan kalau izin musik ditolak permanen ia menawarkan tombol langsung ke pengaturan aplikasi.
 
             ## 🧪 Verifikasi
 
-            - 185 test lolos
-            - flutter analyze: no issues, kini ditegakkan oleh analysis_options.yaml yang di-commit
+            - 188 test lolos, termasuk guard baru yang mengunci penanganan baris rusak
+            - flutter analyze: no issues
 
             ## 📦 Instalasi / Update
 
