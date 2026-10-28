@@ -673,7 +673,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               label: Text(l.libraryScanMusic)),
           // A permanently denied permission can never be granted from the
           // in-app dialog, so offer a direct jump to the app settings.
-          if (error != null && error.contains(l.corePermissionDenied)) ...[
+          if (lib.permissionDenied) ...[
             const SizedBox(height: 12),
             OutlinedButton.icon(
                 onPressed: () => openAppSettings(),

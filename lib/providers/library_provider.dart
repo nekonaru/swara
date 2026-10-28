@@ -29,6 +29,11 @@ class LibraryProvider extends ChangeNotifier {
   int bulkScanProgress = 0;
   int bulkScanTotal = 0;
   String? scanError;
+
+  // True when the last failed scan was caused by a denied music access
+  // permission. The in-app dialog cannot grant a permanently denied
+  // permission, so the UI uses this to offer a shortcut to app settings.
+  bool permissionDenied = false;
   SortOption sortOption = SortOption.titleAZ;
 
   // Monotonic counter bumped every time the song list is replaced, reordered
@@ -166,12 +171,22 @@ class LibraryProvider extends ChangeNotifier {
     _scanning = true;
     isScanning = true;
     scanError = null;
+    permissionDenied = false;
     notifyListeners();
+    final scanner = LibraryScanner();
     try {
-      await LibraryScanner().scanAndSync();
+      await scanner.scanAndSync();
       await loadFromDb();
     } catch (e) {
       scanError = '${lookupAppLocalizations(LanguageProvider.instance.locale).coreScanFailed}: $e';
+      // Distinguish a denied permission from any other scan failure so the
+      // empty state can offer the app settings shortcut.
+      try {
+        permissionDenied = await scanner.isPermanentlyDenied();
+      } catch (_) {
+        permissionDenied = false;
+      }
+      debugPrint('LibraryProvider scanDevice failed: $e');
     }
     _scanning = false;
     isScanning = false;

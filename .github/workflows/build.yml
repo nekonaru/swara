@@ -225,11 +225,11 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.10 - Music detection fixed when storage access is granted**
+            **Swara v2.9.11 - Reliable "Open Settings" shortcut for denied music access**
 
             ## ✨ Features
 
-            - **No new features, on purpose.** This release fixes the bug where the library showed "No music yet" even after storage permission was granted, plus a few related robustness gaps.
+            - **No new features, on purpose.** This release is a focused follow-up to v2.9.10 that makes the denied-permission path behave predictably.
 
             ## ⚡ Performance
 
@@ -237,13 +237,13 @@ jobs:
 
             ## 🐛 Bug fixes
 
-            - **The library no longer goes blank because of a single bad row.** A song whose file path was empty (which MediaStore can report on scoped storage) used to throw while loading and hide every other song at once. The loaders now skip that one row instead of dropping the whole library.
-            - **Songs with an empty file path are never saved.** The scanner used to insert them straight into the database, which is what triggered the blank-library bug above. They are now filtered out during the off-thread scan.
-            - **A failed scan now explains itself.** The "No music yet" screen previously hid the reason a scan found nothing. It now shows the error, and when music access was permanently denied it offers a button straight to the app settings.
+            - **The "Open Settings" button on the "No music yet" screen now actually appears when music access is denied.** It used to be decided by matching text inside an error message, which could silently fail to match. The app now tracks the denial explicitly, so the shortcut shows up reliably.
+            - **A denied permission is now checked on both the audio and legacy storage permission.** Older devices that fall back to storage reported the wrong state, so the shortcut never appeared there.
+            - **The permission check can no longer crash the scan.** It is wrapped in its own guard, so a failure there degrades to a plain error message instead of losing the scan result entirely.
 
             ## 🧪 Verification
 
-            - 188 tests pass, including new guards that pin the corrupt-row handling
+            - 188 tests pass, including the corrupt-row guards that keep one bad song from blanking the library
             - flutter analyze: no issues
 
             ## 📦 Install / Update
@@ -258,11 +258,11 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.10 - Deteksi musik diperbaiki saat akses penyimpanan sudah diberikan**
+            **Swara v2.9.11 - Tombol "Buka Pengaturan" kini andal saat izin musik ditolak**
 
             ## ✨ Fitur
 
-            - **Tanpa fitur baru, sengaja.** Rilis ini memperbaiki bug "Belum ada musik" yang muncul meski izin penyimpanan sudah diberikan, plus beberapa celah ketahanan terkait.
+            - **Tanpa fitur baru, sengaja.** Rilis ini lanjutan fokus dari v2.9.10 supaya jalur izin ditolak berperilaku lebih dapat diprediksi.
 
             ## ⚡ Performa
 
@@ -270,13 +270,13 @@ jobs:
 
             ## 🐛 Perbaikan bug
 
-            - **Library tidak lagi blank hanya gara-gara satu baris rusak.** Satu lagu dengan path file kosong (yang bisa dilaporkan MediaStore di scoped storage) dulu membuat seluruh pemuatan gagal dan lagu lain ikut hilang. Loader kini melewati baris itu alih-alih menjatuhkan seluruh library.
-            - **Lagu tanpa path file kini tidak pernah disimpan.** Scanner dulu langsung menyisipkannya ke database, dan itu pemicu bug library blank di atas. Kini lagu seperti itu disaring saat pemindaian di thread terpisah.
-            - **Scan yang gagal kini menjelaskan dirinya.** Layar "Belum ada musik" dulu menyembunyikan alasan scan menemukan nol lagu. Kini ia menampilkan errornya, dan kalau izin musik ditolak permanen ia menawarkan tombol langsung ke pengaturan aplikasi.
+            - **Tombol "Buka Pengaturan" di layar "Belum ada musik" kini benar-benar muncul saat akses musik ditolak.** Dulu keputusannya bergantung pada pencocokan teks di dalam pesan error, yang bisa gagal diam-diam. Aplikasi kini melacak penolakan itu secara eksplisit, jadi jalan pintasnya muncul secara andal.
+            - **Penolakan izin kini diperiksa di izin audio maupun izin penyimpanan lama.** Perangkat lama yang jatuh ke penyimpanan melaporkan status yang salah, sehingga jalan pintasnya tidak pernah muncul di sana.
+            - **Pemeriksaan izin tidak lagi bisa membuat scan gagal.** Pemeriksaan itu kini punya guard-nya sendiri, sehingga kegagalan di sana hanya merendah ke pesan biasa alih-alih kehilangan hasil scan sepenuhnya.
 
             ## 🧪 Verifikasi
 
-            - 188 test lolos, termasuk guard baru yang mengunci penanganan baris rusak
+            - 188 test lolos, termasuk guard baris rusak yang menjaga satu lagu buruk tidak mengosongkan seluruh library
             - flutter analyze: no issues
 
             ## 📦 Instalasi / Update

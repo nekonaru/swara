@@ -160,7 +160,13 @@ class LibraryScanner {
   // Returns true when the audio permission is permanently denied,
   // so the caller can direct the user to the app settings.
   Future<bool> isPermanentlyDenied() async {
-    return Permission.audio.isPermanentlyDenied;
+    try {
+      final audio = await Permission.audio.isPermanentlyDenied;
+      if (audio) return true;
+      return await Permission.storage.isPermanentlyDenied;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Scan every music file on the device and store new ones in the DB.
