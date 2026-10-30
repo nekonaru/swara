@@ -225,25 +225,27 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.12 - Scan fixed, it failed for every single song**
+            **Swara v2.9.13 - Lyrics now come from lrclib, in one request**
 
             ## ✨ Features
 
-            - **No new features, on purpose.** This release fixes the bug that stopped the library from ever being filled, no matter how many songs were on the device.
+            - **Synced lyrics and plain lyrics now come from a single lrclib lookup.** lrclib returns both forms in one response, so a song gets its scrolling lyrics and its readable text from one request instead of two separate ones against two different services.
+            - **A song that only has synced lyrics still shows text.** When a source provides only the timed form, the app strips the timestamps to build the plain view, so the lyrics panel is never left empty.
+            - **Songs that were already in the cache can still gain synced lyrics.** An lrclib lookup now completes the synced view for them, so older entries are not stuck without scrolling lyrics.
 
             ## ⚡ Performance
 
-            - **No performance changes, on purpose.** The fix is correctness only.
+            - **One network request replaced two per song.** The old flow asked lrclib for the synced lyrics and then lyrics.ovh for the plain lyrics. lrclib alone now serves both, which halves the requests during a metadata scan.
+            - **All lyrics HTTP now runs off the main thread.** The lrclib lookup moved into a background isolate like the lyrics.ovh one, so a scan or a lyrics fetch no longer stalls the interface. The shared HTTP client that used to sit on the main thread is gone, because every request now owns its client inside its isolate.
 
             ## 🐛 Bug fixes
 
-            - **Scanning now works again.** The off-thread scanner handed its work to a background isolate, and one of the values sent across that boundary was a set of excluded folders. It was read back as a list, and a set is not a list, so the type mismatch threw before a single song was looked at. That is why the library stayed empty even with permission granted and music on the phone. The value is now coerced instead of cast, and the sender passes an unambiguous plain list.
-            - **A bad value can no longer take a whole scan down with it.** The scanner now degrades an unexpected excluded-folders value to an empty set, so a mismatch can cost you the folder filter rather than every song.
-            - **A guard test now pins this exact failure.** The cast that broke the scan is checked for, so it cannot quietly come back.
+            - **A failed lyrics lookup no longer leaves the song half done.** The plain and the synced paths now share one capped storage helper, so a payload can never be written uncapped, and a cache write failure no longer disturbs a fetch that already succeeded.
+            - **lyrics.ovh stays as a fallback only.** It is consulted when lrclib has no entry for a track, which keeps songs that lrclib is missing working instead of leaving them without lyrics.
 
             ## 🧪 Verification
 
-            - 191 tests pass, including new guards for the isolate type mismatch
+            - 196 tests pass, including new guards that pin the single request and the fallback order
             - flutter analyze: no issues
 
             ## 📦 Install / Update
@@ -258,25 +260,27 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.12 - Scan diperbaiki, dulu gagal untuk semua lagu**
+            **Swara v2.9.13 - Lirik kini datang dari lrclib, dalam satu permintaan**
 
             ## ✨ Fitur
 
-            - **Tanpa fitur baru, sengaja.** Rilis ini memperbaiki bug yang membuat library tidak pernah terisi, berapa pun banyak lagu di HP.
+            - **Lirik sinkron dan lirik biasa kini datang dari satu pencarian lrclib.** lrclib mengembalikan kedua bentuk itu dalam satu respons, jadi sebuah lagu mendapat lirik bergulir dan teks terbaca dari satu permintaan, bukan dua permintaan terpisah ke dua layanan berbeda.
+            - **Lagu yang hanya punya lirik sinkron tetap menampilkan teks.** Saat sebuah sumber hanya menyediakan bentuk ber-timestamp, aplikasi membuang timestamp-nya untuk membangun tampilan biasa, sehingga panel lirik tidak pernah kosong.
+            - **Lagu yang sudah ada di cache tetap bisa mendapat lirik sinkron.** Pencarian lrclib kini melengkapi tampilan sinkron untuk lagu-lagu itu, jadi entri lama tidak terjebak tanpa lirik bergulir.
 
             ## ⚡ Performa
 
-            - **Tanpa perubahan performa, sengaja.** Perbaikan murni soal kebenaran.
+            - **Satu permintaan jaringan menggantikan dua per lagu.** Alur lama menanyakan lrclib untuk lirik sinkron, lalu lyrics.ovh untuk lirik biasa. Kini lrclib sendiri melayani keduanya, yang memangkas separuh permintaan saat pemindaian metadata.
+            - **Seluruh pengambilan lirik via HTTP kini berjalan di luar utama.** Pencarian lrclib pindah ke isolate latar belakang seperti lyrics.ovh, jadi pemindaian atau pengambilan lirik tidak lagi membekukan antarmuka. Klien HTTP bersama yang dulu duduk di utama kini hilang, karena setiap permintaan kini punya klien sendiri di dalam isolate-nya.
 
             ## 🐛 Perbaikan bug
 
-            - **Pemindaian kini berfungsi lagi.** Scanner latar belakang mengirim kerjanya ke isolate terpisah, dan salah satu nilai yang menyeberang batas itu berupa daftar folder yang dikecualikan. Nilai itu dibaca kembali sebagai list, padahal aslinya sebuah set, sehingga ketidakcocokan tipe melempar error sebelum satu lagu pun diperiksa. Itulah sebabnya library tetap kosong meski izin sudah diberikan dan musik ada di HP. Nilai itu kini diubah bentuknya alih-alih di-cast, dan pengirim mengirim list biasa yang tidak ambigu.
-            - **Nilai yang tidak terduga kini tidak lagi menjatuhkan seluruh scan.** Scanner merendahkan nilai daftar-folder-kecualikan yang tak terduga menjadi set kosong, jadi ketidakcocokan hanya mengorbankan filter folder, bukan semua lagu.
-            - **Guard test kini mengunci kegagalan yang persis sama.** Cast yang membuat scan gagal kini diperiksa, sehingga ia tidak bisa kembali diam-diam.
+            - **Kegagalan pengambilan lirik tidak lagi membuat lagu setengah jadi.** Jalur biasa dan jalur sinkron kini berbagi satu helper penyimpanan ber-batas, jadi sebuah payload tidak pernah tertulis tanpa batas, dan kegagalan tulis cache tidak lagi mengganggu pengambilan yang sudah berhasil.
+            - **lyrics.ovh kini tetap hanya sebagai cadangan.** Ia ditanyakan saat lrclib tidak punya entri untuk sebuah lagu, yang menjaga lagu yang belum tercakup lrclib tetap berfungsi alih-alih kehilangan lirik.
 
             ## 🧪 Verifikasi
 
-            - 191 test lolos, termasuk guard baru untuk ketidakcocokan tipe isolate
+            - 196 test lolos, termasuk guard baru yang mengunci satu permintaan dan urutan cadangan
             - flutter analyze: no issues
 
             ## 📦 Instalasi / Update

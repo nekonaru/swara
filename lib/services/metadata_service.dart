@@ -118,6 +118,92 @@ Future<Map<String, dynamic>> _lyricsFetchIsolate(Map<String, dynamic> params) as
   }
 }
 
+/// Hoisted so the timestamp pattern is compiled once per isolate run instead
+/// of once per line. LRC lines look like "[00:12.34]Some words".
+final RegExp _lrcLineTimeReg =
+    RegExp(r'^\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]');
+
+/// Convert LRC text into plain lyrics by dropping the timestamps. Used when
+/// a source returned synced lyrics but no plain lyrics, so the plain view
+/// still has something to show. Metadata tags such as "[ar:Artist]" carry no
+/// digits in the first field, so the pattern never matches them.
+String _plainLyricsFromLrc(String lrc) {
+  final out = <String>[];
+  for (final line in lrc.split('\n')) {
+    final m = _lrcLineTimeReg.firstMatch(line);
+    if (m == null) continue;
+    final text = line.substring(m.end).trim();
+    if (text.isEmpty) continue;
+    if (out.length >= 2000) break;
+    out.add(text);
+  }
+  return out.join('\n');
+}
+
+/// Cap any lyrics payload at 100KB so an anomalous response cannot bloat
+/// the DB. Shared by the plain and the synced path so both behave the same.
+String _capLyrics(String text) =>
+    text.length > 100 * 1024 ? text.substring(0, 100 * 1024) : text;
+
+/// lrclib fetch isolate entry point: only HTTP, no sqflite.
+///
+/// One request returns both the plain and the synced lyrics, which replaces
+/// the old pair of separate requests (lrclib for synced, lyrics.ovh for
+/// plain) with a single round trip in the common case.
+///
+/// Contract: {'lyrics': ..., 'synced': ...} on a hit, {'miss': true} when
+/// lrclib has no entry for the track, and {} for anything transient that
+/// must not poison the cache. 'synced' is null when the entry only carries
+/// plain lyrics.
+Future<Map<String, dynamic>> _lrclibFetchIsolate(
+    Map<String, dynamic> params) async {
+  final artist = params['artist'] as String;
+  final title = params['title'] as String;
+  if (artist.isEmpty || title.isEmpty) return <String, dynamic>{};
+  final album = (params['album'] as String?)?.trim() ?? '';
+  final client = http.Client();
+  try {
+    // Album is optional. Leaving it out makes lrclib fall back to matching by
+    // artist and title alone, which is what we want when the album tag is
+    // missing or unknown.
+    final query = <String, String>{
+      'artist_name': artist,
+      'track_name': title,
+    };
+    if (album.isNotEmpty) query['album_name'] = album;
+    final url = Uri.https('lrclib.net', '/api/get', query);
+    final res = await client
+        .get(url, headers: {'User-Agent': 'Swara/1.0'})
+        .timeout(const Duration(seconds: 8));
+    if (res.statusCode == 429) return <String, dynamic>{'rateLimited': true};
+    if (res.statusCode != 200) {
+      // 404 is a definitive miss. 5xx and friends are transient.
+      return res.statusCode == 404
+          ? <String, dynamic>{'miss': true}
+          : <String, dynamic>{};
+    }
+    dynamic data;
+    try {
+      data = jsonDecode(res.body);
+    } catch (_) {
+      // Not JSON (captive portal page): transient below.
+      return <String, dynamic>{};
+    }
+    if (data is! Map) return <String, dynamic>{};
+    final plain = (data['plainLyrics'] as String?)?.trim() ?? '';
+    final synced = (data['syncedLyrics'] as String?)?.trim() ?? '';
+    if (plain.isEmpty && synced.isEmpty) return <String, dynamic>{'miss': true};
+    return <String, dynamic>{
+      if (plain.isNotEmpty) 'lyrics': plain,
+      if (synced.isNotEmpty) 'synced': synced,
+    };
+  } catch (_) {
+    return <String, dynamic>{};
+  } finally {
+    client.close();
+  }
+}
+
 /// Guesses and completes song metadata from the title/file name:
 /// - Album art via the iTunes Search API (free, no API key)
 /// - Lyrics via lyrics.ovh (free, no API key)
@@ -127,10 +213,10 @@ class MetadataService {
   MetadataService._();
   static final MetadataService instance = MetadataService._();
 
-  /// Single shared HTTP client for all metadata requests (iTunes + lyrics).
-  /// Created once and never closed because this singleton lives for the
-  /// whole app lifetime, which avoids socket churn from one-shot http.get.
-  final http.Client _client = http.Client();
+  // Every metadata request (iTunes and lyrics) now runs inside an isolate
+  // through compute(), and each isolate owns its own http.Client. That leaves
+  // this class with no HTTP work of its own, so the shared client that used
+  // to live here is gone. Each isolate closes its client when it finishes.
 
   /// Start of the 429 backoff window. While now is before this value,
   /// enrich calls skip the network so a burst of 429s does not repeat.
@@ -310,13 +396,6 @@ class MetadataService {
         song.title == 'Unknown Title') {
       return false;
     }
-    // Best effort synced lyrics fetch (lrclib). Runs regardless of the
-    // plain lyric outcome below and never changes its return value.
-    try {
-      await ensureSyncedLyrics(song);
-    } catch (_) {
-      // Synced fetch must never break the plain lyric fetch.
-    }
     final lyricsKey = _lyricsCacheKeyFor(song);
     // Serve a fresh disk cache entry before touching the network, unless
     // the caller explicitly wants to bypass it (manual rescan).
@@ -324,17 +403,91 @@ class MetadataService {
         bypassCache ? null : await _readValidCache(lyricsKey);
     if (cachedLyrics != null) {
       if (cachedLyrics == _cacheMissMarker) {
-        return false;
+        // The plain lyrics are known absent, but the synced lyrics may still
+        // be worth one lookup, so keep going instead of returning here.
+        return await _fillSyncedFromLrclib(song);
       }
       if (cachedLyrics.isNotEmpty) {
         song.lyrics = cachedLyrics;
+        // lrclib returns plain and synced together, so a song whose plain
+        // lyrics came from cache has usually never been looked up there.
+        // One lrclib request completes both at once instead of leaving the
+        // synced view permanently empty. The plain lyrics stay as stored.
+        await _fillSyncedFromLrclib(song);
         return true;
       }
       // Empty cached body should behave like a miss.
       return false;
     }
-    // Dispatch the lyrics HTTP call to an isolate so the main thread stays
-    // responsive during network I/O. Cache/DB reads/writes stay on main.
+    // One lrclib request returns both the plain and the synced lyrics, so the
+    // old pair of separate requests (lrclib then lyrics.ovh) collapses into a
+    // single round trip whenever lrclib has the track.
+    final lrclib = await _fetchFromLrclib(song);
+    final plain = lrclib['lyrics'] as String?;
+    final synced = lrclib['synced'] as String?;
+    if (plain != null && plain.isNotEmpty) {
+      song.lyrics = plain;
+      await _cacheLyrics(lyricsKey, plain);
+      return true;
+    }
+    if (lrclib['rateLimited'] == true) {
+      // Transient: do not poison cache, retry later.
+      return false;
+    }
+    if (plain == null && synced != null && synced.isNotEmpty) {
+      // lrclib has only the synced form. Derive the plain view from it so the
+      // song still reads as lyrics, and store the synced text alongside.
+      final derived = _plainLyricsFromLrc(synced);
+      if (derived.isNotEmpty) {
+        song.lyrics = derived;
+        await _cacheLyrics(lyricsKey, derived);
+        return true;
+      }
+    }
+    // lrclib has nothing for this track. Fall back to lyrics.ovh for the
+    // plain lyrics, which is a different database and still worth asking.
+    return await _fetchPlainFromLyricsOvh(song, lyricsKey);
+  }
+
+  /// One lrclib request for both lyric forms. Runs in an isolate so the
+  /// network I/O does not hold the main thread.
+  ///
+  /// Returns {'lyrics': plain?, 'synced': lrc?} on a hit, {'miss': true}
+  /// when lrclib has no entry, or {} on a transient failure.
+  Future<Map<String, dynamic>> _fetchFromLrclib(Song song) async {
+    try {
+      final album = song.album.trim();
+      return await compute(
+        _lrclibFetchIsolate,
+        <String, dynamic>{
+          'artist': song.artist,
+          'title': song.title,
+          'album':
+              (album.isEmpty || album == 'Unknown Album') ? '' : album,
+        },
+      );
+    } catch (_) {
+      // Transient (isolate or network failure): no MISS marker, retry later.
+      return <String, dynamic>{};
+    }
+  }
+
+  /// Store the synced lyrics for [song] when there are some, and report
+  /// whether synced lyrics now exist. Never throws, so a DB write failure
+  /// cannot break a lyric fetch that already succeeded.
+  Future<bool> _cacheSynced(Song song, String? synced) async {
+    if (synced == null || synced.isEmpty) return false;
+    try {
+      await applySyncedLyrics(song, synced);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Fall back to lyrics.ovh for the plain lyrics only. Kept as a separate
+  /// isolate entry because it cannot supply synced lyrics at all.
+  Future<bool> _fetchPlainFromLyricsOvh(Song song, String lyricsKey) async {
     Map<String, dynamic> result;
     try {
       result = await compute(
@@ -371,6 +524,51 @@ class MetadataService {
     return false;
   }
 
+  /// Make one lrclib request to complete the synced lyrics for a song whose
+  /// plain lyrics are already known. Returns true when synced lyrics exist
+  /// afterwards, from the DB or from lrclib.
+  ///
+  /// A stored lrclib entry is never refreshed here: the plain lyrics are
+  /// already fixed by whatever stored them, and mixing two sources on one
+  /// song would leave the two views out of step.
+  Future<bool> _fillSyncedFromLrclib(Song song) async {
+    final stored = await _readSynced(song);
+    if (stored) return true;
+    final lrclib = await _fetchFromLrclib(song);
+    return _cacheSynced(song, lrclib['synced'] as String?);
+  }
+
+  /// Persist [lrc] for [song] as its synced lyrics and return it, mirroring
+  /// what ensureSyncedLyrics returns. Never throws.
+  Future<String?> applySyncedLyrics(Song song, String lrc) async {
+    final capped = _capLyrics(lrc);
+    try {
+      await DBHelper.instance.setSyncedLyrics(song.id, capped);
+    } catch (_) {
+      // Cache write failure must never break the fetch.
+    }
+    return capped;
+  }
+
+  /// Whether synced lyrics are already stored for [song]. Never throws.
+  Future<bool> _readSynced(Song song) async {
+    try {
+      final stored = await DBHelper.instance.getSyncedLyrics(song.id);
+      return stored != null && stored.trim().isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Write one plain lyrics cache entry, capped, best effort. A cache failure
+  /// never fails the fetch that already succeeded. The synced lyrics are
+  /// stored in their own table by applySyncedLyrics, not here.
+  Future<void> _cacheLyrics(String lyricsKey, String plain) async {
+    try {
+      await DBHelper.instance.putMetadataCache(lyricsKey, _capLyrics(plain));
+    } catch (_) {}
+  }
+
   /// Cache key for a song: "artist|title", lowercase and trimmed.
   String _cacheKeyFor(Song song) {
     return '${song.artist.trim().toLowerCase()}|${song.title.trim().toLowerCase()}';
@@ -380,6 +578,9 @@ class MetadataService {
   /// lrclib.net when none is stored yet. Never throws and never touches
   /// the plain lyrics field, so plain lyric behavior stays unchanged.
   /// Returns the LRC text, or null when unavailable.
+  ///
+  /// The request runs in an isolate, matching the plain lyrics fetch, so the
+  /// network never holds the main thread.
   Future<String?> ensureSyncedLyrics(Song song) async {
     try {
       final stored = await DBHelper.instance.getSyncedLyrics(song.id);
@@ -394,34 +595,10 @@ class MetadataService {
         song.title == 'Unknown Title') {
       return null;
     }
-    try {
-      final params = {
-        'artist_name': song.artist,
-        'track_name': song.title,
-      };
-      final album = song.album.trim();
-      if (album.isNotEmpty && album != 'Unknown Album') {
-        params['album_name'] = album;
-      }
-      final url = Uri.https('lrclib.net', '/api/get', params);
-      final res = await _client
-          .get(url, headers: {'User-Agent': 'Swara/1.0'})
-          .timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return null;
-      final data = jsonDecode(res.body);
-      final lrc = data is Map ? data['syncedLyrics']?.toString().trim() : null;
-      if (lrc == null || lrc.isEmpty) return null;
-      // Cap at 100KB so the DB does not bloat on anomalous responses.
-      final capped = lrc.length > 100 * 1024 ? lrc.substring(0, 100 * 1024) : lrc;
-      try {
-        await DBHelper.instance.setSyncedLyrics(song.id, capped);
-      } catch (_) {
-        // Cache write failure must never break the fetch.
-      }
-      return capped;
-    } catch (_) {
-      return null;
-    }
+    final lrclib = await _fetchFromLrclib(song);
+    final lrc = lrclib['synced'] as String?;
+    if (lrc == null || lrc.isEmpty) return null;
+    return applySyncedLyrics(song, lrc);
   }
 
   /// Lyrics cache key: "lyrics|artist|title", lowercase and trimmed, so
