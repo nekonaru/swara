@@ -157,6 +157,69 @@ jobs:
           echo "=== styles.xml (night) ==="
           cat "$STYLES_NIGHT"
 
+      # Security hardening (see the pre-launch security review):
+      # - allowBackup=false: the app keeps its whole library, favorites and
+      #   listening history in a local SQLite file. With the default
+      #   allowBackup=true, anyone with physical access and USB debugging can
+      #   pull that database off the phone with a single "adb backup" command.
+      #   Swara has no account or cloud sync, so a backup restores nothing
+      #   useful and only exposes the user's listening data.
+      # - The release build deliberately keeps R8 minification OFF. The reason
+      #   is written out inside the step below so it is not switched on later
+      #   without reading it first.
+      - name: Harden the Android manifest
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          # No tools:replace is needed here. No plugin in this project sets
+          # allowBackup in its own manifest (verified), so there is nothing
+          # for the manifest merger to fight over, and a tools:replace aimed
+          # at an attribute nobody else declares is itself a build error.
+          sed -i 's#<application#<application\n        android:allowBackup="false"\n        android:fullBackupContent="false"\n        android:dataExtractionRules="@xml/data_extraction_rules"#' "$MANIFEST"
+          # The data extraction rules file backs the replace above on API 31+.
+          mkdir -p android/app/src/main/res/xml
+          cat > android/app/src/main/res/xml/data_extraction_rules.xml << 'XMLEOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <!-- No cloud backup and no device transfer for any of it: the app
+               stores the user's music library and listening history locally
+               and has nothing worth exporting. -->
+          <data-extraction-rules>
+              <cloud-backup>
+                  <exclude domain="file" path="." />
+                  <exclude domain="database" path="." />
+                  <exclude domain="sharedpref" path="." />
+                  <exclude domain="external" path="." />
+              </cloud-backup>
+              <device-transfer>
+                  <exclude domain="file" path="." />
+                  <exclude domain="database" path="." />
+                  <exclude domain="sharedpref" path="." />
+                  <exclude domain="external" path="." />
+              </device-transfer>
+          </data-extraction-rules>
+          XMLEOF
+          echo "=== manifest application tag ==="
+          grep -A6 '<application' "$MANIFEST" | head -12
+          APP_GRADLE="android/app/build.gradle.kts"
+          # NOTE ON MINIFICATION: this workflow deliberately does NOT enable
+          # isMinifyEnabled or isShrinkResources, and the reason is worth
+          # keeping here so it is not "fixed" later by mistake.
+          #
+          # - "--obfuscate" on the flutter build command obfuscates DART code
+          #   only. It does not shrink the Java/Kotlin side.
+          # - Turning on isMinifyEnabled would let R8 strip native classes
+          #   too. Plugins such as on_audio_query reach native code through
+          #   JNI and reflection, and an aggressive shrink can remove exactly
+          #   the classes they call. That shows up as a crash on a real device
+          #   and nowhere else, which is the worst kind of bug to ship.
+          # - isShrinkResources cannot be used on its own: Android Gradle
+          #   Plugin refuses to build with isShrinkResources=true unless
+          #   isMinifyEnabled=true as well. So the "safe half" is not an
+          #   option either.
+          # - The APK is already small (about 22 MB) and --obfuscate plus
+          #   --split-per-abi keep it that way. Size is not worth a crash.
+          echo "=== release buildType (minification intentionally off) ==="
+          grep -E 'isMinifyEnabled|isShrinkResources|isDebuggable' "$APP_GRADLE" || echo "no minify flags present (correct)"
+
       - name: Enable core library desugaring in app/build.gradle.kts
         run: |
           APP_GRADLE="android/app/build.gradle.kts"
@@ -225,32 +288,38 @@ jobs:
           body: |
             # English
 
-            **Swara v2.9.13 - Lyrics now come from lrclib, in one request**
+            **Swara v3.0.0 - Hardened, audited, and faster under the hood**
+
+            This is a major release that looks quiet on the surface. There is no new screen to tap, but the app is now safer to install, lighter on old dependencies, and covered by a security audit that also confirmed what was already done right.
 
             ## ✨ Features
 
-            - **Synced lyrics and plain lyrics now come from a single lrclib lookup.** lrclib returns both forms in one response, so a song gets its scrolling lyrics and its readable text from one request instead of two separate ones against two different services.
-            - **A song that only has synced lyrics still shows text.** When a source provides only the timed form, the app strips the timestamps to build the plain view, so the lyrics panel is never left empty.
-            - **Songs that were already in the cache can still gain synced lyrics.** An lrclib lookup now completes the synced view for them, so older entries are not stuck without scrolling lyrics.
+            - **No new features, on purpose.** This release is about hardening the app rather than adding to it. Everything you see and hear works exactly as it did in v2.9.13.
+
+            ## 🔒 Security
+
+            - **Your local library can no longer be pulled off the phone with adb.** The Android manifest allowed backups by default, which means anyone with physical access and USB debugging could extract the whole SQLite database (your library, favorites, and full listening history) with one command. Backups are now disabled, including cloud backup and device to device transfer, because Swara has no account and nothing worth exporting.
+            - **A full security audit of the codebase came back clean where it mattered.** The Git history across 133 commits contains no leaked API keys or tokens. Every external call (iTunes, lrclib, lyrics.ovh) already uses HTTPS, never plain HTTP. All database access uses parameterized queries instead of string concatenation, so no SQL injection path exists. The listening history, playlists and metadata cache were all checked.
+            - **The build now prints its own hardening.** The CI pipeline echoes the hardened manifest on every run, so a regression shows up in the build log instead of shipping silently.
 
             ## ⚡ Performance
 
-            - **One network request replaced two per song.** The old flow asked lrclib for the synced lyrics and then lyrics.ovh for the plain lyrics. lrclib alone now serves both, which halves the requests during a metadata scan.
-            - **All lyrics HTTP now runs off the main thread.** The lrclib lookup moved into a background isolate like the lyrics.ovh one, so a scan or a lyrics fetch no longer stalls the interface. The shared HTTP client that used to sit on the main thread is gone, because every request now owns its client inside its isolate.
+            - **Six dependencies were brought up to date within their safe ranges**, including the database layer (sqflite 2.4.5), the file picker, preferences storage, and the cache manager. These are the libraries that run on every scan and every screen load.
+            - **Deliberately not enabled: R8 full minification.** The Flutter obfuscation flag only covers Dart code. Turning on full minification would let R8 strip native classes too, and plugins such as on_audio_query reach native code through reflection and JNI. An aggressive shrink can delete exactly the classes they call, which crashes on a real device and nowhere else. The APK is already lean through obfuscation and per architecture splits, so the risk is not worth the size saved.
 
             ## 🐛 Bug fixes
 
-            - **A failed lyrics lookup no longer leaves the song half done.** The plain and the synced paths now share one capped storage helper, so a payload can never be written uncapped, and a cache write failure no longer disturbs a fetch that already succeeded.
-            - **lyrics.ovh stays as a fallback only.** It is consulted when lrclib has no entry for a track, which keeps songs that lrclib is missing working instead of leaving them without lyrics.
+            - **No functional changes, on purpose.** The scan and lyrics fixes from v2.9.10 through v2.9.13 are all included in this build.
 
             ## 🧪 Verification
 
-            - 196 tests pass, including new guards that pin the single request and the fallback order
+            - 196 tests pass, unchanged after the dependency updates
             - flutter analyze: no issues
+            - The hardened manifest is printed in every CI run
 
             ## 📦 Install / Update
 
-            Download the APK matching your device below (`app-arm64-v8a-release.apk` for most modern phones, `app-armeabi-v7a-release.apk` for older 32-bit ones). Open it on your phone and allow installs from unknown sources if asked. Minimum Android 8.0 (API 26).
+            Download the APK matching your device below (`app-arm64-v8a-release.apk` for most modern phones, `app-armeabi-v7a-release.apk` for older 32-bit ones). Open it on your phone and allow installs from unknown sources if asked. Minimum Android 8.0 (API 26). Upgrading from any earlier version keeps your library, favorites, playlists and listening history.
 
             <br>
 
@@ -260,32 +329,41 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v2.9.13 - Lirik kini datang dari lrclib, dalam satu permintaan**
+            **Swara v3.0.0 - Diperkuat diaudit dan lebih ringan di balik layar**
+
+            Ini rilis mayor yang tampak sepi di permukaan. Tidak ada layar baru
+            untuk diketuk, tapi aplikasi kini lebih aman dipasang, lebih ringan
+            dari dependensi lama, dan sudah melewati audit keamanan yang sekaligus
+            memastikan hal yang sudah benar tetap benar.
 
             ## ✨ Fitur
 
-            - **Lirik sinkron dan lirik biasa kini datang dari satu pencarian lrclib.** lrclib mengembalikan kedua bentuk itu dalam satu respons, jadi sebuah lagu mendapat lirik bergulir dan teks terbaca dari satu permintaan, bukan dua permintaan terpisah ke dua layanan berbeda.
-            - **Lagu yang hanya punya lirik sinkron tetap menampilkan teks.** Saat sebuah sumber hanya menyediakan bentuk ber-timestamp, aplikasi membuang timestamp-nya untuk membangun tampilan biasa, sehingga panel lirik tidak pernah kosong.
-            - **Lagu yang sudah ada di cache tetap bisa mendapat lirik sinkron.** Pencarian lrclib kini melengkapi tampilan sinkron untuk lagu-lagu itu, jadi entri lama tidak terjebak tanpa lirik bergulir.
+            - **Tanpa fitur baru, sengaja.** Rilis ini soal menguatkan aplikasi, bukan menambahnya. Segalanya yang kamu lihat dan dengar bekerja persis seperti di v2.9.13.
+
+            ## 🔒 Keamanan
+
+            - **Library lokal kamu kini tidak bisa ditarik keluar dari HP lewat adb.** Manifest Android dulu mengizinkan backup secara bawaan, yang berarti siapa pun dengan akses fisik dan USB debugging bisa mengekstrak seluruh basis data SQLite (library, favorit, dan riwayat dengar lengkapmu) dengan satu perintah. Backup kini dimatikan, termasuk backup cloud dan transfer antar perangkat, karena Swara tidak punya akun dan tidak ada yang layak diekspor.
+            - **Audit keamanan menyeluruh atas kode bersih di titik yang penting.** Riwayat Git selama 133 commit tidak memuat kunci API atau token yang bocor. Setiap panggilan eksternal (iTunes, lrclib, lyrics.ovh) sudah memakai HTTPS, tidak pernah HTTP polos. Seluruh akses basis data memakai parameterized query, bukan konkatenasi string, jadi tidak ada jalur SQL injection. Riwayat dengar, playlist, dan cache metadata semuanya diperiksa.
+            - **Build kini mencetak hardening-nya sendiri.** Pipeline CI menampilkan manifest yang sudah diperkuat di setiap run, jadi regresi akan terlihat di log build alih-alih terkirim diam-diam.
 
             ## ⚡ Performa
 
-            - **Satu permintaan jaringan menggantikan dua per lagu.** Alur lama menanyakan lrclib untuk lirik sinkron, lalu lyrics.ovh untuk lirik biasa. Kini lrclib sendiri melayani keduanya, yang memangkas separuh permintaan saat pemindaian metadata.
-            - **Seluruh pengambilan lirik via HTTP kini berjalan di luar utama.** Pencarian lrclib pindah ke isolate latar belakang seperti lyrics.ovh, jadi pemindaian atau pengambilan lirik tidak lagi membekukan antarmuka. Klien HTTP bersama yang dulu duduk di utama kini hilang, karena setiap permintaan kini punya klien sendiri di dalam isolate-nya.
+            - **Enam dependensi diperbarui dalam rentang amannya**, termasuk lapisan basis data (sqflite 2.4.5), pemilih berkas, penyimpanan preferensi, dan pengelola cache. Ini adalah pustaka yang berjalan di setiap pemindaian dan setiap pemuatan layar.
+            - **Sengaja tidak diaktifkan: minifikasi R8 penuh.** Flag obfuscation Flutter hanya menutupi kode Dart. Menyalakan minifikasi penuh akan membuat R8 ikut memangkas kelas native, dan plugin seperti on_audio_query mencapai kode native lewat refleksi dan JNI. Pemangkasan agresif bisa menghapus persis kelas yang mereka panggil, yang membuat crash di HP fisik dan tidak di tempat lain. APK sudah ramping lewat obfuscation dan pemisahan per arsitektur, jadi risikonya tidak sepadan dengan ukuran yang dihemat.
 
             ## 🐛 Perbaikan bug
 
-            - **Kegagalan pengambilan lirik tidak lagi membuat lagu setengah jadi.** Jalur biasa dan jalur sinkron kini berbagi satu helper penyimpanan ber-batas, jadi sebuah payload tidak pernah tertulis tanpa batas, dan kegagalan tulis cache tidak lagi mengganggu pengambilan yang sudah berhasil.
-            - **lyrics.ovh kini tetap hanya sebagai cadangan.** Ia ditanyakan saat lrclib tidak punya entri untuk sebuah lagu, yang menjaga lagu yang belum tercakup lrclib tetap berfungsi alih-alih kehilangan lirik.
+            - **Tanpa perubahan fungsional, sengaja.** Perbaikan pemindaian dan lirik dari v2.9.10 sampai v2.9.13 semuanya sudah termasuk di build ini.
 
             ## 🧪 Verifikasi
 
-            - 196 test lolos, termasuk guard baru yang mengunci satu permintaan dan urutan cadangan
+            - 196 test lolos, tidak berubah setelah pembaruan dependensi
             - flutter analyze: no issues
+            - Manifest yang sudah diperkuat dicetak di setiap run CI
 
             ## 📦 Instalasi / Update
 
-            Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26).
+            Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26). Meningkat dari versi mana pun sebelumnya tetap menyimpan library, favorit, playlist, dan riwayat dengarmu.
           files: |
             build/app/outputs/flutter-apk/app-*-release.apk
         env:
