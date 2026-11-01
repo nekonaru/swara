@@ -387,10 +387,14 @@ Settings, section **Language**, pick English or Bahasa Indonesia. English is the
 
 ## Author
 
+<div align="center">
+
 | [![Nicolas Dwi Dharma](https://github.com/github.png?size=100)](https://github.com/nekonaru) |
 |:---:|
 | **Nicolas Dwi Dharma** |
 | [github.com/nekonaru](https://github.com/nekonaru) |
+
+</div>
 
 ---
 
