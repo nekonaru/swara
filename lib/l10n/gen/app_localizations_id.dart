@@ -96,6 +96,13 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get settingsScanCancel => 'Hentikan scan';
+
+  @override
+  String get scanStopped =>
+      'Scan dihentikan. Semua yang sudah diambil tetap disimpan.';
+
+  @override
   String get settingsRescanAll => 'Scan Ulang Semua Metadata';
 
   @override

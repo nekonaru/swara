@@ -4,7 +4,7 @@
 
 # 🎵 Swara: Pemutar Musik Offline
 
-**Putar musik di HP tanpa internet, dengan metadata dan lirik otomatis, plus dashboard analitik kebiasaan mendengarkanmu.**
+**Putar musik di HP tanpa internet, dengan metadata dan lirik yang diambil sesuai permintaan, plus dashboard analitik kebiasaan mendengarkanmu.**
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.47-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![Release](https://img.shields.io/github/v/release/nekonaru/swara?style=flat-square&color=blue)
@@ -19,7 +19,7 @@
 
 ## ✨ Tentang Project
 
-**Swara** adalah aplikasi Flutter ringan yang memutar musik langsung dari penyimpanan HP - tanpa akun, tanpa iklan, tanpa internet. Koleksimu di-scan sekali lalu tersimpan di database lokal, kemudian judul, artis, cover album, genre, bahkan lirik dilengkapi otomatis lewat internet. Aktivitas mendengarkan dirangkum di dashboard analitik, dan semuanya tetap bisa dipakai offline setelahnya.
+**Swara** adalah aplikasi Flutter ringan yang memutar musik langsung dari penyimpanan HP - tanpa akun, tanpa iklan, tanpa internet. Koleksimu di-scan sekali lalu tersimpan di database lokal, kemudian judul, artis, cover album, genre, bahkan lirik dilengkapi lewat internet saat kamu menjalankan scan sendiri. Scan tidak pernah jalan sendiri dan bisa dihentikan kapan saja. Aktivitas mendengarkan dirangkum di dashboard analitik, dan semuanya tetap bisa dipakai offline setelahnya.
 
 > _"Koleksi musikmu, didengarkan dengan tenang, bahkan tanpa internet."_
 
@@ -33,10 +33,11 @@
 | ⏱️ **Mini player** | Selalu terlihat di semua halaman; kontrol kecepatan 0.5x sampai 2x |
 | 📝 **Antrean putar** | Tambah lagu untuk diputar berikutnya atau di akhir, reorder dan hapus |
 | 👆 **Multi-select** | Long-press untuk pilih banyak lagu, lalu favoritkan atau tambah ke playlist sekaligus |
-| 🌐 **Metadata otomatis** | Judul, artis, cover album, dan genre via iTunes Search API |
+| 🌐 **Metadata sesuai permintaan** | Judul, artis, cover album, dan genre via iTunes Search API, dari scan yang kamu jalankan sendiri |
+| 🛑 **Hentikan scan kapan saja** | Scan metadata tidak pernah jalan sendiri, dan semuanya bisa dihentikan di tengah jalan tanpa ada yang hilang |
 | 📡 **Refresh metadata per lagu** | "Scan metadata" di menu lagu mengambil ulang satu lagu dari internet |
-| 🎤 **Lirik otomatis** | Diambil via lyrics.ovh, bisa diedit manual, fallback cari di Google |
-| ✏️ **Edit manual** | Perbaiki metadata dan lirik per lagu kalau hasil otomatis kurang pas |
+| 🎤 **Lirik sesuai permintaan** | Diambil via lrclib dengan cadangan lyrics.ovh, bisa diedit manual, fallback cari di Google |
+| ✏️ **Edit manual** | Perbaiki metadata dan lirik per lagu kalau hasil scan kurang pas |
 | 📁 **Browse folder** | Jelajahi per folder asal, sembunyikan folder dari library |
 | 🔤 **Navigasi A-Z** | Scrollbar huruf mengikuti jari untuk lompat cepat |
 | 💿 **Playlist dan favorit** | Playlist kustom, favorit, baru diputar |
@@ -154,7 +155,7 @@ Hasilnya ada di `build/app/outputs/flutter-apk/app-release.apk`.
 **Pertama dibuka:**
 1. Izinkan akses audio saat diminta
 2. Aplikasi scan musik sekali lalu simpan ke database lokal
-3. Metadata dan lirik yang kurang dilengkapi otomatis per-batch kecil
+3. Jalankan scan metadata dari menu library atau Settings; diambil per-batch kecil dan bisa dihentikan kapan saja
 
 **Dipakai harian:**
 - Jelajahi **Perpustakaan** (tab Lagu, Album, Artis, Folder, Genre, bisa dikonfigurasi)
@@ -227,7 +228,7 @@ Matikan optimasi baterai untuk Swara (Autostart / background tanpa batas di XOS,
 <details>
 <summary><b>Ada lagu "Unknown Artist" atau tanpa lirik?</b></summary>
 
-Auto-fetch bergantung database publik (iTunes, lyrics.ovh). Lagu lokal/indie sering tidak ada di sana. Pakai Edit Metadata / Edit Lirik pada lagunya untuk perbaiki manual.
+Auto-fetch bergantung database publik (iTunes, lrclib, lyrics.ovh). Lagu lokal/indie sering tidak ada di sana. Pakai Edit Metadata / Edit Lirik pada lagunya untuk perbaiki manual.
 
 </details>
 

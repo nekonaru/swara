@@ -30,6 +30,15 @@ class LibraryProvider extends ChangeNotifier {
   int bulkScanTotal = 0;
   String? scanError;
 
+  // Set by cancelBulkScan while a bulk metadata scan runs. The batch loop
+  // checks it before starting the next batch, so a stop takes effect at the
+  // next boundary instead of waiting for the whole library to finish.
+  bool _bulkScanCancelRequested = false;
+
+  // The running bulk scan job, kept so cancelBulkScan can await the same
+  // future the UI started and only report back once the scan really ended.
+  Future<void>? _bulkScanJob;
+
   // True when the last failed scan was caused by a denied music access
   // permission. The in-app dialog cannot grant a permanently denied
   // permission, so the UI uses this to offer a shortcut to app settings.
@@ -204,6 +213,11 @@ class LibraryProvider extends ChangeNotifier {
     }
   }
 
+  /// Fetch metadata for many songs from the internet, started only by an
+  /// explicit user action. Nothing in the app calls this on its own: the
+  /// scan runs when the user asks for it from the library menu, Settings,
+  /// or the folder screen, and it stops early when [cancelBulkScan] is
+  /// called.
   Future<void> bulkScanMetadata({bool onlyMissing = false}) async {
     // Skip when a bulk scan is already running.
     if (_bulkScanning) return;
@@ -211,11 +225,51 @@ class LibraryProvider extends ChangeNotifier {
     if (targets.isEmpty) return;
 
     _bulkScanning = true;
+    _bulkScanCancelRequested = false;
     isBulkScanningMetadata = true;
     bulkScanTotal = targets.length;
     bulkScanProgress = 0;
     notifyListeners();
 
+    final job = _runBulkScan(targets);
+    _bulkScanJob = job;
+    try {
+      await job;
+    } finally {
+      _bulkScanJob = null;
+    }
+  }
+
+  /// Stop a running bulk metadata scan and wait until it has really stopped.
+  ///
+  /// Nothing fetched so far is thrown away: enrichSong writes every song it
+  /// completes, so a cancel only decides how many songs are still missing
+  /// when the scan ends. The returned future resolves after the batch that
+  /// was in flight has finished, which lets the caller show the outcome
+  /// exactly once instead of while the scan is still winding down.
+  Future<void> cancelBulkScan() async {
+    if (!_bulkScanning) return;
+    _bulkScanCancelRequested = true;
+    notifyListeners();
+    final job = _bulkScanJob;
+    if (job != null) {
+      try {
+        await job;
+      } catch (_) {
+        // The scan reports its own failures through scanError; a cancel only
+        // needs the job to end, whatever it ended with.
+      }
+    }
+  }
+
+  /// True while a stop has been requested but the last batch is still
+  /// finishing. The UI uses it to swap the stop button for a spinner so a
+  /// second tap cannot race the shutdown.
+  bool get bulkScanCancelRequested => _bulkScanCancelRequested;
+
+  /// The batch loop of [bulkScanMetadata], split out so [cancelBulkScan]
+  /// can await the very same job instead of polling for completion.
+  Future<void> _runBulkScan(List<Song> targets) async {
     try {
       const batchSize = 5;
       DateTime? lastNotify;
@@ -233,6 +287,10 @@ class LibraryProvider extends ChangeNotifier {
         }
       }
       for (int i = 0; i < targets.length; i += batchSize) {
+        // Stop before the next batch starts. The batch already in flight
+        // completes and keeps its results, because enrichSong stores each
+        // song as it finishes.
+        if (_bulkScanCancelRequested) break;
         final batch = targets.skip(i).take(batchSize).toList();
         final results =
             await Future.wait(batch.map((song) => MetadataService.instance.enrichSong(song)));
@@ -244,6 +302,7 @@ class LibraryProvider extends ChangeNotifier {
       await loadFromDb();
     } finally {
       _bulkScanning = false;
+      _bulkScanCancelRequested = false;
       isBulkScanningMetadata = false;
       notifyListeners();
     }

@@ -13,6 +13,7 @@ import '../widgets/playing_indicator.dart';
 import '../widgets/sort_chip.dart';
 import '../utils/song_options.dart';
 import '../utils/format.dart';
+import '../utils/scan_controls.dart';
 import 'missing_art_screen.dart';
 import 'missing_lyrics_screen.dart';
 import 'bulk_edit_screen.dart';
@@ -572,13 +573,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     lib.totalCount, formatDurationLong(lib.totalDurationMs)),
                 style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
+              // While a metadata scan runs the refresh icon turns into a stop
+              // button, so the scan started here can also be ended here.
               lib.isBulkScanningMetadata
-                  ? const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2)),
+                  ? IconButton(
+                      constraints: const BoxConstraints(
+                          minWidth: 48, minHeight: 48),
+                      icon: lib.bulkScanCancelRequested
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.stop_circle_outlined, size: 18),
+                      tooltip: l.settingsScanCancel,
+                      onPressed: lib.bulkScanCancelRequested
+                          ? null
+                          : () => stopBulkMetadataScan(context),
                     )
                   : IconButton(
                       constraints: const BoxConstraints(

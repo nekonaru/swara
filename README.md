@@ -4,7 +4,7 @@
 
 # 🎵 Swara: Offline Music Player
 
-**Play the music on your phone without internet, with automatic metadata and lyrics, plus an analytics dashboard of your listening habits.**
+**Play the music on your phone without internet, with metadata and lyrics fetched on demand, plus an analytics dashboard of your listening habits.**
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.47-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![Release](https://img.shields.io/github/v/release/nekonaru/swara?style=flat-square&color=blue)
@@ -19,7 +19,7 @@
 
 ## ✨ About
 
-**Swara** is a lightweight Flutter app that plays music straight from your phone storage - no account, no ads, no internet needed. It scans your collection once, then automatically completes titles, artists, album art, genres, and even lyrics over the internet. Your listening activity is summarized in an analytics dashboard, and everything works fully offline afterwards.
+**Swara** is a lightweight Flutter app that plays music straight from your phone storage - no account, no ads, no internet needed. It scans your collection once, then completes titles, artists, album art, genres and even lyrics over the internet whenever you start a scan yourself. A scan never starts on its own and can be stopped at any time. Your listening activity is summarized in an analytics dashboard, and everything works fully offline afterwards.
 
 > _"Your music collection, played in peace, even without internet."_
 
@@ -33,10 +33,11 @@
 | ⏱️ **Mini player** | Always visible on every page; playback speed control from 0.5x to 2x |
 | 📝 **Play queue** | Add songs to play next or at the end, reorder and remove |
 | 👆 **Multi-select** | Long-press to select many songs, then favorite or add to playlist in bulk |
-| 🌐 **Automatic metadata** | Titles, artists, album art, and genres via the iTunes Search API |
+| 🌐 **On-demand metadata** | Titles, artists, album art, and genres via the iTunes Search API, from a scan you start yourself |
+| 🛑 **Stop any scan** | Metadata scans never start on their own, and every one of them can be stopped halfway with nothing lost |
 | 📡 **Per-song metadata refresh** | "Scan metadata" in the song menu refetches one song from the internet |
-| 🎤 **Automatic lyrics** | Fetched via lyrics.ovh, editable manually, Google search fallback |
-| ✏️ **Manual editing** | Fix metadata and lyrics per song when auto-fetch gets it wrong |
+| 🎤 **On-demand lyrics** | Fetched via lrclib with lyrics.ovh as fallback, editable manually, Google search fallback |
+| ✏️ **Manual editing** | Fix metadata and lyrics per song when the scan gets it wrong |
 | 📁 **Folder browsing** | Browse by source folder, hide folders from the library |
 | 🔤 **A-Z navigation** | Finger-following letter scrollbar for fast jumps |
 | 💿 **Playlists and favorites** | Custom playlists, favorites, recently played |
@@ -153,7 +154,7 @@ The result is at `build/app/outputs/flutter-apk/app-release.apk`.
 **First launch:**
 1. Allow audio access when asked
 2. The app scans your music once and saves it to a local database
-3. Missing metadata and lyrics are fetched automatically in small batches
+3. Start a metadata scan from the library menu or Settings; it fetches in small batches and you can stop it at any time
 
 **Everyday use:**
 - Browse **Library** (Songs, Albums, Artists, Folders, Genres tabs, configurable)
@@ -226,7 +227,7 @@ Make sure battery optimization is turned off for Swara (Autostart / unrestricted
 <details>
 <summary><b>Some songs show "Unknown Artist" or have no lyrics?</b></summary>
 
-Auto-fetch depends on public databases (iTunes, lyrics.ovh). Local or indie songs are often missing there. Use Edit Metadata / Edit Lyrics on the song to fix it manually.
+Auto-fetch depends on public databases (iTunes, lrclib, lyrics.ovh). Local or indie songs are often missing there. Use Edit Metadata / Edit Lyrics on the song to fix it manually.
 
 </details>
 

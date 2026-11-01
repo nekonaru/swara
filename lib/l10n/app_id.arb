@@ -118,6 +118,14 @@
                                                                  }
                                                    }
                               },
+    "settingsScanCancel":  "Hentikan scan",
+    "@settingsScanCancel":  {
+                                 "description":  "Button label that stops a running metadata scan"
+                             },
+    "scanStopped":  "Scan dihentikan. Semua yang sudah diambil tetap disimpan.",
+    "@scanStopped":  {
+                         "description":  "Snackbar shown after a metadata scan was cancelled"
+                     },
     "settingsRescanAll":  "Scan Ulang Semua Metadata",
     "@settingsRescanAll":  {
                                "description":  "Title for rescanning all metadata"

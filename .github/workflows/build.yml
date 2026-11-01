@@ -288,34 +288,29 @@ jobs:
           body: |
             # English
 
-            **Swara v3.0.0 - Hardened, audited, and faster under the hood**
+            **Swara v3.1.0 - Metadata scans are now manual and stoppable**
 
-            This is a major release that looks quiet on the surface. There is no new screen to tap, but the app is now safer to install, lighter on old dependencies, and covered by a security audit that also confirmed what was already done right.
+            The metadata scan only runs when you start it, and once it is running you can stop it. Stopping never loses work: every song already fetched is kept.
 
             ## ✨ Features
 
-            - **No new features, on purpose.** This release is about hardening the app rather than adding to it. Everything you see and hear works exactly as it did in v2.9.13.
-
-            ## 🔒 Security
-
-            - **Your local library can no longer be pulled off the phone with adb.** The Android manifest allowed backups by default, which means anyone with physical access and USB debugging could extract the whole SQLite database (your library, favorites, and full listening history) with one command. Backups are now disabled, including cloud backup and device to device transfer, because Swara has no account and nothing worth exporting.
-            - **A full security audit of the codebase came back clean where it mattered.** The Git history across 133 commits contains no leaked API keys or tokens. Every external call (iTunes, lrclib, lyrics.ovh) already uses HTTPS, never plain HTTP. All database access uses parameterized queries instead of string concatenation, so no SQL injection path exists. The listening history, playlists and metadata cache were all checked.
-            - **The build now prints its own hardening.** The CI pipeline echoes the hardened manifest on every run, so a regression shows up in the build log instead of shipping silently.
+            - **Metadata scans never start on their own.** The app used to kick off a background enrich a few seconds after startup, quietly spending your data and the iTunes rate limit on songs you were not looking at. From now on a scan runs only when you start it yourself from the library menu, Settings, or a folder screen.
+            - **Every scan can be stopped.** A stop control appears wherever a scan is running: the library header, the Settings tile, the missing covers screen, the missing lyrics screen, and the folder screen. The batch already in flight finishes and everything fetched so far is kept, so stopping never wastes the work done before it.
+            - **Stopping says so.** When a scan ends early because you stopped it, the app says the scan was stopped and that everything fetched was kept, instead of reporting the whole job as finished.
 
             ## ⚡ Performance
 
-            - **Six dependencies were brought up to date within their safe ranges**, including the database layer (sqflite 2.4.5), the file picker, preferences storage, and the cache manager. These are the libraries that run on every scan and every screen load.
-            - **Deliberately not enabled: R8 full minification.** The Flutter obfuscation flag only covers Dart code. Turning on full minification would let R8 strip native classes too, and plugins such as on_audio_query reach native code through reflection and JNI. An aggressive shrink can delete exactly the classes they call, which crashes on a real device and nowhere else. The APK is already lean through obfuscation and per architecture splits, so the risk is not worth the size saved.
+            - **Startup is lighter.** The automatic background enrich that ran five seconds after opening the app is gone, so launching Swara no longer starts network requests on its own. Music still appears instantly from the local database, and the local file scan that keeps newly added songs visible is unchanged.
 
             ## 🐛 Bug fixes
 
-            - **No functional changes, on purpose.** The scan and lyrics fixes from v2.9.10 through v2.9.13 are all included in this build.
+            - **The folder scan progress bar now tracks the real job.** It was measured against every song in the folder even when only the unscanned ones were being processed, so it could stall short of full. It now uses the actual target count.
 
             ## 🧪 Verification
 
-            - 196 tests pass, unchanged after the dependency updates
+            - 201 tests pass, including new guards that fail if a screen starts a metadata scan on its own or if a stop control is removed
             - flutter analyze: no issues
-            - The hardened manifest is printed in every CI run
+            - The English and Indonesian READMEs were updated to describe the manual behavior
 
             ## 📦 Install / Update
 
@@ -329,37 +324,29 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v3.0.0 - Diperkuat diaudit dan lebih ringan di balik layar**
+            **Swara v3.1.0 - Scan metadata kini manual dan bisa dihentikan**
 
-            Ini rilis mayor yang tampak sepi di permukaan. Tidak ada layar baru
-            untuk diketuk, tapi aplikasi kini lebih aman dipasang, lebih ringan
-            dari dependensi lama, dan sudah melewati audit keamanan yang sekaligus
-            memastikan hal yang sudah benar tetap benar.
+            Scan metadata hanya jalan kalau kamu mulai sendiri, dan begitu berjalan kamu bisa menghentikannya. Menghentikan tidak pernah menghapus kerja yang sudah jadi: semua lagu yang sudah diambil tetap tersimpan.
 
             ## ✨ Fitur
 
-            - **Tanpa fitur baru, sengaja.** Rilis ini soal menguatkan aplikasi, bukan menambahnya. Segalanya yang kamu lihat dan dengar bekerja persis seperti di v2.9.13.
-
-            ## 🔒 Keamanan
-
-            - **Library lokal kamu kini tidak bisa ditarik keluar dari HP lewat adb.** Manifest Android dulu mengizinkan backup secara bawaan, yang berarti siapa pun dengan akses fisik dan USB debugging bisa mengekstrak seluruh basis data SQLite (library, favorit, dan riwayat dengar lengkapmu) dengan satu perintah. Backup kini dimatikan, termasuk backup cloud dan transfer antar perangkat, karena Swara tidak punya akun dan tidak ada yang layak diekspor.
-            - **Audit keamanan menyeluruh atas kode bersih di titik yang penting.** Riwayat Git selama 133 commit tidak memuat kunci API atau token yang bocor. Setiap panggilan eksternal (iTunes, lrclib, lyrics.ovh) sudah memakai HTTPS, tidak pernah HTTP polos. Seluruh akses basis data memakai parameterized query, bukan konkatenasi string, jadi tidak ada jalur SQL injection. Riwayat dengar, playlist, dan cache metadata semuanya diperiksa.
-            - **Build kini mencetak hardening-nya sendiri.** Pipeline CI menampilkan manifest yang sudah diperkuat di setiap run, jadi regresi akan terlihat di log build alih-alih terkirim diam-diam.
+            - **Scan metadata tidak pernah jalan sendiri.** Dulu aplikasi menyalakan pengambilan metadata di latar belakang beberapa detik setelah dibuka, diam-diam memakai kuota internet dan jatah rate limit iTunes untuk lagu yang sedang tidak kamu lihat. Mulai sekarang scan hanya jalan saat kamu menjalankannya sendiri dari menu library, Settings, atau layar folder.
+            - **Semua scan bisa dihentikan.** Kontrol berhenti muncul di mana pun scan sedang berjalan: header library, tile Settings, layar cover hilang, layar lirik hilang, dan layar folder. Batch yang sedang berjalan diselesaikan dan semua yang sudah diambil tetap disimpan, jadi menghentikan scan tidak pernah membuang hasil yang sudah didapat.
+            - **Penghentian diberi tahu.** Saat scan berakhir lebih awal karena kamu menghentikannya, aplikasi menyebut scan-nya dihentikan dan semua yang sudah diambil tetap ada, alih-alih melaporkan seluruh pekerjaan sebagai selesai.
 
             ## ⚡ Performa
 
-            - **Enam dependensi diperbarui dalam rentang amannya**, termasuk lapisan basis data (sqflite 2.4.5), pemilih berkas, penyimpanan preferensi, dan pengelola cache. Ini adalah pustaka yang berjalan di setiap pemindaian dan setiap pemuatan layar.
-            - **Sengaja tidak diaktifkan: minifikasi R8 penuh.** Flag obfuscation Flutter hanya menutupi kode Dart. Menyalakan minifikasi penuh akan membuat R8 ikut memangkas kelas native, dan plugin seperti on_audio_query mencapai kode native lewat refleksi dan JNI. Pemangkasan agresif bisa menghapus persis kelas yang mereka panggil, yang membuat crash di HP fisik dan tidak di tempat lain. APK sudah ramping lewat obfuscation dan pemisahan per arsitektur, jadi risikonya tidak sepadan dengan ukuran yang dihemat.
+            - **Startup lebih ringan.** Pengambilan metadata otomatis di latar belakang yang berjalan lima detik setelah aplikasi dibuka kini dihapus, jadi membuka Swara tidak lagi memulai permintaan jaringan dengan sendirinya. Musik tetap langsung muncul dari basis data lokal, dan pemindaian berkas lokal yang menjaga lagu baru tetap terlihat tidak berubah.
 
             ## 🐛 Perbaikan bug
 
-            - **Tanpa perubahan fungsional, sengaja.** Perbaikan pemindaian dan lirik dari v2.9.10 sampai v2.9.13 semuanya sudah termasuk di build ini.
+            - **Progres scan folder kini mengikuti pekerjaan yang sebenarnya.** Dulu dihitung terhadap semua lagu dalam folder meski yang diproses hanya lagu yang belum discan, sehingga bisa tersendat sebelum penuh. Kini memakai jumlah target yang benar.
 
             ## 🧪 Verifikasi
 
-            - 196 test lolos, tidak berubah setelah pembaruan dependensi
+            - 201 test lolos, termasuk guard baru yang gagal jika ada layar yang menjalankan scan metadata sendiri atau jika kontrol berhenti dihapus
             - flutter analyze: no issues
-            - Manifest yang sudah diperkuat dicetak di setiap run CI
+            - README Inggris dan Indonesia diperbarui untuk mencerminkan perilaku manual ini
 
             ## 📦 Instalasi / Update
 

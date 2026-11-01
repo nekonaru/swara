@@ -27,6 +27,10 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
   bool _fetchingAll = false;
   int _done = 0;
   int _total = 0;
+  // Set by the stop control in the app bar, checked before every song so a
+  // bulk fetch can be interrupted. Everything already fetched is kept,
+  // because enrichSong stores each song as it completes.
+  bool _cancelRequested = false;
 
   // Cached filter result, rebuilt only when the library version changes.
   // Same reason as MissingArtScreen: the Consumer rebuilds on scan progress.
@@ -79,10 +83,12 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
     if (_fetchingAll || targets.isEmpty) return;
     setState(() {
       _fetchingAll = true;
+      _cancelRequested = false;
       _done = 0;
       _total = targets.length;
     });
     var stoppedEarly = false;
+    var cancelled = false;
     try {
       // Sequential enrich in small batches. enrichSong returns true on 429
       // (or active backoff), so stop at once and keep leftovers for later.
@@ -92,6 +98,12 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
             (i + batchSize) < targets.length ? i + batchSize : targets.length;
         final batch = targets.sublist(i, end);
         for (final song in batch) {
+          // A stop request ends the run before the next song starts. What
+          // was already fetched stays stored, so the count is not wasted.
+          if (_cancelRequested) {
+            cancelled = true;
+            break;
+          }
           final limited = await MetadataService.instance.enrichSong(song);
           if (limited) {
             stoppedEarly = true;
@@ -103,7 +115,7 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
             _done += 1;
           }
         }
-        if (stoppedEarly) break;
+        if (stoppedEarly || cancelled) break;
       }
       // Reload once so the list reflects newly fetched lyrics.
       if (!mounted) return;
@@ -112,9 +124,11 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(stoppedEarly
-              ? l10n.lyrFetchStopped(_done, _total)
-              : l10n.lyrFetchFinished(_done, _total)),
+          content: Text(cancelled
+              ? l10n.scanStopped
+              : stoppedEarly
+                  ? l10n.lyrFetchStopped(_done, _total)
+                  : l10n.lyrFetchFinished(_done, _total)),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
@@ -132,11 +146,22 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
       );
     } finally {
       if (mounted) {
-        setState(() => _fetchingAll = false);
+        setState(() {
+          _fetchingAll = false;
+          _cancelRequested = false;
+        });
       } else {
         _fetchingAll = false;
+        _cancelRequested = false;
       }
     }
+  }
+
+  // Ask the running bulk fetch to stop at the next song. The button shows a
+  // spinner from then on so a second tap cannot race the shutdown.
+  void _cancelFetch() {
+    if (!_fetchingAll || _cancelRequested) return;
+    setState(() => _cancelRequested = true);
   }
 
   @override
@@ -148,16 +173,24 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
           appBar: AppBar(
             title: Text(AppLocalizations.of(context)!.lyrMissingTitle),
             actions: [
+              // While a fetch runs this button becomes the stop control: the
+              // count keeps showing progress, and pressing it ends the run
+              // without losing what was already fetched.
               TextButton.icon(
-                onPressed: (_fetchingAll || missing.isEmpty)
+                onPressed: missing.isEmpty
                     ? null
-                    : () => _fetchAll(missing),
+                    : _fetchingAll
+                        ? _cancelFetch
+                        : () => _fetchAll(missing),
                 icon: _fetchingAll
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? (_cancelRequested
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.stop, size: 18))
                     : const Icon(Icons.cloud_download_outlined, size: 18),
                 label: Text(_fetchingAll
                     ? '$_done/$_total'

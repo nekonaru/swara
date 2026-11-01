@@ -712,6 +712,12 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
   final _scrollController = ScrollController();
   bool _isScanning = false;
   int _scanProgress = 0;
+  // Denominator of the progress bar. Targets can be only the unscanned
+  // songs, so this is not always the library size of the folder.
+  int _scanTotal = 0;
+  // Set by the stop control in the app bar, checked before every batch so a
+  // folder scan can be interrupted. Songs already enriched are kept.
+  bool _scanCancelRequested = false;
   _SongSortOption _sortOption = _SongSortOption.titleAZ;
   static const double _itemHeight = 72;
   static const _kFolderSongSort = 'folder_song_sort';
@@ -793,13 +799,25 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
       }
       return;
     }
-    setState(() { _isScanning = true; _scanProgress = 0; });
+    setState(() {
+      _isScanning = true;
+      _scanCancelRequested = false;
+      _scanProgress = 0;
+      _scanTotal = targets.length;
+    });
     const batchSize = 5;
     for (int i = 0; i < targets.length; i += batchSize) {
+      // Stop before the next batch starts. The batch already in flight
+      // completes and keeps its results, because enrichSong stores each
+      // song as it finishes.
+      if (_scanCancelRequested) break;
       final batch = targets.skip(i).take(batchSize);
       await Future.wait(batch.map((s) => MetadataService.instance.enrichSong(s)));
       if (mounted) setState(() => _scanProgress += batch.length);
     }
+    // Captured before the flag is cleared below, so the message can tell a
+    // user stop apart from a scan that ran to the end.
+    final cancelled = _scanCancelRequested;
     if (mounted) {
       final lib = context.read<LibraryProvider>();
       await lib.loadFromDb();
@@ -807,14 +825,16 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
       final updatedIds = _localSongs.map((s) => s.id).toSet();
       setState(() {
         _isScanning = false;
+        _scanCancelRequested = false;
         _localSongs = lib.songs.where((s) => updatedIds.contains(s.id)).toList();
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
-            content:
-                Text(AppLocalizations.of(context)!.foldersScanDone)),
+            content: Text(cancelled
+                ? AppLocalizations.of(context)!.scanStopped
+                : AppLocalizations.of(context)!.foldersScanDone)),
       );
     }
   }
@@ -869,10 +889,24 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
                   AppLocalizations.of(context)!.foldersSortDate),
             ],
           ),
+          // While the folder scan runs the refresh icon turns into a stop
+          // button, so this screen can also end the scan it started.
           _isScanning
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+              ? IconButton(
+                  constraints:
+                      const BoxConstraints(minWidth: 48, minHeight: 48),
+                  icon: _scanCancelRequested
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child:
+                              CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.stop_circle_outlined),
+                  tooltip: AppLocalizations.of(context)!.settingsScanCancel,
+                  onPressed: _scanCancelRequested
+                      ? null
+                      : () => setState(() => _scanCancelRequested = true),
+                )
               : IconButton(
                   constraints:
                       const BoxConstraints(minWidth: 48, minHeight: 48),
@@ -887,7 +921,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
         children: [
           if (_isScanning)
             LinearProgressIndicator(
-                value: _localSongs.isEmpty ? 0 : _scanProgress / _localSongs.length),
+                value: _scanTotal == 0 ? null : _scanProgress / _scanTotal),
           Expanded(
             child: displayed.isEmpty
                 ? Center(

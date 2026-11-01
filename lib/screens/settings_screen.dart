@@ -12,6 +12,7 @@ import '../services/backup_service.dart';
 import '../services/db_helper.dart';
 import '../services/equalizer_service.dart';
 import '../services/player_service.dart';
+import '../utils/scan_controls.dart';
 
 const List<String> kEqualizerPresets = [
   'Flat',
@@ -784,6 +785,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? l10n.settingsScanProgress(lib.bulkScanProgress,
                     lib.bulkScanTotal)
                 : l10n.settingsScanMissingSubtitle),
+            // While a scan runs the tile itself cannot start another one, and
+            // the button on the right ends the running one.
+            trailing: lib.isBulkScanningMetadata
+                ? TextButton(
+                    onPressed: lib.bulkScanCancelRequested
+                        ? null
+                        : () => stopBulkMetadataScan(context),
+                    child: Text(l10n.settingsScanCancel),
+                  )
+                : null,
             onTap: lib.isBulkScanningMetadata
                 ? null
                 : () => lib.bulkScanMetadata(onlyMissing: true),

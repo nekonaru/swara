@@ -260,6 +260,18 @@ abstract class AppLocalizations {
   /// **'Processing {progress}/{total}...'**
   String settingsScanProgress(int progress, int total);
 
+  /// Button label that stops a running metadata scan
+  ///
+  /// In en, this message translates to:
+  /// **'Stop scan'**
+  String get settingsScanCancel;
+
+  /// Snackbar shown after a metadata scan was cancelled
+  ///
+  /// In en, this message translates to:
+  /// **'Scan stopped. Everything already fetched was kept.'**
+  String get scanStopped;
+
   /// Title for rescanning all metadata
   ///
   /// In en, this message translates to:

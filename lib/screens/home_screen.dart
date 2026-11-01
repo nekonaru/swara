@@ -150,17 +150,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
       return;
     }
-    // Deferred background enrich: only after the first frame plus a short
-    // delay so startup stays light. A failure here is silent because the
-    // same action is available manually from Settings and the library menu.
-    await Future.delayed(const Duration(seconds: 5));
-    if (!mounted) return;
-    try {
-      await lib.bulkScanMetadata(onlyMissing: true);
-    } catch (_) {
-      // Rate limited or offline: leftovers keep metadataScanned false and
-      // are retried on the next startup.
-    }
+    // No metadata scan is started here, and that is deliberate. Fetching
+    // titles, covers and lyrics from the internet only ever happens when the
+    // user asks for it (library menu, Settings, folder screen, or the missing
+    // art/lyrics screens), so startup never spends data or rate limit budget
+    // on its own and every scan can be stopped by the one who started it.
   }
 
   @override

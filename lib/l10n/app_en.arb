@@ -118,6 +118,14 @@
                                                                  }
                                                    }
                               },
+    "settingsScanCancel":  "Stop scan",
+    "@settingsScanCancel":  {
+                                 "description":  "Button label that stops a running metadata scan"
+                             },
+    "scanStopped":  "Scan stopped. Everything already fetched was kept.",
+    "@scanStopped":  {
+                         "description":  "Snackbar shown after a metadata scan was cancelled"
+                     },
     "settingsRescanAll":  "Rescan all metadata",
     "@settingsRescanAll":  {
                                "description":  "Title for rescanning all metadata"

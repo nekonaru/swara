@@ -96,6 +96,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsScanCancel => 'Stop scan';
+
+  @override
+  String get scanStopped =>
+      'Scan stopped. Everything already fetched was kept.';
+
+  @override
   String get settingsRescanAll => 'Rescan all metadata';
 
   @override
