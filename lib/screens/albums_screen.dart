@@ -175,7 +175,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                 Expanded(
                   child: Text(l.albumsCount(albums.length),
                       style:
-                          TextStyle(fontSize: 12, color: Colors.grey[500])),
+                          TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ),
                 // Play all and shuffle the whole album list.
                 buildGroupPlayActions(context, _queue),
@@ -301,7 +301,7 @@ class _AlbumCard extends StatelessWidget {
                   Text(l.librarySongCount(songs.length),
                       textScaler: scaler,
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey[500])),
+                          fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -350,7 +350,7 @@ class _AlbumSongsScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Text(topArtist,
                       style: TextStyle(
-                          fontSize: 13, color: Colors.grey[500])),
+                          fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ),
                 buildCollectionHeader(
                     context: context,

@@ -312,7 +312,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
                       child: Text(
                         l10n.dupSummary(groups.length, totalExtras),
                         style:
-                            TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                     TextButton(

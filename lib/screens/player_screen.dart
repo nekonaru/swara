@@ -652,7 +652,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.playerLyricTiming,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(width: 8),
           _buildOffsetButton(
@@ -731,7 +731,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
               color: active
                   ? Theme.of(context).colorScheme.primary
-                  : Colors.grey[600],
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         );
@@ -754,7 +754,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     children: [
                       Text(song.lyrics ?? '', style: const TextStyle(fontSize: 16, height: 1.6)),
                       const SizedBox(height: 16),
-                      Text(AppLocalizations.of(context)!.playerTapToReturnToCover, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                      Text(AppLocalizations.of(context)!.playerTapToReturnToCover, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -774,11 +774,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 40),
-                      Icon(Icons.lyrics_outlined, size: 56, color: Colors.grey[500]),
+                      Icon(Icons.lyrics_outlined, size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 12),
                       Text(AppLocalizations.of(context)!.playerLyricsNotFound, style: const TextStyle(fontSize: 16)),
                       const SizedBox(height: 4),
-                      Text(AppLocalizations.of(context)!.playerTapHereToReturnToCover, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                      Text(AppLocalizations.of(context)!.playerTapHereToReturnToCover, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -845,33 +845,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               ]
                             : [],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: song.albumArtUrl != null
-                            // Disk cached artwork with network fallback.
-                            ? CachedArtImage(
-                                url: song.albumArtUrl!,
-                                width: 260, height: 260, fit: BoxFit.cover,
-                                // Decode near display size to save image memory.
-                                cacheWidth: 520,
-                                loading: Container(
+                      child: Hero(
+                        // Pairs with the mini player cover: the small artwork
+                        // flies up into this big one when the player opens.
+                        tag: 'swara_art_${song.id}',
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: song.albumArtUrl != null
+                              // Disk cached artwork with network fallback.
+                              ? CachedArtImage(
+                                  url: song.albumArtUrl!,
+                                  width: 260, height: 260, fit: BoxFit.cover,
+                                  // Decode near display size to save image memory.
+                                  cacheWidth: 520,
+                                  loading: Container(
+                                    width: 260,
+                                    height: 260,
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                        child: CircularProgressIndicator()),
+                                  ),
+                                  fallback: Container(
+                                    width: 260, height: 260, color: Colors.grey[300],
+                                    child: const Icon(Icons.music_note, size: 80),
+                                  ),
+                                )
+                              : Container(
                                   width: 260,
                                   height: 260,
                                   color: Colors.grey[300],
-                                  child: const Center(
-                                      child: CircularProgressIndicator()),
-                                ),
-                                fallback: Container(
-                                  width: 260, height: 260, color: Colors.grey[300],
                                   child: const Icon(Icons.music_note, size: 80),
                                 ),
-                              )
-                            : Container(
-                                width: 260,
-                                height: 260,
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.music_note, size: 80),
-                              ),
+                        ),
                       ),
                     ),
                   ),
@@ -888,7 +893,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
           ),
           const SizedBox(height: 6),
-          Text(song.artist, style: TextStyle(color: Colors.grey[600])),
+          Text(song.artist, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
     );

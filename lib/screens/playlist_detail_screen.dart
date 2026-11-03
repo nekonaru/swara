@@ -428,7 +428,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       l.playlistSummary(_songs.length, formatDurationLong(totalMs)),
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
                 ),
@@ -585,7 +585,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(formatDuration(song.durationMs),
-                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             IconButton(
               constraints:
                   const BoxConstraints(minWidth: 48, minHeight: 48),

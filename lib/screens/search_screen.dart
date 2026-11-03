@@ -705,7 +705,7 @@ class _SearchScreenState extends State<SearchScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(formatDuration(song.durationMs),
-                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             if (!_multiSelectMode)
               IconButton(
                 constraints:
@@ -782,12 +782,12 @@ class _SearchScreenState extends State<SearchScreen> {
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[400]),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             Text(
               l.searchPromptSubtitle,
-              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -806,12 +806,12 @@ class _SearchScreenState extends State<SearchScreen> {
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[400]),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             Text(
               l.searchNotFound(_query),
-              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             // Spelling hint for a near miss, for example "fadde" when the
             // library has "Faded".
@@ -885,7 +885,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     Text(l.librarySongCount(row.headerCount!),
                         style:
-                            TextStyle(fontSize: 12, color: Colors.grey[500])),
+                            TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -977,7 +977,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     l.searchResultCount(results.length),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ),
               ),

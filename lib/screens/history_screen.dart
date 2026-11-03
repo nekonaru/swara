@@ -79,7 +79,7 @@ class HistoryScreenState extends State<HistoryScreen> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(formatDuration(song.durationMs), style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                Text(formatDuration(song.durationMs), style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 IconButton(
                   constraints:
                       const BoxConstraints(minWidth: 48, minHeight: 48),

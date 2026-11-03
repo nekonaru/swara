@@ -484,7 +484,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   _accentName(l10n, themeProvider.accentColorIndex),
                   style:
-                      TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -659,7 +659,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? AppLocalizations.of(context)!.eqActive
                         : AppLocalizations.of(context)!.eqUnavailable,
                     style:
-                        TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -669,7 +669,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Text(
               l10n.settingsEqualizerNote,
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           // Preset chips
@@ -898,7 +898,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             title: const Text('Swara'),
             subtitle: Text(_appVersion.isEmpty
-                ? 'v…'
+                ? 'vâ€¦'
                 : l10n.settingsAboutVersion(_appVersion)),
           ),
           ListTile(
@@ -1002,7 +1002,7 @@ class _EqVisualizer extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(_bandLabels[i],
-                  style: TextStyle(fontSize: 9, color: Colors.grey[500])),
+                  style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           );
         }),

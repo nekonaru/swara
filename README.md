@@ -144,7 +144,8 @@
 | Feature | Description |
 |---------|-------------|
 | **English and Indonesian UI** | English by default; switch to Bahasa Indonesia in Settings |
-| **Themes** | Light, dark, or follow system, plus 10 accent colors |
+| **Themes** | Light, dark, or follow system, plus 10 accent colors, all styled from one shared theme |
+| **Smooth motion** | One calm page transition everywhere, plus the mini player artwork flying into the player |
 | **AMOLED black** | Pure-black dark theme option |
 
 ### Performance
@@ -302,6 +303,7 @@ swara/
 │   ├── providers/                # library, playlist, theme, language state
 │   ├── screens/                  # all pages (library, player, dashboard, ...)
 │   ├── services/                 # player, database, scanner, metadata, audio handler
+│   ├── theme/                    # single source of truth for all visual defaults
 │   ├── utils/                    # formatting, song options menu, transitions
 │   └── widgets/                  # mini player, sleep timer, scrollbar, ...
 ├── l10n.yaml                     # localization config

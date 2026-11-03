@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_theme.dart';
 
 const List<Color> kAccentColors = [
   Color(0xFF6750A4), // Deep Purple (default)
@@ -152,23 +153,13 @@ class ThemeProvider extends ChangeNotifier {
     await _write((prefs) => prefs.setBool(_amoledBlackKey, value));
   }
 
-  // Dark theme for main to use. Returns the plain dark theme normally,
-  // or a pitch black variant when amoledBlack is on. Same seed either way.
-  ThemeData buildDarkTheme() {
-    final base = ThemeData(
-      colorSchemeSeed: accentColor,
-      brightness: Brightness.dark,
-      useMaterial3: true,
-    );
-    if (!amoledBlack) return base;
-    final scheme = base.colorScheme.copyWith(
-      surface: Colors.black,
-    );
-    return base.copyWith(
-      scaffoldBackgroundColor: Colors.black,
-      canvasColor: Colors.black,
-      cardColor: Colors.black,
-      colorScheme: scheme,
-    );
-  }
+  // Dark theme for main to use. The plain dark theme normally, or the pitch
+  // black variant when amoledBlack is on. Same seed either way; every visual
+  // default comes from the shared buildSwaraTheme so the light and the dark
+  // side cannot drift apart.
+  ThemeData buildDarkTheme() => buildSwaraTheme(
+        seed: accentColor,
+        brightness: Brightness.dark,
+        amoledBlack: amoledBlack,
+      );
 }

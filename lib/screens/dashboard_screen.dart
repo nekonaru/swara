@@ -334,13 +334,13 @@ class DashboardScreenState extends State<DashboardScreen> {
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[500]),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 8),
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
@@ -369,13 +369,13 @@ class DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[500]),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             Text(
               l.dashboardEmptySubtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 32),
             // Basic summary even without history yet
@@ -462,7 +462,7 @@ class DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.only(top: 6),
               child: Text(AppLocalizations.of(context)!.dashCached,
                   textAlign: TextAlign.end,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ),
           const SizedBox(height: 16),
 
@@ -471,7 +471,7 @@ class DashboardScreenState extends State<DashboardScreen> {
             icon: Icons.show_chart,
             title: l.dashboardListeningWeekTitle,
             trailing: Text(l.dashboardWeekTotal(weekHours.toStringAsFixed(1)),
-                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             child: SizedBox(height: 160, child: _buildBarChart()),
           ),
           const SizedBox(height: 14),
@@ -557,7 +557,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         l.dashboardHoursValue(
                             (_yearMs / 3600000).toStringAsFixed(1)),
                         style:
-                            TextStyle(fontSize: 12, color: Colors.grey[500])),
+                            TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     // Share button captures the card above as a PNG image.
                     IconButton(
                       onPressed: _shareRecapAsImage,
@@ -648,7 +648,7 @@ class DashboardScreenState extends State<DashboardScreen> {
               icon: Icons.category_outlined,
               title: l.dashboardGenreTitle,
               trailing: Text(l.dashboardGenreCount(_genreDist.length),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               child: _buildGenreList(),
             ),
           if (_genreDist.isNotEmpty) const SizedBox(height: 14),
@@ -677,7 +677,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       l.dashboardNeverPlayedSubtitle(_neverPlayed.length),
-                      style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -728,7 +728,7 @@ class DashboardScreenState extends State<DashboardScreen> {
     return Text(
         AppLocalizations.of(context)!.hourlyPeak(
             peakHour.toString().padLeft(2, '0')),
-        style: TextStyle(fontSize: 12, color: Colors.grey[500]));
+        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant));
   }
 
   /// 24 vertical bars for total listened time per hour of day.
@@ -845,7 +845,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                               Text('${topGenres[i].value}',
                                   style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[500])),
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
                             ],
                           ),
                         ),
@@ -889,7 +889,7 @@ class DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(width: 8),
               Text('${e.value}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           ),
         );
@@ -909,7 +909,7 @@ class DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(l.dashboardActiveDays(activeDays),
-            style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+            style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -947,7 +947,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                         fontSize: 10,
                         color: isToday
                             ? Theme.of(context).colorScheme.primary
-                            : Colors.grey[500])),
+                            : Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             );
           }).toList(),
@@ -1021,7 +1021,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                     subtitle: Text(s.artist,
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     trailing: Text(formatDuration(s.durationMs),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     onTap: () async {
                       Navigator.pop(ctx);
                       try {
@@ -1111,9 +1111,9 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // First load skeleton: grey pulsing boxes, no new dependency.
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Single grey bar that fades in once on first load.
 class _SkeletonBar extends StatelessWidget {
@@ -1170,9 +1170,9 @@ class _DashboardSkeleton extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SHARED COMPONENTS
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _StatCard extends StatelessWidget {
   final IconData icon;
@@ -1199,7 +1199,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(label,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10.5, color: Colors.grey[600])),
+              style: TextStyle(fontSize: 10.5, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
     );
@@ -1285,7 +1285,7 @@ class _RankTile extends StatelessWidget {
                 child: Text('$rank',
                     style: TextStyle(
                         fontSize: 13,
-                        color: rank! <= 3 ? color : Colors.grey[500],
+                        color: rank! <= 3 ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 4),
@@ -1305,18 +1305,18 @@ class _RankTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(trailing,
-                          style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       if (onTap != null) const SizedBox(width: 4),
                       if (onTap != null)
                         Icon(Icons.play_circle_outline,
-                            size: 16, color: Colors.grey[400]),
+                            size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ],
                   ),
                   if (subtitle != null && subtitle!.isNotEmpty)
                     Text(subtitle!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 11.5, color: Colors.grey[500])),
+                        style: TextStyle(fontSize: 11.5, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(3),

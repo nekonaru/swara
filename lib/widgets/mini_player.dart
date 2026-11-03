@@ -38,26 +38,33 @@ class MiniPlayer extends StatelessWidget {
             child: Row(
               children: [
                 const SizedBox(width: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: song.albumArtUrl != null
-                      // Disk cached artwork with network fallback.
-                      ? CachedArtImage(
-                          url: song.albumArtUrl!,
-                          width: 44, height: 44, fit: BoxFit.cover,
-                          // Decode thumbnail size only to save image memory.
-                          cacheWidth: 88,
-                          fallback: Container(
-                            width: 44, height: 44, color: Colors.grey[400],
+                // Same tag as the cover on the player screen, so opening the
+                // player flies this artwork into the big cover instead of
+                // swapping two unrelated pictures. A target without a matching
+                // tag simply skips the flight, so nothing else can break.
+                Hero(
+                  tag: 'swara_art_${song.id}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: song.albumArtUrl != null
+                        // Disk cached artwork with network fallback.
+                        ? CachedArtImage(
+                            url: song.albumArtUrl!,
+                            width: 44, height: 44, fit: BoxFit.cover,
+                            // Decode thumbnail size only to save image memory.
+                            cacheWidth: 88,
+                            fallback: Container(
+                              width: 44, height: 44, color: Colors.grey[400],
+                              child: const Icon(Icons.music_note, size: 20),
+                            ),
+                          )
+                        : Container(
+                            width: 44,
+                            height: 44,
+                            color: Colors.grey[400],
                             child: const Icon(Icons.music_note, size: 20),
                           ),
-                        )
-                      : Container(
-                          width: 44,
-                          height: 44,
-                          color: Colors.grey[400],
-                          child: const Icon(Icons.music_note, size: 20),
-                        ),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -68,7 +75,7 @@ class MiniPlayer extends StatelessWidget {
                       Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w600)),
                       Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 ),

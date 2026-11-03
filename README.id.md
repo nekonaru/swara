@@ -144,7 +144,8 @@
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Antarmuka Inggris dan Indonesia** | Bahasa Inggris secara default; ganti ke Bahasa Indonesia di Pengaturan |
-| **Tema** | Terang, gelap, atau ikuti sistem, plus 10 warna aksen |
+| **Tema** | Terang, gelap, atau ikuti sistem, plus 10 warna aksen, semuanya distyling dari satu tema bersama |
+| **Animasi halus** | Satu transisi halus di semua layar, plus sampul mini player yang melayang ke player |
 | **AMOLED hitam** | Opsi tema gelap hitam pekat |
 
 ### Performa
@@ -302,6 +303,7 @@ swara/
 │   ├── providers/                # state pustaka, playlist, tema, bahasa
 │   ├── screens/                  # semua halaman (pustaka, pemutar, dashboard, ...)
 │   ├── services/                 # pemutar, database, pemindai, metadata, audio handler
+│   ├── theme/                    # satu sumber semua default visual
 │   ├── utils/                    # format, menu opsi lagu, transisi
 │   └── widgets/                  # mini player, sleep timer, scrollbar, ...
 ├── l10n.yaml                     # konfigurasi lokalisasi

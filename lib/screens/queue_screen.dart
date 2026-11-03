@@ -285,7 +285,7 @@ class _QueueScreenState extends State<QueueScreen> {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(AppLocalizations.of(context)!.queueReorderHint,
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           ),
                         ],
                       ),
@@ -322,7 +322,7 @@ class _QueueScreenState extends State<QueueScreen> {
                                           horizontal: 16),
                                   leading: isPlaying
                                       ? Icon(Icons.equalizer, color: Theme.of(context).colorScheme.primary)
-                                      : Text('${i + 1}', style: TextStyle(color: Colors.grey[500])),
+                                      : Text('${i + 1}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                                   title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis,
                                       style: TextStyle(fontWeight: isPlaying ? FontWeight.bold : FontWeight.normal)),
                                   subtitle: Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis),

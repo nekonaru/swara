@@ -16,6 +16,7 @@ import 'services/swara_audio_handler.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/splash_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -211,9 +212,12 @@ class MusicApp extends StatelessWidget {
             );
           },
           themeMode: tp.themeMode,
-          theme: ThemeData(
-            colorSchemeSeed: tp.accentColor,
-            useMaterial3: true,
+          // Both themes come from the same builder (lib/theme/app_theme.dart)
+          // so light and dark share every component default: app bar, card,
+          // dialog, buttons, list rows, snackbars and the page transition.
+          theme: buildSwaraTheme(
+            seed: tp.accentColor,
+            brightness: Brightness.light,
           ),
           darkTheme: tp.buildDarkTheme(),
           home: BootGate(bootFuture: bootFuture),

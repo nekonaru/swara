@@ -288,29 +288,37 @@ jobs:
           body: |
             # English
 
-            **Swara v3.1.0 - Metadata scans are now manual and stoppable**
+            **Swara v3.2.0 - One shared theme, artwork that flies into the player**
 
-            The metadata scan only runs when you start it, and once it is running you can stop it. Stopping never loses work: every song already fetched is kept.
+            Every screen now reads its colors, shapes and motion from a single theme file, so the app looks the same everywhere instead of differing from screen to screen.
 
             ## ✨ Features
 
-            - **Metadata scans never start on their own.** The app used to kick off a background enrich a few seconds after startup, quietly spending your data and the iTunes rate limit on songs you were not looking at. From now on a scan runs only when you start it yourself from the library menu, Settings, or a folder screen.
-            - **Every scan can be stopped.** A stop control appears wherever a scan is running: the library header, the Settings tile, the missing covers screen, the missing lyrics screen, and the folder screen. The batch already in flight finishes and everything fetched so far is kept, so stopping never wastes the work done before it.
-            - **Stopping says so.** When a scan ends early because you stopped it, the app says the scan was stopped and that everything fetched was kept, instead of reporting the whole job as finished.
+            - **One design system for the whole app.** A new `lib/theme/app_theme.dart` defines the app bar, cards, dialogs, list rows, buttons, snackbars, tabs, dividers, bottom sheets and page transitions in one place. Light and dark are both built by the same function, so the two can no longer drift apart.
+            - **Artwork flies into the player.** Tapping the mini player grows its small cover into the big cover on the player screen, instead of swapping two unrelated pictures.
+            - **One page transition everywhere.** Screens open with a short fade and a small upward slide rather than the default zoom, and the player keeps its own motion from the bottom.
+
+            ## 🎨 Design
+
+            - **Muted text follows the theme.** Seventy hardcoded grey text and icon colors across fifteen files now use the theme's secondary color, so they adapt to light, dark and AMOLED backgrounds and to the accent color you pick.
+            - **Snackbars float by default.** They no longer hug the bottom edge just because a screen forgot to ask for floating behavior.
+            - **Library tabs match the rest of the app.** Selected and unselected labels, and the hairline under the bar, now come from the theme instead of Material defaults.
+            - **Progress bars follow your accent.** The loading track used to stay the default purple when your accent was teal or orange; it now uses your theme.
 
             ## ⚡ Performance
 
-            - **Startup is lighter.** The automatic background enrich that ran five seconds after opening the app is gone, so launching Swara no longer starts network requests on its own. Music still appears instantly from the local database, and the local file scan that keeps newly added songs visible is unchanged.
+            - **Nothing got heavier.** The theme is one object built when the app starts or the theme changes, and the artwork flight animates the cover already on screen rather than decoding a second copy.
 
             ## 🐛 Bug fixes
 
-            - **The folder scan progress bar now tracks the real job.** It was measured against every song in the folder even when only the unscanned ones were being processed, so it could stall short of full. It now uses the actual target count.
+            - **Three different greys for the same kind of text are gone.** A subtitle could be readable on one screen and nearly invisible on the next, especially on the AMOLED black background; they now all use one themed color.
+            - **Dialogs, sheets and rows keep one shape.** Hand-styled corners per screen meant the same kind of popup looked different depending on where it opened.
 
             ## 🧪 Verification
 
-            - 201 tests pass, including new guards that fail if a screen starts a metadata scan on its own or if a stop control is removed
+            - 206 tests pass, including new guards that fail if either theme stops coming from the shared builder or if the two ends of the artwork flight lose their matching tag
             - flutter analyze: no issues
-            - The English and Indonesian READMEs were updated to describe the manual behavior
+            - English and Indonesian READMEs updated with the new theme folder
 
             ## 📦 Install / Update
 
@@ -324,29 +332,37 @@ jobs:
 
             # Bahasa Indonesia
 
-            **Swara v3.1.0 - Scan metadata kini manual dan bisa dihentikan**
+            **Swara v3.2.0 - Satu tema terpusat, sampul yang melayang ke player**
 
-            Scan metadata hanya jalan kalau kamu mulai sendiri, dan begitu berjalan kamu bisa menghentikannya. Menghentikan tidak pernah menghapus kerja yang sudah jadi: semua lagu yang sudah diambil tetap tersimpan.
+            Setiap layar kini membaca warna, bentuk, dan gerakannya dari satu file tema, jadi aplikasi terlihat sama di mana-mana alih-alih beda layar per layar.
 
             ## ✨ Fitur
 
-            - **Scan metadata tidak pernah jalan sendiri.** Dulu aplikasi menyalakan pengambilan metadata di latar belakang beberapa detik setelah dibuka, diam-diam memakai kuota internet dan jatah rate limit iTunes untuk lagu yang sedang tidak kamu lihat. Mulai sekarang scan hanya jalan saat kamu menjalankannya sendiri dari menu library, Settings, atau layar folder.
-            - **Semua scan bisa dihentikan.** Kontrol berhenti muncul di mana pun scan sedang berjalan: header library, tile Settings, layar cover hilang, layar lirik hilang, dan layar folder. Batch yang sedang berjalan diselesaikan dan semua yang sudah diambil tetap disimpan, jadi menghentikan scan tidak pernah membuang hasil yang sudah didapat.
-            - **Penghentian diberi tahu.** Saat scan berakhir lebih awal karena kamu menghentikannya, aplikasi menyebut scan-nya dihentikan dan semua yang sudah diambil tetap ada, alih-alih melaporkan seluruh pekerjaan sebagai selesai.
+            - **Satu sistem desain untuk seluruh aplikasi.** File baru `lib/theme/app_theme.dart` menentukan app bar, kartu, dialog, baris daftar, tombol, snackbar, tab, pembatas, bottom sheet, dan transisi halaman di satu tempat. Tema terang dan gelap sama-sama dibangun oleh fungsi yang sama, jadi keduanya tidak lagi bisa berbeda satu sama lain.
+            - **Sampul melayang ke player.** Mengetuk mini player membesarkan sampul kecilnya menjadi sampul besar di layar player, alih-alih bertukar dua gambar yang tidak berhubungan.
+            - **Satu transisi halaman untuk semua.** Layar terbuka dengan fade pendek dan geser ke atas kecil alih-alih zoom bawaan, dan player tetap punya gerakannya sendiri dari bawah.
+
+            ## 🎨 Desain
+
+            - **Teks redup mengikuti tema.** Tujuh puluh warna abu-abu teks dan ikon yang ditulis tetap di lima belas file kini memakai warna sekunder tema, jadi menyesuaikan dengan latar terang, gelap, dan AMOLED serta warna aksen pilihanmu.
+            - **Snackbar melayang secara bawaan.** Snackbar tidak lagi menempel di tepi bawah hanya karena sebuah layar lupa meminta perilaku melayang.
+            - **Tab library menyatu dengan aplikasi.** Label terpilih dan tidak terpilih, serta garis tipis di bawah tab, kini datang dari tema alih-alih bawaan Material.
+            - **Bar progres mengikuti aksen.** Jalur pemuat dulu tetap ungu bawaan saat aksenmu teal atau oranye; kini memakai warna temamu.
 
             ## ⚡ Performa
 
-            - **Startup lebih ringan.** Pengambilan metadata otomatis di latar belakang yang berjalan lima detik setelah aplikasi dibuka kini dihapus, jadi membuka Swara tidak lagi memulai permintaan jaringan dengan sendirinya. Musik tetap langsung muncul dari basis data lokal, dan pemindaian berkas lokal yang menjaga lagu baru tetap terlihat tidak berubah.
+            - **Tidak ada yang jadi lebih berat.** Tema adalah satu objek yang dibangun saat aplikasi dibuka atau saat tema berubah, dan penerbangan sampul menganimasikan sampul yang sudah ada di layar alih-alih mendekode salinan kedua.
 
             ## 🐛 Perbaikan bug
 
-            - **Progres scan folder kini mengikuti pekerjaan yang sebenarnya.** Dulu dihitung terhadap semua lagu dalam folder meski yang diproses hanya lagu yang belum discan, sehingga bisa tersendat sebelum penuh. Kini memakai jumlah target yang benar.
+            - **Tiga abu-abu berbeda untuk jenis teks yang sama kini hilang.** Subjudul bisa terbaca di satu layar dan nyaris tak terlihat di layar berikutnya, terutama di latar hitam AMOLED; semuanya kini memakai satu warna bertema.
+            - **Dialog, sheet, dan baris selalu satu bentuk.** Sudut yang digayakan per layar membuat popup sejenis terlihat berbeda tergantung dari mana ia terbuka.
 
             ## 🧪 Verifikasi
 
-            - 201 test lolos, termasuk guard baru yang gagal jika ada layar yang menjalankan scan metadata sendiri atau jika kontrol berhenti dihapus
+            - 206 test lolos, termasuk guard baru yang gagal jika salah satu tema berhenti datang dari builder bersama atau jika kedua ujung penerbangan sampul kehilangan tag yang sama
             - flutter analyze: no issues
-            - README Inggris dan Indonesia diperbarui untuk mencerminkan perilaku manual ini
+            - README Inggris dan Indonesia diperbarui dengan folder tema baru
 
             ## 📦 Instalasi / Update
 

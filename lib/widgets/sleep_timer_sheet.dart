@@ -289,7 +289,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
             ),
           ),
           const SizedBox(height: 6),
-          Text(AppLocalizations.of(context)!.sleepRemaining, style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+          Text(AppLocalizations.of(context)!.sleepRemaining, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 20),
           // Finish-last-song checkbox. Updates local state for the UI and
           // forwards the value to the service so the running timer follows it.
@@ -346,7 +346,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
             ),
           ),
           Text(AppLocalizations.of(context)!.sleepSongsRemaining,
-              style: TextStyle(fontSize: 16, color: Colors.grey[500])),
+              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
         const SizedBox(height: 24),
 
