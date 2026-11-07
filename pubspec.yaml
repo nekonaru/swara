@@ -1,7 +1,7 @@
 name: swara
 description: Swara - Offline music player with automatic metadata, lyrics, and listening analytics dashboard.
 publish_to: 'none'
-version: 3.2.0+46
+version: 3.3.0+47
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -15,14 +15,14 @@ dependencies:
   # Audio playback
   just_audio: ^0.9.40
 
-  # Foreground service asli + kontrol lockscreen/notifikasi lewat MediaSession
-  # Android (gantiin flutter_local_notifications yang lama, cuma notifikasi biasa)
+  # Foreground service + native MediaSession controls
+  # (replaces the old flutter_local_notifications setup)
   audio_service: ^0.18.15
 
-  # Scan file lokal & baca tag ID3 dari file musik
+  # Local file scanning & ID3 tag reading
   on_audio_query: ^2.9.0
 
-  # Database lokal (riwayat dengar, cache metadata, lirik)
+  # Local database (listening history, metadata cache, lyrics)
   sqflite: ^2.3.3
   path_provider: ^2.1.4
   path: ^1.9.0
@@ -30,19 +30,19 @@ dependencies:
   # State management
   provider: ^6.1.2
 
-  # Simpan preferensi (tema, dll) supaya tidak reset tiap app dibuka
+  # Persisted preferences (theme, etc.) so they survive restarts
   shared_preferences: ^2.3.2
 
-  # HTTP untuk fetch metadata/album art/lirik dari API eksternal
+  # HTTP for fetching metadata/art/lyrics from external APIs
   http: ^1.2.2
 
-  # Permission storage
+  # Storage permission
   permission_handler: ^11.3.1
 
-  # Format tanggal untuk dashboard
+  # Date formatting for the dashboard
   intl: ^0.20.3
 
-  # Buka link eksternal (cari lirik di Google)
+  # Open external links (lyrics search)
   url_launcher: ^6.3.1
   file_picker: ^13.1.0
   share_plus: ^13.3.1
