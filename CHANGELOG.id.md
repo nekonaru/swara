@@ -10,7 +10,7 @@ Rilis performa: aplikasi kini merender daftar dan artwork layaknya pemutar nativ
 
 ## Peningkatan
 
-- **Body rilis diambil dari file ini.** Draft rilis yang dibuat workflow build kini mencantumkan changelog ini, bukan catatan yang dikode mati, dan judul rilis adalah `Swara vX.Y.Z`.
+- **Body rilis diambil dari file ini.** Rilis yang dibuat workflow build kini mencantumkan changelog ini, bukan catatan yang dikode mati, dan judul rilis adalah `Swara vX.Y.Z`.
 - **Proyek Android dikomit.** Folder `android/` kini menjadi bagian dari repository, bukan diregenerasi dan di-patch CI di setiap build, jadi build reproducible dan workflow lebih pendek.
 
 ## Perbaikan bug
