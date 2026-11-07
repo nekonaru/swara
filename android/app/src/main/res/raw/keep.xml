@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ic_stat_swara,@drawable/ic_notif_shuffle,@drawable/ic_notif_repeat,@drawable/ic_notif_shuffle_on,@drawable/ic_notif_repeat_on,@drawable/ic_notif_repeat_one" />

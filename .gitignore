@@ -7,11 +7,10 @@ build/
 .pub/
 *.iml
 *.log
+.idea/
 
 android/local.properties
 android/.gradle/
-android/gradlew
-android/gradlew.bat
 android/**/GeneratedPluginRegistrant.java
 
 ios/Flutter/Generated.xcconfig
@@ -19,6 +18,16 @@ ios/Flutter/flutter_export_environment.sh
 ios/Pods/
 ios/.symlinks/
 
-# Local planning notes, never committed.
+# Local planning notes and agent documents, never committed.
 rules.md
+guide.md
+docs.md
+reference.md
 rancangan.md
+.dev/
+SECURITY_MAP.md
+SECURITY_REVIEW.md
+SECURITY_REPORT.md
+security-app.md
+security-general.md
+security-web.md

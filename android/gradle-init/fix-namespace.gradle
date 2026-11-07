@@ -1,0 +1,40 @@
+// Gradle init script for third party plugins that ship a build.gradle
+// without a 'namespace'. AGP 8+ refuses to configure such a project, so
+// without this the release build fails before reaching any app code:
+//   equalizer_flutter (com.android.build.api.variant.LibraryVariantBuilderImpl)
+//   on_audio_query (no namespace, and compileSdk 33 while androidx
+//   requires at least 34)
+//
+// The script injects a namespace derived from the project group (or name)
+// and forces compileSdk 36 and Java 17 to match the app. It is copied into
+// ~/.gradle/init.d/ by CI before the build. It does not touch app code.
+allprojects {
+    buildscript {}
+    afterEvaluate {
+        if (it.hasProperty('android')) {
+            def android = it.extensions.findByName('android')
+            if (android != null) {
+                try {
+                    if (android.namespace == null || android.namespace.isEmpty()) {
+                        android.namespace = it.group?.toString() ?: it.name
+                    }
+                } catch (ignored) {}
+                try {
+                    // Force compileSdk to match the app so the AAR metadata
+                    // check does not fail: legacy plugins target an older
+                    // compileSdk while androidx requires at least 34.
+                    android.compileSdk = 36
+                } catch (ignored) {}
+                try {
+                    android.compileSdkVersion = 36
+                } catch (ignored) {}
+                try {
+                    android.compileOptions {
+                        sourceCompatibility JavaVersion.VERSION_17
+                        targetCompatibility JavaVersion.VERSION_17
+                    }
+                } catch (ignored) {}
+            }
+        }
+    }
+}

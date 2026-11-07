@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    tags: ['v*']
 
 jobs:
   build:
@@ -37,213 +38,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-flutter-3.47.0-
 
-      - name: Regenerate android folder from official Flutter template
+      - name: Patch legacy plugins missing a namespace (AGP 8+)
+        # equalizer_flutter and on_audio_query ship a build.gradle without a
+        # namespace, which AGP 8+ refuses to configure. The app code itself
+        # needs no patching: the whole Android project lives in android/.
         run: |
-          rm -rf android
-          flutter create --platforms=android --org com.nikodwidharma --project-name offline_music_player .
-
-      - name: Add required permissions (audio, internet, background playback)
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's#<manifest xmlns:android="http://schemas.android.com/apk/res/android">#<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />#' "$MANIFEST"
-          sed -i 's/android:label="offline_music_player"/android:label="Swara"/' "$MANIFEST"
-          cat "$MANIFEST"
-
-      # Package visibility (Android 11+): without this block the app cannot
-      # see any browser, so url_launcher can neither resolve nor open an
-      # https link such as the Google lyrics search.
-      - name: Declare package visibility for web links
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's#<application#<queries>\n        <intent>\n            <action android:name="android.intent.action.VIEW" />\n            <data android:scheme="https" />\n        </intent>\n        <intent>\n            <action android:name="android.intent.action.VIEW" />\n            <data android:scheme="http" />\n        </intent>\n    </queries>\n    <application#' "$MANIFEST"
-          cat "$MANIFEST"
-
-      - name: Declare audio_service service explicitly (required on Android 14+/API 34+)
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's#</application>#    <service\n        android:name="com.ryanheise.audioservice.AudioService"\n        android:foregroundServiceType="mediaPlayback"\n        android:exported="true">\n        <intent-filter>\n            <action android:name="android.media.browse.MediaBrowserService" />\n        </intent-filter>\n    </service>\n    <receiver\n        android:name="com.ryanheise.audioservice.MediaButtonReceiver"\n        android:exported="true">\n        <intent-filter>\n            <action android:name="android.intent.action.MEDIA_BUTTON" />\n        </intent-filter>\n    </receiver>\n</application>#' "$MANIFEST"
-          cat "$MANIFEST"
-
-      - name: Change MainActivity.kt to extend AudioServiceFragmentActivity
-        run: |
-          MAINACTIVITY=$(find android/app/src/main/kotlin -name "MainActivity.kt")
-          echo "Found at: $MAINACTIVITY"
-          sed -i 's/import io.flutter.embedding.android.FlutterActivity/import com.ryanheise.audioservice.AudioServiceFragmentActivity/' "$MAINACTIVITY"
-          sed -i 's/import com.ryanheise.audioservice.AudioServiceActivity/import com.ryanheise.audioservice.AudioServiceFragmentActivity/' "$MAINACTIVITY"
-          sed -i 's/FlutterActivity()/AudioServiceFragmentActivity()/' "$MAINACTIVITY"
-          sed -i 's/AudioServiceActivity()/AudioServiceFragmentActivity()/' "$MAINACTIVITY"
-          cat "$MAINACTIVITY"
-
-      - name: Copy status bar icon and notification buttons from repo
-        run: |
-          mkdir -p android/app/src/main/res/drawable
-          cp android_res_extra/ic_stat_swara.xml android/app/src/main/res/drawable/ic_stat_swara.xml
-          cp android_res_extra/ic_notif_shuffle.xml android/app/src/main/res/drawable/ic_notif_shuffle.xml
-          cp android_res_extra/ic_notif_repeat.xml android/app/src/main/res/drawable/ic_notif_repeat.xml
-          cp android_res_extra/ic_notif_shuffle_on.xml android/app/src/main/res/drawable/ic_notif_shuffle_on.xml
-          cp android_res_extra/ic_notif_repeat_on.xml android/app/src/main/res/drawable/ic_notif_repeat_on.xml
-          cp android_res_extra/ic_notif_repeat_one.xml android/app/src/main/res/drawable/ic_notif_repeat_one.xml
-          echo "=== drawable folder contents after copy ==="
-          ls -la android/app/src/main/res/drawable/
-          echo "=== install launcher icons (mipmap + adaptive) ==="
-          for d in android_res_extra/launcher/mipmap-mdpi android_res_extra/launcher/mipmap-hdpi android_res_extra/launcher/mipmap-xhdpi android_res_extra/launcher/mipmap-xxhdpi android_res_extra/launcher/mipmap-xxxhdpi; do
-            mkdir -p "android/app/src/main/res/$(basename $d)"
-            cp "$d"/*.png "android/app/src/main/res/$(basename $d)/"
-          done
-          mkdir -p android/app/src/main/res/mipmap-anydpi-v26
-          cp android_res_extra/launcher/mipmap-anydpi-v26/*.xml android/app/src/main/res/mipmap-anydpi-v26/
-          mkdir -p android/app/src/main/res/values
-          cp android_res_extra/launcher/values/*.xml android/app/src/main/res/values/
-          find android/app/src/main/res/mipmap-* android/app/src/main/res/values/ic_launcher_background.xml
-
-      - name: Keep custom icons from R8 resource shrinker
-        run: |
-          mkdir -p android/app/src/main/res/raw
-          cat > android/app/src/main/res/raw/keep.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ic_stat_swara,@drawable/ic_notif_shuffle,@drawable/ic_notif_repeat,@drawable/ic_notif_shuffle_on,@drawable/ic_notif_repeat_on,@drawable/ic_notif_repeat_one" />
-          EOF
-          cat android/app/src/main/res/raw/keep.xml
+          mkdir -p "$HOME/.gradle/init.d"
+          cp android/gradle-init/fix-namespace.gradle "$HOME/.gradle/init.d/"
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Patch namespace for legacy plugins incompatible with latest AGP
-        run: |
-          mkdir -p "$HOME/.gradle/init.d"
-          cat > "$HOME/.gradle/init.d/fix-namespace.gradle" << 'GROOVY'
-          allprojects {
-              buildscript {}
-              afterEvaluate {
-                  if (it.hasProperty('android')) {
-                      def android = it.extensions.findByName('android')
-                      if (android != null) {
-                          try {
-                              if (android.namespace == null || android.namespace.isEmpty()) {
-                                  android.namespace = it.group?.toString() ?: it.name
-                              }
-                          } catch (ignored) {}
-                          try {
-                              // Force compileSdk 36 (match the app) so the AAR metadata
-                              // check does not fail: legacy plugin (on_audio_query) uses compileSdk 33
-                              // while androidx requires at least 34.
-                              android.compileSdk = 36
-                          } catch (ignored) {}
-                          try {
-                              android.compileSdkVersion = 36
-                          } catch (ignored) {}
-                          try {
-                              android.compileOptions {
-                                  sourceCompatibility JavaVersion.VERSION_17
-                                  targetCompatibility JavaVersion.VERSION_17
-                              }
-                          } catch (ignored) {}
-                      }
-                  }
-              }
-          }
-          GROOVY
-          echo "Init script created:"
-          cat "$HOME/.gradle/init.d/fix-namespace.gradle"
-
-      - name: Switch LaunchTheme/NormalTheme to Theme.AppCompat descendants
-        run: |
-          STYLES="android/app/src/main/res/values/styles.xml"
-          STYLES_NIGHT="android/app/src/main/res/values-night/styles.xml"
-          sed -i 's#@android:style/Theme.Light.NoTitleBar#Theme.AppCompat.Light.NoActionBar#g' "$STYLES"
-          sed -i 's#@android:style/Theme.Black.NoTitleBar#Theme.AppCompat.NoActionBar#g' "$STYLES_NIGHT"
-          echo "=== styles.xml ==="
-          cat "$STYLES"
-          echo "=== styles.xml (night) ==="
-          cat "$STYLES_NIGHT"
-
-      # Security hardening (see the pre-launch security review):
-      # - allowBackup=false: the app keeps its whole library, favorites and
-      #   listening history in a local SQLite file. With the default
-      #   allowBackup=true, anyone with physical access and USB debugging can
-      #   pull that database off the phone with a single "adb backup" command.
-      #   Swara has no account or cloud sync, so a backup restores nothing
-      #   useful and only exposes the user's listening data.
-      # - The release build deliberately keeps R8 minification OFF. The reason
-      #   is written out inside the step below so it is not switched on later
-      #   without reading it first.
-      - name: Harden the Android manifest
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          # No tools:replace is needed here. No plugin in this project sets
-          # allowBackup in its own manifest (verified), so there is nothing
-          # for the manifest merger to fight over, and a tools:replace aimed
-          # at an attribute nobody else declares is itself a build error.
-          sed -i 's#<application#<application\n        android:allowBackup="false"\n        android:fullBackupContent="false"\n        android:dataExtractionRules="@xml/data_extraction_rules"#' "$MANIFEST"
-          # The data extraction rules file backs the replace above on API 31+.
-          mkdir -p android/app/src/main/res/xml
-          cat > android/app/src/main/res/xml/data_extraction_rules.xml << 'XMLEOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <!-- No cloud backup and no device transfer for any of it: the app
-               stores the user's music library and listening history locally
-               and has nothing worth exporting. -->
-          <data-extraction-rules>
-              <cloud-backup>
-                  <exclude domain="file" path="." />
-                  <exclude domain="database" path="." />
-                  <exclude domain="sharedpref" path="." />
-                  <exclude domain="external" path="." />
-              </cloud-backup>
-              <device-transfer>
-                  <exclude domain="file" path="." />
-                  <exclude domain="database" path="." />
-                  <exclude domain="sharedpref" path="." />
-                  <exclude domain="external" path="." />
-              </device-transfer>
-          </data-extraction-rules>
-          XMLEOF
-          echo "=== manifest application tag ==="
-          grep -A6 '<application' "$MANIFEST" | head -12
-          APP_GRADLE="android/app/build.gradle.kts"
-          # NOTE ON MINIFICATION: this workflow deliberately does NOT enable
-          # isMinifyEnabled or isShrinkResources, and the reason is worth
-          # keeping here so it is not "fixed" later by mistake.
-          #
-          # - "--obfuscate" on the flutter build command obfuscates DART code
-          #   only. It does not shrink the Java/Kotlin side.
-          # - Turning on isMinifyEnabled would let R8 strip native classes
-          #   too. Plugins such as on_audio_query reach native code through
-          #   JNI and reflection, and an aggressive shrink can remove exactly
-          #   the classes they call. That shows up as a crash on a real device
-          #   and nowhere else, which is the worst kind of bug to ship.
-          # - isShrinkResources cannot be used on its own: Android Gradle
-          #   Plugin refuses to build with isShrinkResources=true unless
-          #   isMinifyEnabled=true as well. So the "safe half" is not an
-          #   option either.
-          # - The APK is already small (about 22 MB) and --obfuscate plus
-          #   --split-per-abi keep it that way. Size is not worth a crash.
-          echo "=== release buildType (minification intentionally off) ==="
-          grep -E 'isMinifyEnabled|isShrinkResources|isDebuggable' "$APP_GRADLE" || echo "no minify flags present (correct)"
-
-      - name: Enable core library desugaring in app/build.gradle.kts
-        run: |
-          APP_GRADLE="android/app/build.gradle.kts"
-          if grep -q "isCoreLibraryDesugaringEnabled" "$APP_GRADLE"; then
-            sed -i 's/isCoreLibraryDesugaringEnabled\s*=\s*false/isCoreLibraryDesugaringEnabled = true/' "$APP_GRADLE"
-          else
-            sed -i '/sourceCompatibility/a\        isCoreLibraryDesugaringEnabled = true' "$APP_GRADLE"
-          fi
-          if ! grep -q "multiDexEnabled" "$APP_GRADLE"; then
-            sed -i '/minSdk/a\        multiDexEnabled = true' "$APP_GRADLE"
-          fi
-          cat >> "$APP_GRADLE" << 'GRADLEOF'
-
-          // === Patched by CI: desugar ===
-          // NOTE: do not append a kotlinOptions/jvmTarget block here - on
-          // AGP 9 + Kotlin 2.x that is a script-compilation ERROR. The Flutter
-          // 3.47 template already sets the JVM target itself via `kotlin { compilerOptions }`.
-          dependencies {
-              coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-              implementation("androidx.appcompat:appcompat:1.7.0")
-          }
-          GRADLEOF
-          echo "=== app/build.gradle.kts after patch ==="
-          cat "$APP_GRADLE"
 
       - name: Build APK
         run: flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --obfuscate --split-debug-info=build/symbols
@@ -277,96 +81,26 @@ jobs:
           name: music-app-apks
           path: build/app/outputs/flutter-apk/*.apk
 
-      - name: Create GitHub Release Draft
+      # The draft release and its tag are created only on v* tag pushes.
+      # A plain push to main just builds the APKs.
+      - name: Generate the release body from CHANGELOG.md and CHANGELOG.id.md
+        if: startsWith(github.ref, 'refs/tags/v')
+        # The release body is assembled from the two changelog files so the
+        # notes can never drift away from the changelog. No release notes
+        # text lives in this workflow; only the fixed Install / Update blocks
+        # (which must match README Installation, Option A) live in the script.
+        run: python3 scripts/release_body.py "${{ steps.version.outputs.version }}" release-body.md
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: "Swara ${{ steps.version.outputs.version }}"
-          draft: true
+          name: "Swara v${{ steps.version.outputs.version }}"
+          draft: false
           prerelease: false
           generate_release_notes: false
-          body: |
-            # English
-
-            **Swara v3.2.0 - One shared theme, artwork that flies into the player**
-
-            Every screen now reads its colors, shapes and motion from a single theme file, so the app looks the same everywhere instead of differing from screen to screen.
-
-            ## ✨ Features
-
-            - **One design system for the whole app.** A new `lib/theme/app_theme.dart` defines the app bar, cards, dialogs, list rows, buttons, snackbars, tabs, dividers, bottom sheets and page transitions in one place. Light and dark are both built by the same function, so the two can no longer drift apart.
-            - **Artwork flies into the player.** Tapping the mini player grows its small cover into the big cover on the player screen, instead of swapping two unrelated pictures.
-            - **One page transition everywhere.** Screens open with a short fade and a small upward slide rather than the default zoom, and the player keeps its own motion from the bottom.
-
-            ## 🎨 Design
-
-            - **Muted text follows the theme.** Seventy hardcoded grey text and icon colors across fifteen files now use the theme's secondary color, so they adapt to light, dark and AMOLED backgrounds and to the accent color you pick.
-            - **Snackbars float by default.** They no longer hug the bottom edge just because a screen forgot to ask for floating behavior.
-            - **Library tabs match the rest of the app.** Selected and unselected labels, and the hairline under the bar, now come from the theme instead of Material defaults.
-            - **Progress bars follow your accent.** The loading track used to stay the default purple when your accent was teal or orange; it now uses your theme.
-
-            ## ⚡ Performance
-
-            - **Nothing got heavier.** The theme is one object built when the app starts or the theme changes, and the artwork flight animates the cover already on screen rather than decoding a second copy.
-
-            ## 🐛 Bug fixes
-
-            - **Three different greys for the same kind of text are gone.** A subtitle could be readable on one screen and nearly invisible on the next, especially on the AMOLED black background; they now all use one themed color.
-            - **Dialogs, sheets and rows keep one shape.** Hand-styled corners per screen meant the same kind of popup looked different depending on where it opened.
-
-            ## 🧪 Verification
-
-            - 206 tests pass, including new guards that fail if either theme stops coming from the shared builder or if the two ends of the artwork flight lose their matching tag
-            - flutter analyze: no issues
-            - English and Indonesian READMEs updated with the new theme folder
-
-            ## 📦 Install / Update
-
-            Download the APK matching your device below (`app-arm64-v8a-release.apk` for most modern phones, `app-armeabi-v7a-release.apk` for older 32-bit ones). Open it on your phone and allow installs from unknown sources if asked. Minimum Android 8.0 (API 26). Upgrading from any earlier version keeps your library, favorites, playlists and listening history.
-
-            <br>
-
-            ---
-
-            <br>
-
-            # Bahasa Indonesia
-
-            **Swara v3.2.0 - Satu tema terpusat, sampul yang melayang ke player**
-
-            Setiap layar kini membaca warna, bentuk, dan gerakannya dari satu file tema, jadi aplikasi terlihat sama di mana-mana alih-alih beda layar per layar.
-
-            ## ✨ Fitur
-
-            - **Satu sistem desain untuk seluruh aplikasi.** File baru `lib/theme/app_theme.dart` menentukan app bar, kartu, dialog, baris daftar, tombol, snackbar, tab, pembatas, bottom sheet, dan transisi halaman di satu tempat. Tema terang dan gelap sama-sama dibangun oleh fungsi yang sama, jadi keduanya tidak lagi bisa berbeda satu sama lain.
-            - **Sampul melayang ke player.** Mengetuk mini player membesarkan sampul kecilnya menjadi sampul besar di layar player, alih-alih bertukar dua gambar yang tidak berhubungan.
-            - **Satu transisi halaman untuk semua.** Layar terbuka dengan fade pendek dan geser ke atas kecil alih-alih zoom bawaan, dan player tetap punya gerakannya sendiri dari bawah.
-
-            ## 🎨 Desain
-
-            - **Teks redup mengikuti tema.** Tujuh puluh warna abu-abu teks dan ikon yang ditulis tetap di lima belas file kini memakai warna sekunder tema, jadi menyesuaikan dengan latar terang, gelap, dan AMOLED serta warna aksen pilihanmu.
-            - **Snackbar melayang secara bawaan.** Snackbar tidak lagi menempel di tepi bawah hanya karena sebuah layar lupa meminta perilaku melayang.
-            - **Tab library menyatu dengan aplikasi.** Label terpilih dan tidak terpilih, serta garis tipis di bawah tab, kini datang dari tema alih-alih bawaan Material.
-            - **Bar progres mengikuti aksen.** Jalur pemuat dulu tetap ungu bawaan saat aksenmu teal atau oranye; kini memakai warna temamu.
-
-            ## ⚡ Performa
-
-            - **Tidak ada yang jadi lebih berat.** Tema adalah satu objek yang dibangun saat aplikasi dibuka atau saat tema berubah, dan penerbangan sampul menganimasikan sampul yang sudah ada di layar alih-alih mendekode salinan kedua.
-
-            ## 🐛 Perbaikan bug
-
-            - **Tiga abu-abu berbeda untuk jenis teks yang sama kini hilang.** Subjudul bisa terbaca di satu layar dan nyaris tak terlihat di layar berikutnya, terutama di latar hitam AMOLED; semuanya kini memakai satu warna bertema.
-            - **Dialog, sheet, dan baris selalu satu bentuk.** Sudut yang digayakan per layar membuat popup sejenis terlihat berbeda tergantung dari mana ia terbuka.
-
-            ## 🧪 Verifikasi
-
-            - 206 test lolos, termasuk guard baru yang gagal jika salah satu tema berhenti datang dari builder bersama atau jika kedua ujung penerbangan sampul kehilangan tag yang sama
-            - flutter analyze: no issues
-            - README Inggris dan Indonesia diperbarui dengan folder tema baru
-
-            ## 📦 Instalasi / Update
-
-            Download APK sesuai HP di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama). Buka di HP dan izinkan instalasi dari sumber tidak dikenal bila diminta. Minimum Android 8.0 (API 26). Meningkat dari versi mana pun sebelumnya tetap menyimpan library, favorit, playlist, dan riwayat dengarmu.
+          body_path: release-body.md
           files: |
             build/app/outputs/flutter-apk/app-*-release.apk
         env:
