@@ -892,6 +892,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'assets/swara-mark.png',
                 width: 40,
                 height: 40,
+                // The source is much larger than the 40px render; decode at
+                // display size instead of the full resolution.
+                cacheWidth: 80,
                 errorBuilder: (_, __, ___) =>
                     const Icon(Icons.music_note_outlined),
               ),

@@ -13,6 +13,7 @@ import '../services/db_helper.dart';
 import '../utils/song_options.dart';
 import '../utils/format.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/entrance_fade.dart';
 import '../widgets/sort_chip.dart';
 import '../widgets/az_scrollbar.dart';
 import '../widgets/playing_indicator.dart';
@@ -423,6 +424,13 @@ class _FoldersScreenState extends State<FoldersScreen> {
   Set<String> _excluded = {};
   bool _showHidden = false;
   Map<String, List<Song>> _songsByFolder = {};
+  // Per folder total duration, computed once per load instead of folding the
+  // whole folder on every row build.
+  Map<String, int> _folderTotalMs = const {};
+  // Sorted and visibility filtered folder list, recomputed on load, sort
+  // change and hidden toggle. The build method used to sort a fresh copy per
+  // frame.
+  List<String> _visibleSorted = const [];
   FolderSortOption _sortOption = FolderSortOption.nameAZ;
   static const _kFolderSort = 'folder_list_sort';
 
@@ -460,11 +468,21 @@ class _FoldersScreenState extends State<FoldersScreen> {
         (songsByFolder[folder] ??= []).add(s);
       }
       final folders = songsByFolder.keys.toList()..sort();
+      final totals = <String, int>{};
+      for (final entry in songsByFolder.entries) {
+        var total = 0;
+        for (final s in entry.value) {
+          total += s.durationMs;
+        }
+        totals[entry.key] = total;
+      }
       if (!mounted) return;
       setState(() {
         _folders = folders;
         _excluded = excluded;
         _songsByFolder = songsByFolder;
+        _folderTotalMs = totals;
+        _visibleSorted = _computeVisible(folders, excluded, _showHidden, _sortOption);
       });
     } catch (e) {
       if (!mounted) return;
@@ -501,32 +519,38 @@ class _FoldersScreenState extends State<FoldersScreen> {
     }
   }
 
-  List<String> _sortedFolders(List<String> folders) {
-    final sorted = List<String>.of(folders);
-    switch (_sortOption) {
+  /// Sort and visibility filter in one pass, called whenever the inputs
+  /// change (load, sort option, hidden toggle) instead of per build.
+  List<String> _computeVisible(
+    List<String> folders,
+    Set<String> excluded,
+    bool showHidden,
+    FolderSortOption sortOption,
+  ) {
+    final base = showHidden
+        ? List<String>.of(folders)
+        : folders.where((f) => !excluded.contains(f)).toList();
+    switch (sortOption) {
       case FolderSortOption.nameAZ:
-        sorted.sort(
+        base.sort(
             (a, b) => compareTitles(a.split('/').last, b.split('/').last));
         break;
       case FolderSortOption.nameZA:
-        sorted.sort(
+        base.sort(
             (a, b) => compareTitles(b.split('/').last, a.split('/').last));
         break;
       case FolderSortOption.songCountDesc:
-        sorted.sort((a, b) => (_songsByFolder[b]?.length ?? 0)
+        base.sort((a, b) => (_songsByFolder[b]?.length ?? 0)
             .compareTo(_songsByFolder[a]?.length ?? 0));
         break;
     }
-    return sorted;
+    return base;
   }
+
 
   @override
   Widget build(BuildContext context) {
-    final visibleFolders = _sortedFolders(
-      _showHidden
-          ? _folders
-          : _folders.where((f) => !_excluded.contains(f)).toList(),
-    );
+    final visibleFolders = _visibleSorted;
 
     if (_folders.isEmpty) {
       return Center(
@@ -566,7 +590,11 @@ class _FoldersScreenState extends State<FoldersScreen> {
                   ],
                 ),
                 onSelected: (v) {
-                  setState(() => _sortOption = v);
+                  setState(() {
+                    _sortOption = v;
+                    _visibleSorted =
+                        _computeVisible(_folders, _excluded, _showHidden, v);
+                  });
                   _savePrefs();
                 },
                 itemBuilder: (context) => [
@@ -590,7 +618,11 @@ class _FoldersScreenState extends State<FoldersScreen> {
                 tooltip: _showHidden
                     ? AppLocalizations.of(context)!.foldersHideHidden
                     : AppLocalizations.of(context)!.foldersShowHidden,
-                onPressed: () => setState(() => _showHidden = !_showHidden),
+                onPressed: () => setState(() {
+                      _showHidden = !_showHidden;
+                      _visibleSorted =
+                          _computeVisible(_folders, _excluded, _showHidden, _sortOption);
+                    }),
               ),
             ],
           ),
@@ -606,18 +638,8 @@ class _FoldersScreenState extends State<FoldersScreen> {
               final folder = visibleFolders[i];
               final isHidden = _excluded.contains(folder);
               final songsInFolder = _songsByFolder[folder] ?? [];
-              final totalMs = songsInFolder.fold(0, (sum, s) => sum + s.durationMs);
-              return TweenAnimationBuilder<double>(
-                key: ValueKey('folder_$folder'),
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: Duration(milliseconds: 180 + (i % 8) * 25),
-                curve: Curves.easeOut,
-                builder: (context, v, child) => Opacity(
-                  opacity: v,
-                  child:
-                      Transform.translate(offset: Offset(0, (1 - v) * 6), child: child),
-                ),
-                child: _clampRowText(
+              final totalMs = _folderTotalMs[folder] ?? 0;
+              return _clampRowText(
                   context,
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -658,8 +680,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
                       _load();
                     },
                   ),
-                ),
-              );
+                );
             },
           ),
         ),
@@ -721,11 +742,20 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
   _SongSortOption _sortOption = _SongSortOption.titleAZ;
   static const double _itemHeight = 72;
   static const _kFolderSongSort = 'folder_song_sort';
+  // Memoized result of [_sorted], invalidated whenever _localSongs or
+  // _sortOption changes. The getter used to copy and re-sort the full list
+  // on every build, including every scan progress tick.
+  List<Song>? _sortedCache;
+  // Derived build values, recomputed together with [_sortedCache] so the
+  // build method does no per frame folding of the whole folder.
+  int _totalMs = 0;
+  Set<String> _availableLetters = const <String>{};
 
   @override
   void initState() {
     super.initState();
     _localSongs = List.of(widget.songs);
+    _sortedCache = null;
     _loadPrefs();
   }
 
@@ -733,8 +763,11 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
     final prefs = await SharedPreferences.getInstance();
     final idx = prefs.getInt(_kFolderSongSort) ?? 0;
     if (mounted) {
-      setState(() => _sortOption =
-          _SongSortOption.values[idx.clamp(0, _SongSortOption.values.length - 1)]);
+      setState(() {
+        _sortOption =
+            _SongSortOption.values[idx.clamp(0, _SongSortOption.values.length - 1)];
+        _sortedCache = null;
+      });
     }
   }
 
@@ -750,6 +783,8 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
   }
 
   List<Song> get _sorted {
+    final cached = _sortedCache;
+    if (cached != null) return cached;
     final list = List<Song>.of(_localSongs);
     switch (_sortOption) {
       case _SongSortOption.titleAZ:
@@ -771,8 +806,19 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
         });
         break;
     }
+    _sortedCache = list;
+    _availableLetters = <String>{
+      for (final s in list)
+        _leadingLetterReg.hasMatch(s.title) ? s.title[0].toUpperCase() : '#'
+    };
+    _totalMs = 0;
+    for (final s in _localSongs) {
+      _totalMs += s.durationMs;
+    }
     return list;
   }
+
+
 
   void _jumpToLetter(String letter, List<Song> songs) {
     final index = letter == '#'
@@ -827,6 +873,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
         _isScanning = false;
         _scanCancelRequested = false;
         _localSongs = lib.songs.where((s) => updatedIds.contains(s.id)).toList();
+        _sortedCache = null;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -851,13 +898,12 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totalMs = _localSongs.fold(0, (sum, s) => sum + s.durationMs);
+    // _sorted computes _totalMs and _availableLetters on first access after
+    // an invalidation, so nothing here folds the list per frame.
     final displayed = _sorted;
+    final totalMs = _totalMs;
+    final availableLetters = _availableLetters;
     final showAzBar = _sortOption == _SongSortOption.titleAZ;
-    final availableLetters = <String>{
-      for (final s in displayed)
-        _leadingLetterReg.hasMatch(s.title) ? s.title[0].toUpperCase() : '#'
-    };
 
     return Scaffold(
       appBar: AppBar(
@@ -873,7 +919,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
                 const SizedBox(width: 4),
               ],
             ),
-            onSelected: (v) { setState(() => _sortOption = v); _savePrefs(); },
+            onSelected: (v) { setState(() { _sortOption = v; _sortedCache = null; }); _savePrefs(); },
             itemBuilder: (context) => [
               _sortMenuItem(
                   _SongSortOption.titleAZ,
@@ -1097,15 +1143,9 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                 itemBuilder: (context, i) {
                   final artist = artists[i];
                   final songs = grouped[artist]!;
-                  return TweenAnimationBuilder<double>(
+                  return EntranceFade(
+                    index: i,
                     key: ValueKey('artist_$artist'),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 160 + (i % 10) * 20),
-                    curve: Curves.easeOut,
-                    builder: (context, v, child) => Opacity(
-                        opacity: v,
-                        child: Transform.translate(
-                            offset: Offset(0, (1 - v) * 6), child: child)),
                     // Fixed extent row: clamp the text scale of the tile.
                     child: _clampRowText(
                       context,
@@ -1268,15 +1308,9 @@ class _GenresScreenState extends State<GenresScreen> {
                 itemBuilder: (context, i) {
                   final genre = genres[i];
                   final songs = grouped[genre]!;
-                  return TweenAnimationBuilder<double>(
+                  return EntranceFade(
+                    index: i,
                     key: ValueKey('genre_$genre'),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 160 + (i % 10) * 20),
-                    curve: Curves.easeOut,
-                    builder: (context, v, child) => Opacity(
-                        opacity: v,
-                        child: Transform.translate(
-                            offset: Offset(0, (1 - v) * 6), child: child)),
                     // Fixed extent row: clamp the text scale of the tile.
                     child: _clampRowText(
                       context,
@@ -2147,15 +2181,9 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                 itemCount: provider.playlists.length,
                 itemBuilder: (context, i) {
                   final p = provider.playlists[i];
-                  return TweenAnimationBuilder<double>(
+                  return EntranceFade(
+                    index: i,
                     key: ValueKey('pl_${p['id']}'),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 180 + (i % 8) * 25),
-                    curve: Curves.easeOut,
-                    builder: (context, v, child) => Opacity(
-                        opacity: v,
-                        child: Transform.translate(
-                            offset: Offset(0, (1 - v) * 6), child: child)),
                     // Fixed extent row: clamp the text scale of the tile.
                     child: _clampRowText(
                       context,
@@ -2221,6 +2249,7 @@ class RecentlyAddedScreen extends StatefulWidget {
 class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
   List<Song> _songs = [];
   bool _loading = true;
+  int _totalMs = 0;
 
   @override
   void initState() {
@@ -2233,7 +2262,13 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
     final lib = context.read<LibraryProvider>();
     // Full list, no artificial cap: the sliver list builds rows lazily.
     final songs = await lib.getRecentlyAdded(limit: _kFullListLimit);
-    if (mounted) setState(() { _songs = songs; _loading = false; });
+    if (mounted) {
+      var total = 0;
+      for (final s in songs) {
+        total += s.durationMs;
+      }
+      setState(() { _songs = songs; _loading = false; _totalMs = total; });
+    }
   }
 
   @override
@@ -2254,7 +2289,6 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
         ),
       );
     }
-    final totalMs = _songs.fold(0, (sum, s) => sum + s.durationMs);
     return RefreshIndicator(
       onRefresh: _load,
       child: CustomScrollView(
@@ -2264,7 +2298,7 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
             child: buildCollectionHeader(
                 context: context,
                 songCount: _songs.length,
-                totalMs: totalMs,
+                totalMs: _totalMs,
                 songs: _songs),
           ),
           SliverFixedExtentList(
@@ -2314,6 +2348,7 @@ class MostPlayedScreen extends StatefulWidget {
 class _MostPlayedScreenState extends State<MostPlayedScreen> {
   List<Song> _songs = [];
   bool _loading = true;
+  int _totalMs = 0;
 
   @override
   void initState() {
@@ -2326,7 +2361,13 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
     final lib = context.read<LibraryProvider>();
     // Full list, no artificial cap: the sliver list builds rows lazily.
     final songs = await lib.getMostPlayed(limit: _kFullListLimit);
-    if (mounted) setState(() { _songs = songs; _loading = false; });
+    if (mounted) {
+      var total = 0;
+      for (final s in songs) {
+        total += s.durationMs;
+      }
+      setState(() { _songs = songs; _loading = false; _totalMs = total; });
+    }
   }
 
   @override
@@ -2348,7 +2389,6 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
         ),
       );
     }
-    final totalMs = _songs.fold(0, (sum, s) => sum + s.durationMs);
     return RefreshIndicator(
       onRefresh: _load,
       child: CustomScrollView(
@@ -2357,7 +2397,7 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
             child: buildCollectionHeader(
                 context: context,
                 songCount: _songs.length,
-                totalMs: totalMs,
+                totalMs: _totalMs,
                 songs: _songs),
           ),
           SliverFixedExtentList(

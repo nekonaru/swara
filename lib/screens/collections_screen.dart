@@ -13,6 +13,7 @@ import 'duplicates_screen.dart';
 import 'history_screen.dart';
 import 'playlist_detail_screen.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/entrance_fade.dart';
 import '../widgets/sort_chip.dart';
 
 // Reference card colors (matching the Nomad Music artwork)
@@ -47,6 +48,19 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   int _autoSyncedVersion = -1;
   // Extra salt added to the date seed when the user taps refresh.
   int _dailySalt = 0;
+  // Duplicate group count shown on the duplicate finder card. Rebuilt only
+  // when the library changes: computing it per render meant an O(n log n)
+  // grouping with regexes on every notification.
+  int _dupCountCache = 0;
+  int _dupCountVersion = -1;
+
+  int _duplicateCountFor(LibraryProvider lib) {
+    if (_dupCountVersion != lib.songsVersion) {
+      _dupCountVersion = lib.songsVersion;
+      _dupCountCache = countDuplicateGroups(lib.songs);
+    }
+    return _dupCountCache;
+  }
 
   String _sortLabel(BuildContext context) {
     final l = AppLocalizations.of(context)!;
@@ -621,16 +635,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     final name = p['name'] as String;
     final isAuto = _isAutoPlaylist(name);
     final isDaily = name == _dailyMixName;
-    return TweenAnimationBuilder<double>(
+    return EntranceFade(
+      index: animIndex,
       key: ValueKey('pl_${p['id']}'),
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 160 + (animIndex % 8) * 25),
-      curve: Curves.easeOut,
-      builder: (ctx, v, child) => Opacity(
-        opacity: v,
-        child: Transform.translate(
-            offset: Offset(0, (1 - v) * 6), child: child),
-      ),
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
         leading: _PlaylistTileArt(
@@ -893,7 +900,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                             .dupFinderTitle),
                         subtitle: Text(
                           AppLocalizations.of(context)!.dupFinderCount(
-                              countDuplicateGroups(lib.songs)),
+                              _duplicateCountFor(lib)),
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => _openPage(
@@ -1055,15 +1062,40 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
 
 // Small square tile showing the generated collage when cached,
 // otherwise the same icon style the list used before.
-class _PlaylistTileArt extends StatelessWidget {
+class _PlaylistTileArt extends StatefulWidget {
   final int playlistId;
   final bool isAuto;
 
   const _PlaylistTileArt({required this.playlistId, required this.isAuto});
 
   @override
+  State<_PlaylistTileArt> createState() => _PlaylistTileArtState();
+}
+
+class _PlaylistTileArtState extends State<_PlaylistTileArt> {
+  // The lookup is memoized in PlaylistArtService as well, but keeping the
+  // future in state avoids re-running even a cached lookup per build and
+  // keeps the tile from flickering to the fallback on parent rebuilds.
+  late Future<File?> _artFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _artFuture = PlaylistArtService.existingArt(widget.playlistId);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlaylistTileArt oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.playlistId != widget.playlistId) {
+      _artFuture = PlaylistArtService.existingArt(widget.playlistId);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isAuto = widget.isAuto;
     final fallback = Container(
       width: 44,
       height: 44,
@@ -1077,11 +1109,8 @@ class _PlaylistTileArt extends StatelessWidget {
         size: 22,
       ),
     );
-    // A fresh future per build keeps the code simple: playlist rows are
-    // few and the lookup is a cheap file stat. Parent rebuilds (for
-    // example after _scheduleArtRefresh calls setState) pick up new art.
     return FutureBuilder<File?>(
-      future: PlaylistArtService.existingArt(playlistId),
+      future: _artFuture,
       builder: (context, snapshot) {
         final file = snapshot.data;
         if (file == null) return fallback;

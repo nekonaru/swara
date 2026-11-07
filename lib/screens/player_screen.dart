@@ -27,7 +27,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final _player = PlayerService.instance;
   bool _showLyrics = false;
   bool _isFetchingLyrics = false;
-  double _dragOffset = 0;
+  // Drag distance for the dismiss swipe, as a notifier so pointer events
+  // repaint only the translate/opacity wrapper, never the whole scaffold.
+  final ValueNotifier<double> _dragOffset = ValueNotifier(0);
   // True only when the vertical swipe started in the top art zone.
   // Keeps lyric scroll gestures below that zone from dismissing the screen.
   bool _verticalDismissArmed = false;
@@ -59,6 +61,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void dispose() {
     _stopLrcFollow();
     _lrcScrollController.dispose();
+    _dragOffset.dispose();
     super.dispose();
   }
 
@@ -384,8 +387,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     try {
       final lrc = await DBHelper.instance.getSyncedLyrics(song.id);
       if (!mounted) return;
-      final lines =
-          (lrc == null || lrc.isEmpty) ? <LrcLine>[] : parseLrc(lrc);
+      final hasLrc = lrc != null && lrc.isNotEmpty;
+      final lines = hasLrc ? parseLrc(lrc) : <LrcLine>[];
+      // Split once and reuse the lines for the offset scan instead of
+      // scanning the file content twice.
+      final lrcLinesRaw = hasLrc ? lrc.split('\n') : const <String>[];
       setState(() {
         _lrcLoading = false;
         _lrcLines = lines;
@@ -393,7 +399,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // parseLrc already folded this into the timestamps; keep the value
         // for display and for the manual offset readout.
         _lrcFileOffsetMs =
-            (lrc == null || lrc.isEmpty) ? 0 : (parseLrcOffsetMs(lrc.split('\n')) ?? 0);
+            lrcLinesRaw.isEmpty ? 0 : (parseLrcOffsetMs(lrcLinesRaw) ?? 0);
         // Default to synced view when lines exist, plain text otherwise.
         _syncedMode = lines.isNotEmpty;
       });
@@ -447,15 +453,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// every timestamp, so we subtract it from the playback position.
   int _lrcIndexFor(int positionMs) {
     final effectiveMs = positionMs - _lrcManualOffsetMs;
-    var idx = -1;
-    for (var i = 0; i < _lrcLines.length; i++) {
-      if (_lrcLines[i].timeMs <= effectiveMs) {
-        idx = i;
+    // _lrcLines is sorted by timeMs, so binary search instead of scanning
+    // from the top on every position tick.
+    var lo = 0, hi = _lrcLines.length - 1, ans = -1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (_lrcLines[mid].timeMs <= effectiveMs) {
+        ans = mid;
+        lo = mid + 1;
       } else {
-        break;
+        hi = mid - 1;
       }
     }
-    return idx;
+    return ans;
   }
 
   /// Scroll so that line [idx] sits near the upper third of the viewport.
@@ -508,18 +518,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (song == null) {
           return Scaffold(body: Center(child: Text(AppLocalizations.of(context)!.playerEmptyState)));
         }
-        return _buildScaffold(song);
+        // Only the favorite flag of this song matters for the controls, so
+        // the scaffold rebuilds on player state and on this one bool, never
+        // on every library notification (bulk scan ticks included).
+        return Selector<LibraryProvider, bool>(
+          selector: (_, lib) =>
+              lib.songById(song.id)?.isFavorite ?? song.isFavorite,
+          builder: (_, isFavorite, __) => _buildScaffold(song, isFavorite),
+        );
       },
     );
   }
 
-  Widget _buildScaffold(Song song) {
-    final lib = context.watch<LibraryProvider>();
-    // Index lookup instead of scanning the whole library on every rebuild of
-    // this screen, which happens for every playback state notification.
-    final inLibrary = lib.songById(song.id);
-    final isFavorite = inLibrary?.isFavorite ?? song.isFavorite;
-
+  Widget _buildScaffold(Song song, bool isFavorite) {
     return GestureDetector(
       onVerticalDragStart: (details) {
         // Track dismiss swipes only when the drag starts in the top
@@ -532,16 +543,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
       onVerticalDragUpdate: (details) {
         if (!_verticalDismissArmed) return;
         if (details.delta.dy > 0) {
-          setState(() => _dragOffset += details.delta.dy);
+          _dragOffset.value += details.delta.dy;
         }
       },
       onVerticalDragEnd: (details) {
         if (!_verticalDismissArmed) return;
         _verticalDismissArmed = false;
-        if (_dragOffset > 100 || (details.primaryVelocity ?? 0) > 600) {
+        if (_dragOffset.value > 100 || (details.primaryVelocity ?? 0) > 600) {
           Navigator.pop(context);
         } else {
-          setState(() => _dragOffset = 0);
+          _dragOffset.value = 0;
         }
       },
       onVerticalDragCancel: () {
@@ -555,11 +566,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
           _player.previous();
         }
       },
-      child: Transform.translate(
-        offset: Offset(0, _dragOffset),
-        child: Opacity(
-          opacity: (1 - (_dragOffset / 400)).clamp(0.4, 1.0),
-          child: Scaffold(
+      child: ValueListenableBuilder<double>(
+        valueListenable: _dragOffset,
+        child: Scaffold(
             body: SafeArea(
               child: Column(
                 children: [
@@ -594,10 +603,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       child: _showLyrics ? _buildLyricsView(song) : _buildArtView(song),
                     ),
                   ),
-                  _buildControls(song, isFavorite, lib),
+                  _buildControls(song, isFavorite),
                 ],
               ),
             ),
+          ),
+        builder: (context, offset, child) => Transform.translate(
+          offset: Offset(0, offset),
+          child: Opacity(
+            opacity: (1 - (offset / 400)).clamp(0.4, 1.0),
+            child: child ?? const SizedBox.shrink(),
           ),
         ),
       ),
@@ -899,7 +914,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  Widget _buildControls(Song song, bool isFavorite, LibraryProvider lib) {
+  Widget _buildControls(Song song, bool isFavorite) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -994,7 +1009,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   size: 22,
                 ),
                 tooltip: AppLocalizations.of(context)!.playerFavorite,
-                onPressed: () => lib.toggleFavorite(song, !isFavorite),
+                onPressed: () => context.read<LibraryProvider>().toggleFavorite(song, !isFavorite),
               ),
               IconButton(
                 icon: const Icon(Icons.playlist_add, size: 22, color: Colors.grey),

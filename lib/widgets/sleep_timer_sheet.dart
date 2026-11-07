@@ -42,8 +42,8 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
   late final FixedExtentScrollController _songCtrl;
 
   static final List<int> _minuteOptions = List.generate(12, (i) => i * 5);
-  static const int _defaultMinuteIndex = 3; // 15 menit
-  static const int _defaultSongIndex = 4;   // 5 lagu
+  static const int _defaultMinuteIndex = 3; // 15 minutes
+  static const int _defaultSongIndex = 4;   // 5 songs
 
   @override
   void initState() {
@@ -664,7 +664,10 @@ class _WheelPickerState extends State<_WheelPicker> {
     widget.controller.addListener(_onScroll);
   }
   void _onScroll() {
-    if (mounted) setState(() => _sel = widget.controller.selectedItem);
+    final next = widget.controller.selectedItem;
+    // Rebuild only when the selected detent actually changes, not on every
+    // scroll tick: a fling fires this per frame.
+    if (next != _sel && mounted) setState(() => _sel = next);
   }
   @override
   void dispose() {

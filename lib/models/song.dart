@@ -101,7 +101,7 @@ class Song {
     final rawId = map['id'];
     final rawPath = map['filePath'];
     if (rawId is! int || rawPath is! String || rawPath.isEmpty) {
-      throw const FormatException('Baris songs korup: id/filePath tidak valid');
+      throw const FormatException('Corrupt songs row: id/filePath is not valid');
     }
     DateTime? parsedAddedAt;
     final rawAdded = map['addedAt'];

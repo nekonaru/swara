@@ -13,7 +13,30 @@ import 'package:flutter/material.dart';
 /// Motion lives here too: one page transition for every screen (the player
 /// keeps its own slide up route in utils/page_transitions.dart), chosen to be
 /// quick and quiet rather than showy.
+///
+/// Theme construction reads the seed, brightness and AMOLED flag only, so the
+/// result is memoized: MusicApp rebuilds this on every consumer frame and
+/// rebuilding two ThemeData objects each time was wasted work.
+final Map<String, ThemeData> _swaraThemeCache = <String, ThemeData>{};
+
 ThemeData buildSwaraTheme({
+  required Color seed,
+  required Brightness brightness,
+  bool amoledBlack = false,
+}) {
+  final key = '${seed.toARGB32()}|$brightness|$amoledBlack';
+  final cached = _swaraThemeCache[key];
+  if (cached != null) return cached;
+  final theme =
+      _buildSwaraTheme(seed: seed, brightness: brightness, amoledBlack: amoledBlack);
+  // A user with a dozen accent colors could shuffle through several themes;
+  // keep the cache tiny, there are only a handful of distinct combinations.
+  if (_swaraThemeCache.length >= 8) _swaraThemeCache.clear();
+  _swaraThemeCache[key] = theme;
+  return theme;
+}
+
+ThemeData _buildSwaraTheme({
   required Color seed,
   required Brightness brightness,
   bool amoledBlack = false,

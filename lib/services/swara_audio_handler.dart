@@ -8,7 +8,7 @@ import 'player_service.dart';
 /// MediaSession for notifications, the lockscreen, and the foreground service.
 ///
 /// Notification buttons: Shuffle | Previous | Play/Pause | Next | Repeat
-/// (using the state aware drawables copied from android_res_extra/ into res/)
+/// (using the state aware drawables committed under android/app/src/main/res)
 class SwaraAudioHandler extends BaseAudioHandler {
   Timer? _positionTicker;
   // Last values seen by _syncState, used by the ticker to decide
@@ -32,7 +32,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
   MediaControl _shuffleControl(bool enabled) {
     return MediaControl(
       androidIcon: enabled ? _shuffleOnIcon : _shuffleOffIcon,
-      label: 'Acak',
+      label: 'Shuffle',
       action: MediaAction.custom,
       customAction: const CustomMediaAction(name: 'shuffle'),
     );
@@ -44,21 +44,21 @@ class SwaraAudioHandler extends BaseAudioHandler {
       case SwaraRepeatMode.one:
         return const MediaControl(
           androidIcon: _repeatOneIcon,
-          label: 'Ulangi',
+          label: 'Repeat',
           action: MediaAction.custom,
           customAction: CustomMediaAction(name: 'repeat'),
         );
       case SwaraRepeatMode.all:
         return const MediaControl(
           androidIcon: _repeatAllIcon,
-          label: 'Ulangi',
+          label: 'Repeat',
           action: MediaAction.custom,
           customAction: CustomMediaAction(name: 'repeat'),
         );
       case SwaraRepeatMode.off:
         return const MediaControl(
           androidIcon: _repeatOffIcon,
-          label: 'Ulangi',
+          label: 'Repeat',
           action: MediaAction.custom,
           customAction: CustomMediaAction(name: 'repeat'),
         );
@@ -81,7 +81,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
           _updatePosition();
         }
       } catch (e) {
-        debugPrint('Gagal sync audio handler: $e');
+        debugPrint('Failed to sync audio handler: $e');
       }
     });
     _syncState();
@@ -112,16 +112,28 @@ class SwaraAudioHandler extends BaseAudioHandler {
     } catch (_) {}
   }
 
+  // Memo of art path to notification Uri. _syncState runs on every player
+  // notification (volume drags, crossfade steps), and an existsSync per call
+  // put a synchronous syscall on the UI thread each time. A deleted file
+  // after caching is harmless: the notification just shows no art.
+  final Map<String, Uri?> _artUriCache = {};
+
   Uri? _safeArtUri(String? path) {
     if (path == null || path.isEmpty) return null;
+    if (_artUriCache.containsKey(path)) return _artUriCache[path];
+    Uri? result;
     try {
       final file = File(path);
       // Guard against path traversal / deleted files breaking the notification.
-      if (!file.existsSync()) return null;
-      return Uri.file(path);
+      if (file.existsSync()) {
+        result = Uri.file(path);
+      }
     } catch (_) {
-      return null;
+      result = null;
     }
+    if (_artUriCache.length >= 256) _artUriCache.clear();
+    _artUriCache[path] = result;
+    return result;
   }
 
   void _syncState() {

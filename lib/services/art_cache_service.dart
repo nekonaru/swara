@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -31,10 +31,21 @@ class ArtCacheService {
   final Map<String, String> _knownPathsByHash = {};
   bool _indexPreloaded = false;
 
+  // Memo of URL to hash for the sync build path. Lists ask for the hash of
+  // the same few hundred cover URLs on every frame, and rehashing each one
+  // per build cost a full pass over a long URL. Bounded so a 20k library
+  // cannot grow this without limit.
+  final Map<String, String> _hashByUrl = {};
+
   // The hash portion of the cache file name, used as the index key.
   String _hashOf(String url) {
+    final cached = _hashByUrl[url];
+    if (cached != null) return cached;
     final name = _fileNameFor(url);
-    return name.substring(4, name.length - 4);
+    final hash = name.substring(4, name.length - 4);
+    if (_hashByUrl.length >= 4096) _hashByUrl.clear();
+    _hashByUrl[url] = hash;
+    return hash;
   }
 
   // Simple non crypto hash of the URL, stable across launches.
@@ -287,6 +298,16 @@ class _CachedArtImageState extends State<CachedArtImage> {
     }
   }
 
+  // Plain stand-in while the disk cache is being filled. Same size as the
+  // final image so rows do not jump when the art swaps in.
+  Widget _placeholder() {
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: const Icon(Icons.music_note, size: 20, color: Colors.grey),
+    );
+  }
+
   Widget _networkFallback() {
     return Image.network(
       widget.url,
@@ -340,7 +361,10 @@ class _CachedArtImageState extends State<CachedArtImage> {
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _networkFallback();
+          // Never fetch the remote image while resolveArtFile is in flight:
+          // that downloaded the same cover twice. Show a plain placeholder
+          // with the same size; the disk file swaps in when it resolves.
+          return _placeholder();
         }
         return _networkFallback();
       },

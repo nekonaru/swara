@@ -21,14 +21,44 @@ class _MarqueeTextState extends State<MarqueeText> {
   // with the SAME text (e.g. due to notifyListeners() from a background bulk scan).
   int? _activeLoopId;
 
+  // Memo of the measured text width. LayoutBuilder rebuilds on every parent
+  // frame; measuring with a fresh TextPainter each time was a full text
+  // layout per frame for a permanent two line widget.
+  double? _cachedTextWidth;
+  String? _cachedForText;
+  TextStyle? _cachedForStyle;
+
   @override
   void didUpdateWidget(covariant MarqueeText oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text || oldWidget.style != widget.style) {
+      _cachedTextWidth = null;
+      _cachedForText = null;
+      _cachedForStyle = null;
+    }
     if (oldWidget.text != widget.text && _scrollController.hasClients) {
       _loopId++;          // cancel the old loop
       _activeLoopId = null; // free the slot so a new loop can spawn
       _scrollController.jumpTo(0);
     }
+  }
+
+  double _textWidth() {
+    final cached = _cachedTextWidth;
+    if (cached != null &&
+        _cachedForText == widget.text &&
+        _cachedForStyle == widget.style) {
+      return cached;
+    }
+    final textPainter = TextPainter(
+      text: TextSpan(text: widget.text, style: widget.style),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    _cachedTextWidth = textPainter.width;
+    _cachedForText = widget.text;
+    _cachedForStyle = widget.style;
+    return textPainter.width;
   }
 
   Future<void> _runMarquee(double maxScroll, int myLoopId) async {
@@ -70,13 +100,7 @@ class _MarqueeTextState extends State<MarqueeText> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final textPainter = TextPainter(
-          text: TextSpan(text: widget.text, style: widget.style),
-          maxLines: 1,
-          textDirection: TextDirection.ltr,
-        )..layout();
-
-        final overflows = textPainter.width > constraints.maxWidth;
+        final overflows = _textWidth() > constraints.maxWidth;
 
         if (!overflows) {
           // Text fits: render still, centered as usual

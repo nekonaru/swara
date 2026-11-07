@@ -1,5 +1,5 @@
-/// Penampung error startup yang gagal tapi gak fatal (dibungkus try-catch),
-/// supaya bisa ditampilkan langsung di app buat debugging tanpa perlu adb/logcat.
+/// Holder for non fatal startup errors caught at boot, so they can be
+/// shown inside the app for debugging without adb or logcat.
 class Diagnostics {
   static String? audioServiceError;
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/painting.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -68,15 +69,23 @@ class PlaylistArtService {
 
   // File location for a playlist cover, or null when none is cached.
   // Read only, never builds. Used by UI tiles and headers.
+  // The resolution is memoized per playlist id so a list rebuilt on every
+  // notification does not stat the disk on every frame; buildPlaylistArt and
+  // clearPlaylistArt keep this cache in sync with the file system.
+  static final Map<int, File?> _existingArtCache = <int, File?>{};
+
   static Future<File?> existingArt(int playlistId) async {
+    if (_existingArtCache.containsKey(playlistId)) {
+      return _existingArtCache[playlistId];
+    }
     try {
       final dir = await _artDir();
       if (dir == null) return null;
       final file = File(p.join(dir.path, _fileName(playlistId)));
-      if (await file.exists() && await file.length() > 0) {
-        return file;
-      }
-      return null;
+      final resolved =
+          await file.exists() && await file.length() > 0 ? file : null;
+      _existingArtCache[playlistId] = resolved;
+      return resolved;
     } catch (_) {
       return null;
     }
@@ -115,10 +124,18 @@ class PlaylistArtService {
         try {
           if (await outFile.exists()) {
             await outFile.delete();
+            // Same path as any collage the image cache may hold; drop it so
+            // the UI falls back to the icon.
+            try {
+              FileImage(outFile).evict();
+            } catch (_) {
+              // Best effort.
+            }
           }
         } catch (_) {
           // Best effort only.
         }
+        _existingArtCache[playlistId] = null;
         _builtFingerprints.remove(playlistId);
         return null;
       }
@@ -131,6 +148,7 @@ class PlaylistArtService {
         if (_builtFingerprints[playlistId] == fingerprint &&
             await outFile.exists() &&
             await outFile.length() > 0) {
+          _existingArtCache[playlistId] = outFile;
           return outFile;
         }
       } catch (_) {
@@ -157,6 +175,15 @@ class PlaylistArtService {
         return null;
       }
       _builtFingerprints[playlistId] = fingerprint;
+      _existingArtCache[playlistId] = outFile;
+      // The file path is unchanged, so the image cache would keep serving
+      // the old collage bytes; evict them so the next build picks up the
+      // fresh one.
+      try {
+        FileImage(outFile).evict();
+      } catch (_) {
+        // Eviction is best effort, the image just stays stale for a frame.
+      }
       return outFile;
     } catch (_) {
       return null;
@@ -187,12 +214,18 @@ class PlaylistArtService {
   // Delete the cached collage for [playlistId]. Never throws.
   static Future<void> clearPlaylistArt(int playlistId) async {
     _builtFingerprints.remove(playlistId);
+    _existingArtCache.remove(playlistId);
     try {
       final dir = await _artDir();
       if (dir == null) return;
       final file = File(p.join(dir.path, _fileName(playlistId)));
       if (await file.exists()) {
         await file.delete();
+        try {
+          FileImage(file).evict();
+        } catch (_) {
+          // Best effort.
+        }
       }
     } catch (_) {
       // Best effort only.

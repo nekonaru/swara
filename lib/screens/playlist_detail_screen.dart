@@ -12,6 +12,7 @@ import '../services/playlist_art_service.dart';
 import '../utils/format.dart';
 import '../utils/song_options.dart';
 import '../widgets/az_scrollbar.dart';
+import '../widgets/entrance_fade.dart';
 import '../widgets/playing_indicator.dart';
 
 enum _PlsSortOption { custom, titleAZ, titleZA, artistAZ }
@@ -603,15 +604,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ),
     );
 
-    return TweenAnimationBuilder<double>(
+    return EntranceFade(
+      index: i,
       key: ValueKey('plssong_${song.id}'), // without $i - avoid re-animation on reorder
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 180 + (i % 10) * 20),
-      curve: Curves.easeOut,
-      builder: (context, v, child) => Opacity(
-        opacity: v,
-        child: Transform.translate(offset: Offset(0, (1 - v) * 6), child: child),
-      ),
       child: tile,
     );
   }
@@ -635,11 +630,34 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
 // Large header cover showing the generated collage when cached,
 // otherwise the same icon placeholder the empty state uses.
-// TODO L10N: no user facing strings here, all literals are debug only.
-class _PlaylistHeaderArt extends StatelessWidget {
+class _PlaylistHeaderArt extends StatefulWidget {
   final int playlistId;
 
   const _PlaylistHeaderArt({required this.playlistId});
+
+  @override
+  State<_PlaylistHeaderArt> createState() => _PlaylistHeaderArtState();
+}
+
+class _PlaylistHeaderArtState extends State<_PlaylistHeaderArt> {
+  // Existing art resolution is memoized in PlaylistArtService; storing the
+  // future here additionally avoids re-running even a cached lookup per
+  // build and keeps the header from flickering to the fallback.
+  late Future<File?> _artFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _artFuture = PlaylistArtService.existingArt(widget.playlistId);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlaylistHeaderArt oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.playlistId != widget.playlistId) {
+      _artFuture = PlaylistArtService.existingArt(widget.playlistId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -657,10 +675,8 @@ class _PlaylistHeaderArt extends StatelessWidget {
         size: 64,
       ),
     );
-    // A fresh future per build keeps the code simple: the parent calls
-    // setState after each content change, so new art is picked up.
     return FutureBuilder<File?>(
-      future: PlaylistArtService.existingArt(playlistId),
+      future: _artFuture,
       builder: (context, snapshot) {
         final file = snapshot.data;
         if (file == null) return fallback;

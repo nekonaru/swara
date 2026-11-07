@@ -706,7 +706,10 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   Future<List<Song>> getRecentlyAdded({int limit = 50}) async {
-    final all = await DBHelper.instance.getAllSongsByDateAdded();
+    // Over fetch because hidden folders are filtered on the Dart side.
+    final safeLimit = limit < 1 ? 50 : limit;
+    final all =
+        await DBHelper.instance.getAllSongsByDateAdded(limit: safeLimit * 4);
     final excluded = await DBHelper.instance.getExcludedFolders();
     final filtered = excluded.isEmpty
         ? all

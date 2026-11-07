@@ -5,6 +5,7 @@ import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../services/art_cache_service.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/entrance_fade.dart';
 import '../widgets/sort_chip.dart';
 import 'extra_screens.dart';
 
@@ -205,15 +206,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
                 final cover = songs.firstWhere(
                     (s) => s.albumArtUrl != null,
                     orElse: () => songs.first);
-                return TweenAnimationBuilder<double>(
+                return EntranceFade(
+                  index: i,
                   key: ValueKey('album_$album'),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: Duration(milliseconds: 160 + (i % 12) * 18),
-                  curve: Curves.easeOut,
-                  builder: (ctx, v, child) => Opacity(
-                      opacity: v,
-                      child: Transform.translate(
-                          offset: Offset(0, (1 - v) * 8), child: child)),
                   child: _AlbumCard(
                     album: album,
                     songs: songs,

@@ -479,16 +479,33 @@ class DBHelper {
   Future<List<Song>> getAllSongs() async {
     final database = await db;
     final rows = await database.query('songs', orderBy: 'title ASC');
-    return _songsFromRows(rows);
+    return await _songsFromRows(rows);
   }
 
   /// Convert raw DB rows into Songs, skipping any corrupt row instead of
   /// throwing. A single row with an empty or invalid filePath used to make
   /// the whole map() call throw a FormatException, which blanked the entire
   /// library even though every other song was fine.
-  static List<Song> _songsFromRows(List<Map<String, Object?>> rows) {
-    final songs = <Song>[];
+  ///
+  /// Decoding gzipped lyrics happens in a background isolate: decoding every
+  /// row inline used to stall the UI thread for a full second or more on
+  /// libraries with tens of thousands of lyrics. Rows without compressed
+  /// lyrics are converted inline, no isolate is spawned for them.
+  static Future<List<Song>> _songsFromRows(List<Map<String, Object?>> rows) async {
+    if (rows.isEmpty) return const <Song>[];
+    var hasCompressedLyrics = false;
     for (final row in rows) {
+      final raw = row['lyrics'];
+      if (raw is String && raw.startsWith('gz:')) {
+        hasCompressedLyrics = true;
+        break;
+      }
+    }
+    final decodedRows = hasCompressedLyrics
+        ? await compute(_decodeLyricsInIsolate, rows)
+        : rows;
+    final songs = <Song>[];
+    for (final row in decodedRows) {
       try {
         songs.add(Song.fromMap(row));
       } catch (e) {
@@ -496,6 +513,24 @@ class DBHelper {
       }
     }
     return songs;
+  }
+
+  /// Decode the `gz:` lyrics of every row in a background isolate. Sent to
+  /// [compute], so it must stay a pure static function with only sendable
+  /// types in and out.
+  static List<Map<String, dynamic>> _decodeLyricsInIsolate(
+    List<Map<String, Object?>> rows,
+  ) {
+    final out = <Map<String, dynamic>>[];
+    for (final row in rows) {
+      final raw = row['lyrics'];
+      if (raw is String && raw.startsWith('gz:')) {
+        out.add(<String, dynamic>{...row, 'lyrics': decodeLyricsFromDb(raw)});
+      } else {
+        out.add(row);
+      }
+    }
+    return out;
   }
 
   /// Delete from the DB the songs whose original files no longer exist on the
@@ -552,10 +587,14 @@ class DBHelper {
 
   /// Songs ordered by the time they were actually added to the library,
   /// not just by reversing the current list order.
-  Future<List<Song>> getAllSongsByDateAdded() async {
+  ///
+  /// [limit] pushes the cap into SQL so a small request never reads the
+  /// whole table. Callers that filter by hidden folders afterwards should
+  /// pass an over fetched limit.
+  Future<List<Song>> getAllSongsByDateAdded({int? limit}) async {
     final database = await db;
-    final rows = await database.query('songs', orderBy: 'addedAt DESC');
-    return _songsFromRows(rows);
+    final rows = await database.query('songs', orderBy: 'addedAt DESC', limit: limit);
+    return await _songsFromRows(rows);
   }
 
   Future<void> deleteSong(int id) async {
@@ -635,7 +674,7 @@ class DBHelper {
     final database = await db;
     final rows =
         await database.query('songs', where: 'isFavorite = 1', orderBy: 'title ASC');
-    return _songsFromRows(rows);
+    return await _songsFromRows(rows);
   }
 
   Future<void> markPlayed(int songId) async {
@@ -651,7 +690,7 @@ class DBHelper {
         where: 'lastPlayedAt IS NOT NULL',
         orderBy: 'lastPlayedAt DESC',
         limit: limit);
-    return _songsFromRows(rows);
+    return await _songsFromRows(rows);
   }
 
   // ---------- Listening history (for the dashboard) ----------
@@ -1038,7 +1077,7 @@ class DBHelper {
       WHERE ps.playlistId = ?
       ORDER BY ps.position ASC, ps.addedAt ASC
     ''', [playlistId]);
-    return _songsFromRows(rows);
+    return await _songsFromRows(rows);
   }
 
   /// Re-save the song order inside a playlist (called after a drag reorder)
@@ -1064,12 +1103,23 @@ class DBHelper {
       {'path': path, 'includeInLibrary': included ? 1 : 0},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    // Every reader re-fetches this from the DB per call otherwise; drop the
+    // cache so a hidden folder is invisible immediately.
+    _excludedFoldersCache = null;
   }
 
+  // Memo of the excluded folder set. Read repeatedly by the library, the
+  // dashboard and the paged query; invalidated by setFolderIncluded.
+  Set<String>? _excludedFoldersCache;
+
   Future<Set<String>> getExcludedFolders() async {
+    final cached = _excludedFoldersCache;
+    if (cached != null) return cached;
     final database = await db;
     final rows = await database.query('folders', where: 'includeInLibrary = 0');
-    return rows.map((r) => r['path'] as String).toSet();
+    final result = rows.map((r) => r['path'] as String).toSet();
+    _excludedFoldersCache = result;
+    return result;
   }
 
   /// Songs ordered by play count (most played first).
@@ -1084,7 +1134,7 @@ class DBHelper {
       ORDER BY playCount DESC
       LIMIT ?
     ''', [limit]);
-    return _songsFromRows(rows);
+    return await _songsFromRows(rows);
   }
 
   /// Songs that were never played at all
@@ -1095,7 +1145,7 @@ class DBHelper {
       where: 'lastPlayedAt IS NULL',
       orderBy: 'title ASC',
     );
-    return _songsFromRows(rows);
+    return await _songsFromRows(rows);
   }
 
   /// Total all-time listening time (ms)
@@ -1263,7 +1313,7 @@ class DBHelper {
     sql.write(' ORDER BY $orderClause LIMIT ? OFFSET ?');
     args.addAll([safeLimit, safeOffset]);
     final rows = await database.rawQuery(sql.toString(), args);
-    return _songsFromRows(rows);
+    return await _songsFromRows(rows);
   }
 
   /// Consecutive days with at least one listening entry, ending today

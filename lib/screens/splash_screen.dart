@@ -18,6 +18,8 @@ class SplashScreen extends StatelessWidget {
               'assets/swara-mark.png',
               width: 96,
               height: 96,
+              // Decode at display size instead of the full resolution.
+              cacheWidth: 192,
               errorBuilder: (context, _, __) => Container(
                 width: 88,
                 height: 88,

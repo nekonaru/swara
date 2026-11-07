@@ -103,6 +103,18 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
   // Group keys currently expanded. Empty means all collapsed.
   final Set<String> _expandedKeys = {};
   bool _working = false;
+  // Duplicate groups are rebuilt only when the library changes, never per
+  // render: grouping the whole library is O(n log n) with regexes.
+  Map<String, List<Song>> _groupsCache = const {};
+  int _groupsVersion = -1;
+
+  Map<String, List<Song>> _groupsFor(LibraryProvider lib) {
+    if (_groupsVersion != lib.songsVersion) {
+      _groupsVersion = lib.songsVersion;
+      _groupsCache = findDuplicateGroups(lib.songs);
+    }
+    return _groupsCache;
+  }
 
   void _toggleSelect(int id) {
     setState(() {
@@ -282,7 +294,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       bottomNavigationBar: const MiniPlayer(),
       body: Consumer<LibraryProvider>(
         builder: (context, lib, _) {
-          final groups = findDuplicateGroups(lib.songs);
+          final groups = _groupsFor(lib);
           if (groups.isEmpty) {
             return Center(
               child: Column(
