@@ -314,7 +314,7 @@ swara/
 ├── .github/
 │   └── workflows/
 │       ├── build-apk.yml         # CI: build APK di setiap push ke main
-│       └── build.yml             # CI: build APK + draf rilis GitHub dari changelog
+│       └── build.yml             # CI: build APK di setiap push, publish rilis GitHub saat tag v*
 ├── pubspec.yaml
 ├── CHANGELOG.md                  # riwayat versi (Inggris)
 ├── CHANGELOG.id.md               # riwayat versi (Bahasa Indonesia)
@@ -361,7 +361,7 @@ Lint ditegakkan lewat `analysis_options.yaml` (flutter_lints plus `prefer_single
 | Workflow | Fungsi |
 |----------|--------|
 | `build-apk.yml` | Build APK di setiap push ke main |
-| `build.yml` | Build APK dan buat draf rilis GitHub yang dirakit dari changelog |
+| `build.yml` | Build APK di setiap push ke main, publish rilis GitHub yang dirakit dari changelog saat tag v* |
 
 Workflow rilis membuild proyek `android/` yang sudah dikomit dan melampirkan APK split ke draf rilis. Ikon notifikasi tersimpan di `android/app/src/main/res/drawable/`.
 

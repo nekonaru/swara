@@ -314,7 +314,7 @@ swara/
 ├── .github/
 │   └── workflows/
 │       ├── build-apk.yml         # CI: build APK on every push to main
-│       └── build.yml             # CI: build APK + draft GitHub release from the changelogs
+│       └── build.yml             # CI: build APK on every push, publish the GitHub release on v* tags
 ├── pubspec.yaml
 ├── CHANGELOG.md                  # version history (English)
 ├── CHANGELOG.id.md               # version history (Bahasa Indonesia)
@@ -361,7 +361,7 @@ Lints are enforced through `analysis_options.yaml` (flutter_lints plus `prefer_s
 | Workflow | Purpose |
 |----------|---------|
 | `build-apk.yml` | Build APK on every push to main |
-| `build.yml` | Build APK and create a draft GitHub release generated from the changelogs |
+| `build.yml` | Build APK on every push to main, publish the GitHub release assembled from the changelogs on v* tags |
 
 The release workflow builds the committed `android/` project and attaches the split APKs to the draft release. The notification icons live in `android/app/src/main/res/drawable/`.
 
