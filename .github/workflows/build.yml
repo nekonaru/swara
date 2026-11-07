@@ -1,4 +1,4 @@
-name: Build & Draft Release
+name: Build & Release
 
 on:
   workflow_dispatch:
@@ -81,8 +81,8 @@ jobs:
           name: music-app-apks
           path: build/app/outputs/flutter-apk/*.apk
 
-      # The draft release and its tag are created only on v* tag pushes.
-      # A plain push to main just builds the APKs.
+      # The release is published only on v* tag pushes. A plain push to
+      # main just builds the APKs.
       - name: Generate the release body from CHANGELOG.md and CHANGELOG.id.md
         if: startsWith(github.ref, 'refs/tags/v')
         # The release body is assembled from the two changelog files so the
