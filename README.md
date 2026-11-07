@@ -155,6 +155,7 @@
 | **Full lists, no Load more** | Every list renders in full while staying smooth, A-Z jump is instant, shuffle covers every song |
 | **Faster database** | WAL mode, tuned pragmas, and matching indexes so sorting and jumping stay instant |
 | **Smooth on huge libraries** | Search, sorting, and single-row updates run off the main thread, with cached derived views and hoisted regexes, so nothing stutters |
+| **Fluid scrolling** | Artwork decodes at display size, lists never re-sort or re-group in the build path, and startup decodes lyrics for the whole library off the main thread |
 
 ---
 
@@ -307,12 +308,16 @@ swara/
 │   ├── utils/                    # formatting, song options menu, transitions
 │   └── widgets/                  # mini player, sleep timer, scrollbar, ...
 ├── l10n.yaml                     # localization config
-├── android_res_extra/            # notification icons drawn into the APK by CI
+├── android/                      # committed Android project (manifest, icons, gradle config)
+├── scripts/
+│   └── release_body.py           # assembles the release body from the changelogs
 ├── .github/
 │   └── workflows/
 │       ├── build-apk.yml         # CI: build APK on every push to main
-│       └── build.yml             # CI: build APK + draft GitHub release
+│       └── build.yml             # CI: build APK + draft GitHub release from the changelogs
 ├── pubspec.yaml
+├── CHANGELOG.md                  # version history (English)
+├── CHANGELOG.id.md               # version history (Bahasa Indonesia)
 ├── LICENSE
 ├── README.md                     # main documentation (English)
 └── README.id.md                  # documentation (Bahasa Indonesia)
@@ -356,9 +361,9 @@ Lints are enforced through `analysis_options.yaml` (flutter_lints plus `prefer_s
 | Workflow | Purpose |
 |----------|---------|
 | `build-apk.yml` | Build APK on every push to main |
-| `build.yml` | Build APK and create a draft GitHub release |
+| `build.yml` | Build APK and create a draft GitHub release generated from the changelogs |
 
-Notification icons from `android_res_extra/` are drawn into the APK by CI.
+The release workflow builds the committed `android/` project and attaches the split APKs to the draft release. The notification icons live in `android/app/src/main/res/drawable/`.
 
 ---
 
@@ -391,7 +396,7 @@ Settings, section **Language**, pick English or Bahasa Indonesia. English is the
 
 <div align="center">
 
-| [![Nicolas Dwi Dharma](https://github.com/github.png?size=100)](https://github.com/nekonaru) |
+| [![Nicolas Dwi Dharma](https://github.com/nekonaru.png?size=100)](https://github.com/nekonaru) |
 |:---:|
 | **Nicolas Dwi Dharma** |
 | [github.com/nekonaru](https://github.com/nekonaru) |

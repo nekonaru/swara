@@ -155,6 +155,7 @@
 | **Daftar penuh, tanpa Load more** | Setiap daftar ditampilkan penuh dan tetap mulus, lompat A-Z instan, acak mencakup setiap lagu |
 | **Database lebih cepat** | Mode WAL, pragma yang disetel, dan indeks yang cocok sehingga pengurutan dan lompatan tetap instan |
 | **Mulus di pustaka besar** | Pencarian, pengurutan, dan pembaruan satu baris berjalan di luar main thread, dengan tampilan turunan yang di-cache dan regex yang di-hoist, jadi tidak ada yang tersendat |
+| **Gulir yang jauh lebih halus** | Artwork didecode sesuai ukuran tampilan, daftar tidak pernah mengurut ulang atau mengelompokkan ulang di jalur build, dan startup mendekode lirik seisi pustaka di luar main thread |
 
 ---
 
@@ -307,12 +308,16 @@ swara/
 │   ├── utils/                    # format, menu opsi lagu, transisi
 │   └── widgets/                  # mini player, sleep timer, scrollbar, ...
 ├── l10n.yaml                     # konfigurasi lokalisasi
-├── android_res_extra/            # ikon notifikasi yang dimasukkan ke APK oleh CI
+├── android/                      # proyek Android yang dikomit (manifest, ikon, konfigurasi gradle)
+├── scripts/
+│   └── release_body.py           # merakit body rilis dari CHANGELOG
 ├── .github/
 │   └── workflows/
 │       ├── build-apk.yml         # CI: build APK di setiap push ke main
-│       └── build.yml             # CI: build APK + draf rilis GitHub
+│       └── build.yml             # CI: build APK + draf rilis GitHub dari changelog
 ├── pubspec.yaml
+├── CHANGELOG.md                  # riwayat versi (Inggris)
+├── CHANGELOG.id.md               # riwayat versi (Bahasa Indonesia)
 ├── LICENSE
 ├── README.md                     # dokumentasi utama (Inggris)
 └── README.id.md                  # dokumentasi (Bahasa Indonesia)
@@ -356,9 +361,9 @@ Lint ditegakkan lewat `analysis_options.yaml` (flutter_lints plus `prefer_single
 | Workflow | Fungsi |
 |----------|--------|
 | `build-apk.yml` | Build APK di setiap push ke main |
-| `build.yml` | Build APK dan buat draf rilis GitHub |
+| `build.yml` | Build APK dan buat draf rilis GitHub yang dirakit dari changelog |
 
-Ikon notifikasi dari `android_res_extra/` dimasukkan ke APK oleh CI.
+Workflow rilis membuild proyek `android/` yang sudah dikomit dan melampirkan APK split ke draf rilis. Ikon notifikasi tersimpan di `android/app/src/main/res/drawable/`.
 
 ---
 
@@ -391,7 +396,7 @@ Pengaturan, bagian **Bahasa**, pilih English atau Bahasa Indonesia. Bahasa Inggr
 
 <div align="center">
 
-| [![Nicolas Dwi Dharma](https://github.com/github.png?size=100)](https://github.com/nekonaru) |
+| [![Nicolas Dwi Dharma](https://github.com/nekonaru.png?size=100)](https://github.com/nekonaru) |
 |:---:|
 | **Nicolas Dwi Dharma** |
 | [github.com/nekonaru](https://github.com/nekonaru) |
