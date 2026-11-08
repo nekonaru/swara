@@ -64,6 +64,21 @@ class PlayerService extends ChangeNotifier {
   // chosen rate survives an app restart instead of resetting to 1.0.
   static const String _prefsSpeedKey = 'playbackSpeed';
   static const String _prefsPitchKey = 'playbackPitch';
+  // Resume playback state, so a cold start can restore paused at the same
+  // minute:second the user left the app at. The queue is stored as the play
+  // order song ids, which covers shuffle order as well.
+  static const String _prefsResumeQueueKey = 'resume_queue_ids';
+  static const String _prefsResumeIndexKey = 'resume_pos_in_order';
+  static const String _prefsResumePositionMsKey = 'resume_position_ms';
+  static const String _prefsResumeShuffleKey = 'resume_shuffle';
+  static const String _prefsResumeRepeatKey = 'resume_repeat_mode';
+  bool _resumeRestored = false;
+  // While true, position events never trigger crossfade or track end.
+  // Set during a cold-start resume so a saved position near the end of a
+  // song never starts the next song on its own while the app is paused.
+  bool _suspendAutoActions = false;
+  Timer? _resumeSaveTimer;
+  static const Duration _resumeSaveInterval = Duration(seconds: 5);
   double _speed = 1.0;
   double _pitch = 1.0;
   // Minimum gap between two real platform speed/pitch calls. A slider drag
@@ -160,6 +175,10 @@ class PlayerService extends ChangeNotifier {
   StreamSubscription? _positionSub;
   StreamSubscription? _playerStateSub;
   StreamSubscription? _crossfadeStateSub;
+  // Effect session broadcast listeners, one per player. Attached on every
+  // init so playing reflects playback state for external effect apps.
+  StreamSubscription? _effectStateSub;
+  StreamSubscription? _effectCrossfadeSub;
   // Crossfade generation guards overlapping fades. Incremented on every
   // start and every cancel. A fade loop captures its own generation and
   // aborts when the global value no longer matches. _crossfadeActiveGeneration
@@ -168,6 +187,12 @@ class PlayerService extends ChangeNotifier {
   int _crossfadeGeneration = 0;
   int _crossfadeActiveGeneration = -1;
   bool _disposed = false;
+  // Set on every load, cleared only when a new track actually starts. The
+  // just_audio completed event and the position watchdog both call
+  // [_handleCompletionOnce], which drops every signal after the first for
+  // the same load, so auto advance can never fire twice, and can never be
+  // missed either when the reused player fails to emit completed again.
+  bool _completionHandled = false;
 
   /// Subscribe to the active player position stream for crossfade triggers.
   /// Cancels any previous subscription first so only one stays active.
@@ -183,6 +208,114 @@ class PlayerService extends ChangeNotifier {
   Future<void> _unsubscribePosition() async {
     await _positionSub?.cancel();
     _positionSub = null;
+  }
+
+  /// Write the current queue, index, position and repeat mode so a cold
+  /// start can resume paused at the same minute:second. Cheap enough to call
+  /// often; the 5 second timer plus explicit calls on pause and track change
+  /// keep the stored state fresh.
+  Future<void> _saveResumeState() async {
+    if (_playOrder.isEmpty || _queue.isEmpty) return;
+    try {
+      final idx = _posInOrder.clamp(0, _playOrder.length - 1);
+      final ids = <int>[
+        for (final i in _playOrder) _queue[i].id,
+      ];
+      // The queue can be huge; persist it only when it changed since the
+      // last write to avoid hammering the preferences file on every 5s tick.
+      final queueKey = ids.join(',');
+      final prefs = await SharedPreferences.getInstance();
+      final queueUnchanged = prefs.getString(_prefsResumeQueueKey) == queueKey;
+      if (!queueUnchanged) {
+        await prefs.setString(_prefsResumeQueueKey, queueKey);
+      }
+      await prefs.setInt(_prefsResumeIndexKey, idx);
+      await prefs.setInt(
+        _prefsResumePositionMsKey,
+        _activePlayer.position.inMilliseconds,
+      );
+      await prefs.setBool(_prefsResumeShuffleKey, _shuffle);
+      await prefs.setInt(_prefsResumeRepeatKey, _repeatMode.index);
+    } catch (e) {
+      debugPrint('Failed to persist resume state: $e');
+    }
+  }
+
+  /// Public entry used by the app lifecycle observer so backgrounding the
+  /// app persists the playback position immediately.
+  Future<void> saveResumeStateNow() => _saveResumeState();
+
+  /// Rebuild the queue from the stored song ids, load the same file paused,
+  /// and seek to the stored position. The user sees the song they were
+  /// listening to and decides when to continue; nothing plays on its own.
+  Future<void> _restoreResumeState() async {
+    if (_resumeRestored) return;
+    _resumeRestored = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_prefsResumeQueueKey);
+      if (raw == null || raw.isEmpty) return;
+      final ids = <int>[
+        for (final token in raw.split(','))
+          if (int.tryParse(token) != null) int.parse(token),
+      ];
+      if (ids.isEmpty) return;
+      final songs = await DBHelper.instance.getSongsByIds(ids);
+      if (songs.isEmpty) return;
+      _queue = List.of(songs);
+      _playOrder = List.generate(_queue.length, (i) => i);
+      _shuffle = prefs.getBool(_prefsResumeShuffleKey) ?? false;
+      _repeatMode = SwaraRepeatMode.values[
+          (prefs.getInt(_prefsResumeRepeatKey) ?? 0)
+              .clamp(0, SwaraRepeatMode.values.length - 1)];
+      _posInOrder = (prefs.getInt(_prefsResumeIndexKey) ?? 0)
+          .clamp(0, _queue.length - 1);
+      queueVersion++;
+      final song = currentSong;
+      if (song == null) return;
+      await _player.setFilePath(song.filePath);
+      final savedMs = prefs.getInt(_prefsResumePositionMsKey) ?? 0;
+      final durMs = song.durationMs;
+      final position = savedMs <= 0
+          ? Duration.zero
+          : (durMs > 0 && savedMs >= durMs)
+              ? Duration.zero
+              : Duration(milliseconds: savedMs);
+      await _player.seek(position);
+      // The restored song must not trigger anything on its own while paused,
+      // and its half-finished position must not be handed to the crossfade
+      // trigger on the next position event.
+      _completionHandled = true;
+      _suspendAutoActions = true;
+      _syncSpeedPitch(_player).catchError((Object e) {
+        debugPrint('Resume speed/pitch sync failed: $e');
+      });
+    } catch (e) {
+      debugPrint('Failed to restore resume state: $e');
+    }
+  }
+
+  /// Broadcast the audio effect session for [player] with [playing] as the
+  /// current state. Fire and forget; failures are logged, never thrown.
+  void _emitEffectSession(AudioPlayer player, bool playing) {
+    final sessionId = player.androidAudioSessionId;
+    if (sessionId == null) return;
+    if (playing) {
+      unawaited(EqualizerService.instance
+          .openSystemAudioEffectSession(sessionId));
+    } else {
+      unawaited(EqualizerService.instance
+          .closeSystemAudioEffectSession(sessionId));
+    }
+  }
+
+  /// Headset unplugged or bluetooth route lost: pause like the user asked
+  /// instead of blasting the speakers. togglePlayPause fades the volume
+  /// out, which is the same audible behavior as a manual pause.
+  void _onBecomingNoisy() {
+    if (player.playing) {
+      unawaited(togglePlayPause());
+    }
   }
 
   /// The player that is CURRENTLY audible (switches each time a crossfade finishes)
@@ -213,9 +346,12 @@ class PlayerService extends ChangeNotifier {
     _crossfadeStateSub?.cancel();
     _crossfadeStateSub = created.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed && _usingCrossfadePlayer) {
-        _logListening();
-        _onTrackFinished();
+        _handleCompletionOnce();
       }
+    });
+    _effectCrossfadeSub?.cancel();
+    _effectCrossfadeSub = created.playerStateStream.listen((state) {
+      _emitEffectSession(created, state.playing);
     });
     return created;
   }
@@ -314,28 +450,53 @@ class PlayerService extends ChangeNotifier {
       if (state.processingState == ProcessingState.completed &&
           !_usingCrossfadePlayer &&
           _crossfadeActiveGeneration == -1) {
-        _logListening();
-        _onTrackFinished();
+        _handleCompletionOnce();
       }
     });
+    // Broadcast the audio effect session for both players whenever the
+    // playing state flips, so system effect apps (Wavelet and similar)
+    // attach while music plays and detach on pause, the same contract
+    // Auxio uses. Attaching on every play event also keeps the broadcast
+    // correct across crossfade flips and per-source session ids.
+    _effectStateSub?.cancel();
+    _effectStateSub = _player.playerStateStream.listen((state) {
+      _emitEffectSession(_player, state.playing);
+    });
+    // Listen for ACTION_AUDIO_BECOMING_NOISY (headset unplug, bluetooth
+    // route lost) so playback pauses instead of blasting the speakers.
+    EqualizerService.instance.onBecomingNoisy(_onBecomingNoisy);
     // The crossfade completion listener is attached inside
     // _ensureCrossfadePlayer, so nothing is created here. Reattach only
     // when the standby player already exists (for example after hot restart).
     final standby = _crossfadePlayer;
     if (standby != null) {
+      _effectCrossfadeSub?.cancel();
+      _effectCrossfadeSub = standby.playerStateStream.listen((state) {
+        _emitEffectSession(standby, state.playing);
+      });
       await _crossfadeStateSub?.cancel();
       _crossfadeStateSub = standby.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed &&
             _usingCrossfadePlayer &&
             _crossfadeActiveGeneration == -1) {
-          _logListening();
-          _onTrackFinished();
+          _handleCompletionOnce();
         }
       });
     }
     // Subscribe only while playing so crossfade triggers keep working
     // without draining battery while paused.
     await _subscribePosition();
+    // Cold start: rebuild the last session paused at the saved minute:second.
+    // Runs once per process; after user actions the queue is theirs again.
+    await _restoreResumeState();
+    // Persist every 5 seconds while anything is playing, so a force kill
+    // loses at most a few seconds of progress.
+    _resumeSaveTimer?.cancel();
+    _resumeSaveTimer = Timer.periodic(_resumeSaveInterval, (_) {
+      if (player.playing && _playOrder.isNotEmpty) {
+        unawaited(_saveResumeState());
+      }
+    });
     // Everything is loaded now. Notify once so any UI built before init
     // finished (crossfade seconds, smart shuffle, sleep schedule, speed and
     // pitch) shows the persisted values instead of the defaults.
@@ -345,8 +506,37 @@ class PlayerService extends ChangeNotifier {
   /// Shared position tick for the active player. A-B repeat is checked
   /// first so the segment loops before the crossfade trigger near the
   /// track end can fire.
+  /// Shared completion handler. Whichever source of "this track ended" fires
+  /// first (just_audio's completed event, or the position watchdog below)
+  /// handles it exactly once per load; everything later is dropped.
+  void _handleCompletionOnce() {
+    if (_completionHandled) return;
+    _completionHandled = true;
+    _logListening();
+    _onTrackFinished();
+  }
+
+  /// Failsafe for devices where a reused AudioPlayer stops emitting
+  /// processingState == completed (a known just_audio/Android gap). The
+  /// position stream keeps running, so once the playhead reaches the end we
+  /// treat the track as finished and advance the same way the completed
+  /// listener does.
+  void _maybeAdvanceAtDuration(Duration position) {
+    final dur = _activePlayer.duration;
+    if (dur == null || dur <= Duration.zero) return;
+    if (position < dur - const Duration(milliseconds: 100)) return;
+    _handleCompletionOnce();
+  }
+
+  /// Subscribe to the active player's position stream for A-B repeat,
+  /// crossfade triggers and the duration watchdog. Pauses nothing but
+  /// naturally fires again on resume.
   void _onPosition(Duration position) {
+    // Cold-start resume must not trigger anything on its own: the user sees
+    // the paused song first and decides when to continue.
+    if (_suspendAutoActions) return;
     if (_checkABRepeat(position)) return;
+    _maybeAdvanceAtDuration(position);
     _maybeStartCrossfade(position);
   }
 
@@ -402,6 +592,7 @@ class PlayerService extends ChangeNotifier {
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       await incoming.play();
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
+      _completionHandled = false; // fresh load: completion may fire again
 
       // Zero duration means no overlap: cut straight to the next song
       // at full volume instead of running a fade loop with no length.
@@ -447,6 +638,7 @@ class PlayerService extends ChangeNotifier {
       _crossfadeActiveGeneration = -1;
       _markSongPlayed(nextSong);
       await DBHelper.instance.markPlayed(nextSong.id);
+      unawaited(_saveResumeState());
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
 
       await _subscribePosition();
@@ -633,6 +825,7 @@ class PlayerService extends ChangeNotifier {
       return;
     }
     if (playGen != _playGeneration || _disposed) return;
+    _completionHandled = false; // fresh load: completion may fire again
     try {
       await _player.play();
     } catch (e) {
@@ -658,6 +851,9 @@ class PlayerService extends ChangeNotifier {
     if (playGen != _playGeneration || _disposed) return;
     // Warm the idle player with the next file when crossfade is off.
     _preloadNextSong();
+    // Persist the fresh queue and position immediately so a kill right after
+    // a track change resumes on the right song.
+    unawaited(_saveResumeState());
     notifyListeners();
   }
 
@@ -705,6 +901,9 @@ class PlayerService extends ChangeNotifier {
       }
       // Stop position updates while paused to save battery.
       await _unsubscribePosition();
+      // Persist the position of every pause immediately, so re-opening the
+      // app anywhere in the song continues from the right minute:second.
+      unawaited(_saveResumeState());
     } else {
       // Resume path: NO volume dip. A previous resume fade left players
       // stuck silent on some devices (0 volume + aborted ramp), so resume
@@ -714,6 +913,11 @@ class PlayerService extends ChangeNotifier {
       // Cancel any in flight pause fade before resuming.
       final generation = ++_pauseFadeGeneration;
       _pauseFadeOutActive = false;
+      // Resuming is the user taking over: the cold-start restore guard must
+      // lift, and the track at this position must be allowed to finish
+      // normally (or auto advance) from here.
+      _suspendAutoActions = false;
+      _completionHandled = false;
       _playStartedAt = DateTime.now();
       final target = _activePlayer;
       await _vol(() => target.setVolume(1));

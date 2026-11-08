@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -20,6 +23,14 @@ import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Persist the playback position whenever the app is pushed to the
+  // background, so a cold start resumes at the same minute:second.
+  WidgetsBinding.instance.addObserver(_SwaraLifecycleObserver());
+  // Handle widget button taps from native. Deferred to the first frame so
+  // the engine is fully configured when the handler registers.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _WidgetBridge.init();
+  });
 
   // Cap the in-memory image cache because the library can hold 2600 songs
   // with artwork, so unbounded cached art can spike memory on scroll.
@@ -45,6 +56,76 @@ void main() {
   // Register dynamic launcher shortcuts (long press on the app icon).
   // Best effort: a shortcut failure must never crash or block the app.
   _setupDynamicShortcuts();
+}
+
+// Home screen widget bridge. Receives button taps from the native widget
+// provider and forwards them to the player, and pushes the current
+// title/artist/playing state to the widget on every playback change.
+class _WidgetBridge {
+  static const MethodChannel _channel = MethodChannel('swara/widget');
+  static bool _initialized = false;
+
+  static Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+    _channel.setMethodCallHandler(_onNativeCall);
+    try {
+      // Cold start launched from a widget tap while the process was dead:
+      // replay the action that started us.
+      final initial = await _channel.invokeMethod<String>('getInitialAction');
+      if (initial != null && initial.isNotEmpty) {
+        _handleAction(initial);
+      }
+    } catch (e) {
+      debugPrint('Widget initial action read failed: $e');
+    }
+  }
+
+  static Future<dynamic> _onNativeCall(MethodCall call) async {
+    if (call.method == 'onWidgetAction') {
+      final action = call.arguments;
+      if (action is String) _handleAction(action);
+    }
+    return null;
+  }
+
+  static void _handleAction(String action) {
+    final service = PlayerService.instance;
+    switch (action) {
+      case 'swara.widget.TOGGLE':
+        unawaited(service.togglePlayPause());
+        break;
+      case 'swara.widget.NEXT':
+        unawaited(service.next());
+        break;
+      case 'swara.widget.PREV':
+        unawaited(service.smartPrevious());
+        break;
+    }
+  }
+
+  static Future<void> pushState(String title, String artist, bool playing) async {
+    try {
+      await _channel.invokeMethod('updateWidget', {
+        'title': title,
+        'artist': artist,
+        'playing': playing,
+      });
+    } catch (e) {
+      debugPrint('Widget state push failed: $e');
+    }
+  }
+}
+
+// Saves the playback position when the app is backgrounded, so a cold start
+// resumes paused at the exact minute:second the user left off.
+class _SwaraLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      PlayerService.instance.saveResumeStateNow();
+    }
+  }
 }
 
 // Registers dynamic launcher shortcuts and handles their callbacks.
@@ -116,6 +197,22 @@ Future<void> _handleAppShortcut(String shortcutType) async {
 // PlayerService and AudioService are safe to start together: the audio
 // handler only attaches a listener to the existing PlayerService singleton
 // and reads its state lazily at runtime.
+// Subscribe to playback state and mirror it into the home screen widget.
+void _startWidgetStatePush() {
+  Future<void> push() async {
+    final service = PlayerService.instance;
+    final song = service.currentSong;
+    await _WidgetBridge.pushState(
+      song?.title ?? 'Swara',
+      song?.artist ?? '',
+      song != null && service.player.playing,
+    );
+  }
+
+  PlayerService.instance.addListener(() => unawaited(push()));
+  unawaited(push());
+}
+
 Future<void> _bootApp({
   required ThemeProvider themeProvider,
   required LanguageProvider languageProvider,
@@ -124,6 +221,7 @@ Future<void> _bootApp({
     () async {
       try {
         await PlayerService.instance.init();
+        _startWidgetStatePush();
       } catch (e) {
         // Keep the app usable when the player fails to init.
         debugPrint('PlayerService init failed: $e');
@@ -136,7 +234,7 @@ Future<void> _bootApp({
           config: const AudioServiceConfig(
             androidNotificationChannelId:
                 'com.nikodwidharma.offline_music_player.channel.audio',
-            androidNotificationChannelName: 'Kontrol Musik Swara',
+            androidNotificationChannelName: 'Swara media controls',
             androidNotificationIcon: 'drawable/ic_stat_swara',
             androidNotificationOngoing: true,
             androidStopForegroundOnPause: true,

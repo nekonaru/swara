@@ -36,26 +36,27 @@ void main() {
   });
 
   group('equalizer', () {
-    test('band levels are sent in dB, not millibels', () {
+    test('band levels are clamped to the device reported range', () {
       final eq = read('lib/services/equalizer_service.dart');
-      // The plugin multiplies by 100 on its own, so multiplying here asked
-      // the device for +40 dB and every band threw IllegalArgumentException.
-      expect(eq.contains('gains[i] * 100'), isFalse);
-      expect(eq.contains('clamp(minDb.toDouble(), maxDb.toDouble())'), isTrue);
+      // The native android.media.audiofx.Equalizer takes millibels and each
+      // device reports its own usable range. The old plugin took dB and
+      // multiplied by 100 itself, and asking for +40 dB made every band
+      // throw. Here every band written must be clamped to the range the
+      // device reports at attach time.
+      expect(eq.contains('clamp(minLevelMb, maxLevelMb)'), isTrue);
+      expect(eq.contains('gains[i] * 100'), isTrue);
     });
 
-    test('the plugin calls that never reply are not awaited', () {
+    test('attach goes through the native DSP effect, not a dead plugin', () {
       final eq = read('lib/services/equalizer_service.dart');
       // equalizer_flutter 0.0.1 never calls result.success for init, enable,
-      // release, setBandLevel or setPreset, so awaiting them always timed out
-      // and left the equalizer permanently disabled.
-      expect(
-        eq.contains('await _run(() => EqualizerFlutter.init'),
-        isFalse,
-        reason: 'init must be fired without awaiting',
-      );
-      expect(eq.contains("'probe freqs'"), isTrue,
-          reason: 'readiness must be probed with a call that replies');
+      // release, setBandLevel or setPreset, so awaiting them always timed
+      // out and the equalizer never reached the audio. The rewrite must
+      // attach the native effect and read back the device band count and
+      // range before writing gains.
+      expect(eq.contains('attachEqualizer'), isTrue);
+      expect(eq.contains('getEqualizerInfo'), isTrue);
+      expect(eq.contains('EqualizerFlutter'), isFalse);
     });
   });
 

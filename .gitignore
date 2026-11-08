@@ -31,3 +31,7 @@ SECURITY_REPORT.md
 security-app.md
 security-general.md
 security-web.md
+
+# Local reference checkouts and tool sources, never committed.
+Auxio-dev/
+rea-main/

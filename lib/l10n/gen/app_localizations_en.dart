@@ -1871,4 +1871,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String searchDidYouMean(String suggestion) {
     return 'Did you mean \"$suggestion\"?';
   }
+
+  @override
+  String get eqOpenSystem => 'Open system equalizer';
+
+  @override
+  String get eqOpenSystemSubtitle =>
+      'Opens Wavelet or the equalizer built into your phone';
+
+  @override
+  String get eqNoSystemEqualizer =>
+      'No equalizer app found. Install Wavelet or use the built-in presets.';
 }

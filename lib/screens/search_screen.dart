@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,12 +9,12 @@ import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
-import '../services/art_cache_service.dart';
 import '../utils/format.dart';
 import '../utils/search_filter.dart';
 import '../utils/song_options.dart';
 import '../widgets/playing_indicator.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/song_art_image.dart';
 
 enum _SearchFilter { lagu, album, artis, folder, genre }
 
@@ -749,24 +749,20 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   // Artwork used when this row is not the current song.
-  Widget _artFallback(Song song) => song.albumArtUrl != null
-      // Disk cached artwork with network fallback.
-      ? ClipOval(
-          child: CachedArtImage(
-            url: song.albumArtUrl!,
-            width: 40,
-            height: 40,
-            fit: BoxFit.cover,
-            // Decode thumbnail size only to save image memory.
-            cacheWidth: 88,
-            fallback: const CircleAvatar(
-              child: Icon(Icons.music_note, size: 20),
-            ),
+  // Embedded art wins over network fetch; see SongArtImage.
+  Widget _artFallback(Song song) => ClipOval(
+        child: SongArtImage(
+          song: song,
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
+          // Decode thumbnail size only to save image memory.
+          cacheWidth: 88,
+          fallback: const CircleAvatar(
+            child: Icon(Icons.music_note, size: 20),
           ),
-        )
-      : const CircleAvatar(
-          child: Icon(Icons.music_note, size: 20),
-        );
+        ),
+      );
 
   Widget _buildResults(List<Song> results) {
     final l = AppLocalizations.of(context)!;

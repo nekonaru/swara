@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
-import '../services/art_cache_service.dart';
+﻿import 'package:flutter/material.dart';
+import '../widgets/song_art_image.dart';
 import '../services/player_service.dart';
 import '../screens/player_screen.dart';
 import '../utils/page_transitions.dart';
@@ -46,24 +46,16 @@ class MiniPlayer extends StatelessWidget {
                   tag: 'swara_art_${song.id}',
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(6),
-                    child: song.albumArtUrl != null
-                        // Disk cached artwork with network fallback.
-                        ? CachedArtImage(
-                            url: song.albumArtUrl!,
-                            width: 44, height: 44, fit: BoxFit.cover,
-                            // Decode thumbnail size only to save image memory.
-                            cacheWidth: 88,
-                            fallback: Container(
-                              width: 44, height: 44, color: Colors.grey[400],
-                              child: const Icon(Icons.music_note, size: 20),
-                            ),
-                          )
-                        : Container(
-                            width: 44,
-                            height: 44,
-                            color: Colors.grey[400],
-                            child: const Icon(Icons.music_note, size: 20),
-                          ),
+                    child: SongArtImage(
+                      song: song,
+                      width: 44, height: 44, fit: BoxFit.cover,
+                      // Decode thumbnail size only to save image memory.
+                      cacheWidth: 88,
+                      fallback: Container(
+                        width: 44, height: 44, color: Colors.grey[400],
+                        child: const Icon(Icons.music_note, size: 20),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),

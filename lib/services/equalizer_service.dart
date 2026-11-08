@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:equalizer_flutter/equalizer_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+
+import 'audio_effects_service.dart';
 
 /// Resample a 5-band EQ curve to [bandCount] device bands.
 ///
@@ -40,19 +41,21 @@ const Map<String, List<double>> kEqCurves = {
   'Custom': [0, 0, 0, 0, 0],
 };
 
-/// Drives the Android system equalizer for the active audio session.
+/// Drives the Android system equalizer on the active audio session.
 ///
-/// The effect is real DSP on the output mix, not a visualizer. The
-/// underlying plugin is old and can hang on some devices, so EVERY
-/// platform call goes through [_guard] with a timeout: a stuck call
-/// degrades to flat sound instead of freezing the settings screen.
+/// The effect is real DSP on the output mix via android.media.audiofx.Equalizer,
+/// not a visualizer. The whole session is handled natively on purpose: the
+/// old plugin fired its calls without ever returning a result, and every
+/// band write was a guess. Here every call is awaited with a timeout, band
+/// count and level range are read from the device, and a failure degrades to
+/// flat sound instead of hanging the settings screen.
 class EqualizerService {
   EqualizerService._();
   static final EqualizerService instance = EqualizerService._();
 
-  /// A plugin call taking longer than this is treated as failed.
-  /// Without this, one stuck method-channel call freezes preset
-  /// switching until the settings screen is reopened.
+  /// A platform call taking longer than this is treated as failed.
+  /// Without this, one stuck call freezes preset switching until the
+  /// settings screen is reopened.
   static const Duration _pluginTimeout = Duration(milliseconds: 2500);
 
   /// Slider drags fire roughly 60 events per second. Applying each one would
@@ -79,23 +82,17 @@ class EqualizerService {
 
   String get preset => _preset;
   bool get isReady => _ready;
+  int? get sessionId => _sessionId;
 
-  // Send a command to the plugin WITHOUT waiting for its Future.
-  //
-  // equalizer_flutter 0.0.1 has an incomplete MethodChannel: the native
-  // handler for init, enable, release, setBandLevel and setPreset never calls
-  // result.success or result.error, so the Dart Future for those calls never
-  // completes. Awaiting them always timed out, which left _ready false and
-  // meant no gain ever reached the audio. Readiness is therefore probed with
-  // getCenterBandFreqs, which does reply.
+  final AudioEffectsService _native = AudioEffectsService.instance;
+
   void _fire(Future<void> Function() op, String what) {
     unawaited(op().timeout(_pluginTimeout).then<void>((_) {}).catchError((Object e) {
       debugPrint('Equalizer $what failed: $e');
     }));
   }
 
-  Future<List<int>?> _getList(
-      Future<List<int>> Function() op, String what) async {
+  Future<T?> _get<T>(Future<T?> Function() op, String what) async {
     try {
       return await op().timeout(_pluginTimeout);
     } catch (e) {
@@ -154,16 +151,13 @@ class EqualizerService {
       return true;
     }
     await release();
-    // init never replies, so it is sent without awaiting and readiness is
-    // confirmed through a call that does reply.
-    _fire(() => EqualizerFlutter.init(sessionId), 'init');
-    final probe = await _getList(
-        () => EqualizerFlutter.getCenterBandFreqs(), 'probe freqs');
-    if (probe == null || probe.isEmpty) {
+    final attached = await _get<bool>(
+        () => _native.attachEqualizer(sessionId), 'attach');
+    if (attached != true) {
       _ready = false;
       _sessionId = null;
-      debugPrint('Equalizer: no usable band configuration on this device, '
-          'the equalizer stays disabled.');
+      debugPrint('Equalizer: could not attach to the audio session. '
+          'The device may not support the effect.');
       return false;
     }
     _sessionId = sessionId;
@@ -194,47 +188,62 @@ class EqualizerService {
 
   Future<void> _applyBandsNow() async {
     if (_preset == 'Flat') {
-      _fire(() => EqualizerFlutter.setEnabled(false), 'disable');
+      _fire(() => _native.setEqualizerEnabled(false), 'disable');
       return;
     }
-    _fire(() => EqualizerFlutter.setEnabled(true), 'enable');
+    await _get<void>(() => _native.setEqualizerEnabled(true), 'enable');
     final List<double> curve;
     if (_preset == 'Custom') {
       curve = List.of(_customGains);
     } else {
       curve = kEqCurves[_preset] ?? kEqCurves['Flat']!;
     }
-    var bandCount = 5;
-    // getBandLevelRange is documented as dB, and setBandLevel takes dB too
-    // (this plugin multiplies by 100 to reach native millibels). The previous
-    // code multiplied by 100 as well, which asked the device for +40 dB and
-    // made every band fail with IllegalArgumentException.
-    var minDb = -15;
-    var maxDb = 15;
-    final range =
-        await _getList(() => EqualizerFlutter.getBandLevelRange(), 'range');
-    if (range != null && range.length >= 2) {
-      minDb = range[0];
-      maxDb = range[1];
-    }
-    final freqs = await _getList(
-        () => EqualizerFlutter.getCenterBandFreqs(), 'freqs');
-    if (freqs != null && freqs.isNotEmpty) bandCount = freqs.length;
+    final info = await _get<Map<String, dynamic>>(
+        _native.getEqualizerInfo, 'info');
+    final bandCount = info?['bands'] as int? ?? 5;
+    final minLevelMb = info?['minLevelMilliBels'] as int? ?? -1500;
+    final maxLevelMb = info?['maxLevelMilliBels'] as int? ?? 1500;
     final gains = resampleCurve(curve, bandCount);
     for (int i = 0; i < bandCount; i++) {
-      final db = gains[i].clamp(minDb.toDouble(), maxDb.toDouble()).round();
-      _fire(() => EqualizerFlutter.setBandLevel(i, db), 'band $i');
+      final milliBels =
+          (gains[i] * 100).round().clamp(minLevelMb, maxLevelMb);
+      _fire(() => _native.setBandLevel(i, milliBels), 'band $i');
     }
   }
 
   Future<void> release() async {
-    // Drop a pending throttled apply, the effect is going away anyway.
     _applyTimer?.cancel();
     _applyTimer = null;
     _applyQueued = false;
     if (!_ready) return;
-    _fire(() => EqualizerFlutter.release(), 'release');
+    _fire(_native.releaseEqualizer, 'release');
     _ready = false;
     _sessionId = null;
+  }
+
+  /// Broadcast that an audio effect control session opened for [sessionId],
+  /// so system effect apps (Wavelet and similar) attach to our session.
+  Future<void> openSystemAudioEffectSession(int? sessionId) =>
+      _native.openAudioEffectSession(sessionId).then((_) {});
+
+  /// Broadcast that the audio effect control session closed for [sessionId],
+  /// so external effect apps detach cleanly.
+  Future<void> closeSystemAudioEffectSession(int? sessionId) =>
+      _native.closeAudioEffectSession(sessionId).then((_) {});
+
+  /// Register a listener for ACTION_AUDIO_BECOMING_NOISY. [handler] is
+  /// invoked on the main isolate with no arguments.
+  void onBecomingNoisy(void Function() handler) {
+    _native.onEvent('onAudioBecomingNoisy', handler);
+    unawaited(_native.registerNoisyListener());
+  }
+
+  /// Open the system equalizer panel for the attached session, the same
+  /// flow Auxio uses (ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL). Returns
+  /// false when no equalizer app is installed or the panel cannot open.
+  Future<bool> openSystemEqualizer() async {
+    final sessionId = _sessionId;
+    if (sessionId == null) return false;
+    return _native.openEqualizerPanel(sessionId);
   }
 }

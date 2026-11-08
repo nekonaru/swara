@@ -1872,4 +1872,15 @@ class AppLocalizationsId extends AppLocalizations {
   String searchDidYouMean(String suggestion) {
     return 'Maksudmu \"$suggestion\"?';
   }
+
+  @override
+  String get eqOpenSystem => 'Buka equalizer sistem';
+
+  @override
+  String get eqOpenSystemSubtitle =>
+      'Membuka Wavelet atau equalizer bawaan HPmu';
+
+  @override
+  String get eqNoSystemEqualizer =>
+      'Tidak ada aplikasi equalizer ditemukan. Pasang Wavelet atau pakai preset bawaan.';
 }

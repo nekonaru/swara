@@ -218,7 +218,7 @@ abstract class AppLocalizations {
   /// **'Equalizer'**
   String get settingsEqualizer;
 
-  /// Honest disclaimer that EQ presets are visual only
+  /// Presets and the custom curve shape the actual playback sound through the system equalizer
   ///
   /// In en, this message translates to:
   /// **'These presets shape the actual playback sound through the system equalizer. Your choice is saved between sessions.'**
@@ -3296,6 +3296,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Did you mean \"{suggestion}\"?'**
   String searchDidYouMean(String suggestion);
+
+  /// Button that opens the system equalizer app for this session
+  ///
+  /// In en, this message translates to:
+  /// **'Open system equalizer'**
+  String get eqOpenSystem;
+
+  /// Subtitle for the system equalizer button
+  ///
+  /// In en, this message translates to:
+  /// **'Opens Wavelet or the equalizer built into your phone'**
+  String get eqOpenSystemSubtitle;
+
+  /// Shown when no system equalizer panel can be opened
+  ///
+  /// In en, this message translates to:
+  /// **'No equalizer app found. Install Wavelet or use the built-in presets.'**
+  String get eqNoSystemEqualizer;
 }
 
 class _AppLocalizationsDelegate

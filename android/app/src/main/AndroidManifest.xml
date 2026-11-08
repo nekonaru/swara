@@ -56,6 +56,25 @@
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".SwaraWidgetActionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="swara.widget.TOGGLE" />
+                <action android:name="swara.widget.NEXT" />
+                <action android:name="swara.widget.PREV" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".SwaraWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/swara_widget_info" />
+        </receiver>
     </application>
     <!-- Package visibility (Android 11+): needed so url_launcher can resolve
          and open https links such as the Google lyrics search. -->

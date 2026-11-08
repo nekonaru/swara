@@ -648,6 +648,29 @@ class DBHelper {
     await batch.commit(noResult: true);
   }
 
+  /// Look up songs by their ids, returning them in the order of [ids].
+  /// Missing rows are dropped. Used by the playback resume restore, which
+  /// stores the play order of the queue as song ids.
+  Future<List<Song>> getSongsByIds(List<int> ids) async {
+    if (ids.isEmpty) return const <Song>[];
+    final database = await db;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final rows = await database.rawQuery(
+      'SELECT * FROM songs WHERE id IN ($placeholders)',
+      ids,
+    );
+    final byId = <int, Song>{};
+    for (final song in await _songsFromRows(rows)) {
+      byId[song.id] = song;
+    }
+    final out = <Song>[];
+    for (final id in ids) {
+      final song = byId[id];
+      if (song != null) out.add(song);
+    }
+    return out;
+  }
+
   Future<void> setFavorite(int songId, bool value) async {
     final database = await db;
     await database.update('songs', {'isFavorite': value ? 1 : 0},

@@ -82,7 +82,7 @@
                            },
     "settingsEqualizerNote":  "Preset ini membentuk suara putar yang sebenarnya lewat equalizer sistem. Pilihan disimpan antar sesi.",
     "@settingsEqualizerNote":  {
-                                   "description":  "Honest disclaimer that EQ presets are visual only"
+                                   "description":  "Preset dan kurva kustom membentuk suara putar sebenarnya lewat equalizer sistem"
                                },
     "settingsLibrary":  "Library",
     "@settingsLibrary":  {
@@ -2104,5 +2104,17 @@
                                                                "type":  "String"
                                                            }
                                              }
-                        }
+                        },
+    "eqOpenSystem":  "Buka equalizer sistem",
+    "@eqOpenSystem":  {
+                         "description":  "Tombol untuk membuka aplikasi equalizer sistem untuk sesi ini"
+                     },
+    "eqOpenSystemSubtitle":  "Membuka Wavelet atau equalizer bawaan HPmu",
+    "@eqOpenSystemSubtitle":  {
+                                 "description":  "Subjudul tombol equalizer sistem"
+                             },
+    "eqNoSystemEqualizer":  "Tidak ada aplikasi equalizer ditemukan. Pasang Wavelet atau pakai preset bawaan.",
+    "@eqNoSystemEqualizer":  {
+                                "description":  "Ditampilkan saat panel equalizer sistem tidak bisa dibuka"
+                            }
 }

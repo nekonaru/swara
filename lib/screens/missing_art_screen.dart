@@ -5,6 +5,8 @@ import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../services/metadata_service.dart';
 
+import '../services/embedded_art_service.dart';
+
 // Screen listing songs that have no cover art, with per song and bulk refetch.
 class MissingArtScreen extends StatefulWidget {
   const MissingArtScreen({super.key});
@@ -16,7 +18,12 @@ class MissingArtScreen extends StatefulWidget {
 bool _hasNoArt(Song s) {
   final path = (s.albumArtPath ?? '').trim();
   final url = (s.albumArtUrl ?? '').trim();
-  return path.isEmpty && url.isEmpty;
+  if (path.isNotEmpty || url.isNotEmpty) return false;
+  // A known extracted embedded cover means there is art; the rest of the
+  // embedded art is probed lazily as rows render, so the list gets more
+  // accurate as the user browses.
+  if (EmbeddedArtService.instance.peekSync(s.id) != null) return false;
+  return true;
 }
 
 class _MissingArtScreenState extends State<MissingArtScreen> {

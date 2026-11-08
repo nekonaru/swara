@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
-import '../services/art_cache_service.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/entrance_fade.dart';
 import '../widgets/sort_chip.dart';
+import '../widgets/song_art_image.dart';
+import '../services/embedded_art_service.dart';
 import 'extra_screens.dart';
 
 // Sort mode for the album grid. Session only, no persistence needed.
@@ -203,16 +204,22 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
               itemBuilder: (context, i) {
                 final album = albums[i];
                 final songs = grouped[album]!;
+                // Prefer a member with a usable cover: first an already
+                // known local (embedded) file, then a remote URL, else any.
                 final cover = songs.firstWhere(
-                    (s) => s.albumArtUrl != null,
-                    orElse: () => songs.first);
+                    (s) =>
+                        (s.albumArtPath ?? '').trim().isNotEmpty ||
+                        EmbeddedArtService.instance.peekSync(s.id) != null,
+                    orElse: () => songs.firstWhere(
+                        (s) => s.albumArtUrl != null,
+                        orElse: () => songs.first));
                 return EntranceFade(
                   index: i,
                   key: ValueKey('album_$album'),
                   child: _AlbumCard(
                     album: album,
                     songs: songs,
-                    coverUrl: cover.albumArtUrl,
+                    coverSong: cover,
                   ),
                 );
               },
@@ -227,10 +234,10 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
 class _AlbumCard extends StatelessWidget {
   final String album;
   final List<Song> songs;
-  final String? coverUrl;
+  final Song coverSong;
 
   const _AlbumCard(
-      {required this.album, required this.songs, this.coverUrl});
+      {required this.album, required this.songs, required this.coverSong});
 
   @override
   Widget build(BuildContext context) {
@@ -263,21 +270,19 @@ class _AlbumCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Cover art
+            // Cover art: local embedded art wins, see the lookup at the
+            // call site for the priority order.
             Expanded(
               child: ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(12)),
-                child: coverUrl != null
-                    // Disk cached artwork with network fallback.
-                    ? CachedArtImage(
-                        url: coverUrl!,
-                        fit: BoxFit.cover,
-                        // Match grid column width to limit decoded size.
-                        cacheWidth: 400,
-                        fallback: _PlaceholderCover(cs: cs),
-                      )
-                    : _PlaceholderCover(cs: cs),
+                child: SongArtImage(
+                  song: coverSong,
+                  fit: BoxFit.cover,
+                  // Match grid column width to limit decoded size.
+                  cacheWidth: 400,
+                  fallback: _PlaceholderCover(cs: cs),
+                ),
               ),
             ),
             // Info

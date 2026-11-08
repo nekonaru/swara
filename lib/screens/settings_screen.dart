@@ -10,6 +10,7 @@ import '../providers/theme_provider.dart';
 import '../providers/library_provider.dart';
 import '../services/backup_service.dart';
 import '../services/db_helper.dart';
+import '../services/audio_effects_service.dart';
 import '../services/equalizer_service.dart';
 import '../services/player_service.dart';
 import '../utils/scan_controls.dart';
@@ -380,6 +381,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await save();
     } finally {
       if (mounted) setState(() => _savingPrefs = false);
+    }
+  }
+
+  // Open the system equalizer panel for this session, the same flow Auxio
+  // uses. The EQ effect session exists only after a song has played; when
+  // none is attached yet, fall back to the active player's raw session id
+  // so the panel can still open. If no equalizer app answers, say so
+  // instead of pretending it worked.
+  Future<void> _openSystemEqualizer() async {
+    if (_savingPrefs) return;
+    final sessionId = EqualizerService.instance.sessionId ??
+        PlayerService.instance.player.androidAudioSessionId;
+    if (sessionId == null || sessionId <= 0) return;
+    final opened = await AudioEffectsService.instance.openEqualizerPanel(sessionId);
+    if (!mounted) return;
+    if (!opened) {
+      _showSnack(AppLocalizations.of(context)!.eqNoSystemEqualizer);
     }
   }
 
@@ -757,6 +775,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               preset: themeProvider.equalizerPreset,
               customGains: _eqDraftFrom(themeProvider),
             ),
+          ),
+          // Open the system equalizer (Wavelet or the built-in panel) for
+          // this session, the same flow Auxio uses.
+          ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 2),
+            leading: const Icon(Icons.tune_outlined),
+            title: Text(l10n.eqOpenSystem),
+            subtitle: Text(l10n.eqOpenSystemSubtitle),
+            onTap: _openSystemEqualizer,
           ),
           const Divider(),
 

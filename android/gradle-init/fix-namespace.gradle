@@ -1,7 +1,6 @@
 // Gradle init script for third party plugins that ship a build.gradle
 // without a 'namespace'. AGP 8+ refuses to configure such a project, so
 // without this the release build fails before reaching any app code:
-//   equalizer_flutter (com.android.build.api.variant.LibraryVariantBuilderImpl)
 //   on_audio_query (no namespace, and compileSdk 33 while androidx
 //   requires at least 34)
 //

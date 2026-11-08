@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../services/embedded_art_service.dart';
 
 import '../services/db_helper.dart';
 
@@ -329,6 +330,9 @@ class BackupService {
           continue;
         }
       }
+      // Include the extracted embedded covers as well.
+      bytes += await EmbeddedArtService.totalBytes();
+      files += await EmbeddedArtService.totalFiles();
     } catch (_) {
       // On DB failure report an empty cache rather than throwing.
     }
@@ -364,6 +368,8 @@ class BackupService {
       } catch (_) {
         // File deletion already done; DB null-out is best effort here.
       }
+      // Also drop the extracted embedded covers, from disk and from memory.
+      deleted += await EmbeddedArtService.clearCache();
     } catch (_) {
       // Report partial progress instead of throwing.
     }

@@ -82,7 +82,7 @@
                            },
     "settingsEqualizerNote":  "These presets shape the actual playback sound through the system equalizer. Your choice is saved between sessions.",
     "@settingsEqualizerNote":  {
-                                   "description":  "Honest disclaimer that EQ presets are visual only"
+                                   "description":  "Presets and the custom curve shape the actual playback sound through the system equalizer"
                                },
     "settingsLibrary":  "Library",
     "@settingsLibrary":  {
@@ -2104,5 +2104,17 @@
                                                                "type":  "String"
                                                            }
                                              }
-                        }
+                        },
+    "eqOpenSystem":  "Open system equalizer",
+    "@eqOpenSystem":  {
+                         "description":  "Button that opens the system equalizer app for this session"
+                     },
+    "eqOpenSystemSubtitle":  "Opens Wavelet or the equalizer built into your phone",
+    "@eqOpenSystemSubtitle":  {
+                                 "description":  "Subtitle for the system equalizer button"
+                             },
+    "eqNoSystemEqualizer":  "No equalizer app found. Install Wavelet or use the built-in presets.",
+    "@eqNoSystemEqualizer":  {
+                                "description":  "Shown when no system equalizer panel can be opened"
+                            }
 }
