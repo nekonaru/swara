@@ -1,5 +1,26 @@
 # Changelog
 
+## v3.4.0
+
+Rilis pengalaman native: pemutaran berlanjut di tempat terakhir, equalizer sistem yang sungguhan, widget layar home, dan crossfade yang tidak lagi melewatkan lagu.
+
+## Fitur baru
+
+- **Resume pemutaran.** Aplikasi terbuka kembali dalam kondisi paused di lagu dan menit:detik terakhir yang kamu dengar, seperti pemutar native.
+- **Widget layar home.** Swara menampilkan lagu yang sedang diputar dengan kontrol sebelumnya, putar, dan berikutnya langsung di layar home.
+- **Jeda saat headset dicabut.** Pemutaran jeda otomatis saat headset dicabut atau rute Bluetooth terputus.
+- **Pintasan equalizer sistem.** Baris baru di Pengaturan membuka Wavelet atau equalizer bawaan HPmu untuk sesi ini, alur yang sama seperti Auxio.
+- **Cover art bawaan file.** Cover yang tertanam di file audio diambil dan ditampilkan otomatis, tanpa fetch internet.
+
+## Peningkatan
+
+- **Equalizer dalam aplikasi kini DSP sungguhan.** Preset dan kurva 5 band kustom diterapkan lewat audio effect sistem pada sesi yang aktif; plugin lama tidak pernah mengembalikan hasil, jadi slider tidak mengubah apa pun.
+
+## Perbaikan bug
+
+- **Crossfade merusak lanjut otomatis.** Dengan crossfade aktif, lagu berhenti lanjut otomatis setelah beberapa lagu karena player yang dipakai ulang bisa berhenti memancarkan event completed; watchdog posisi kini menjamin antrean bergerak maju.
+- **Layar player macet di lagu lama.** Memulai lagu baru bisa membuat player menampilkan judul sebelumnya; layar kini dibangun ulang per id lagu.
+
 ## v3.3.0
 
 Rilis performa: daftar dan artwork kini tampil semulus pemutar native, dan proyek mengikuti satu proses rilis yang sama.

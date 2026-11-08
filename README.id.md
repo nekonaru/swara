@@ -56,7 +56,10 @@
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Pemutaran offline** | Pindai dan putar musik langsung dari penyimpanan ponsel |
+| **Resume pemutaran** | Melanjutkan lagu terakhir pada menit:detik yang sama saat aplikasi dibuka kembali |
+| **Cabut headset** | Pemutaran jeda otomatis saat headset dicabut atau rute Bluetooth terputus |
 | **Pemutaran di latar belakang** | Foreground service Android asli dengan MediaSession: kontrol notifikasi dan layar kunci (putar/jeda/berikutnya/sebelumnya) |
+| **Widget layar home** | Lagu yang sedang diputar dengan kontrol sebelumnya/putar/berikutnya langsung di layar home |
 | **Acak dan ulangi** | Acak, ulangi mati / semua / satu lagu, plus sleep timer berdasarkan durasi atau jumlah lagu |
 | **Mini player** | Selalu terlihat di setiap halaman; kontrol kecepatan putar dari 0.5x sampai 2x |
 | **Acak pintar** | Mengutamakan lagu yang jarang diputar dan lama tidak diputar |
@@ -66,8 +69,8 @@
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| **Equalizer sungguhan** | 9 preset yang membentuk suara pemutaran sebenarnya lewat DSP sistem |
-| **Kontrol crossfade** | Transisi 0-12 detik yang bisa diatur plus EQ 5 band kustom |
+| **Equalizer sungguhan** | 9 preset yang membentuk suara pemutaran sebenarnya lewat DSP sistem, plus tombol pembuka equalizer sistem (Wavelet atau bawaan HPmu) |
+| **Kontrol crossfade** | Transisi 0-12 detik yang bisa diatur plus EQ 5 band kustom (jalur DSP yang sama) |
 | **Kecepatan dan pitch** | Kecepatan putar 0.5x sampai 2.0x plus kontrol pitch dengan penerapan langsung dan reset |
 
 ### Sleep Timer
@@ -101,6 +104,7 @@
 | **Pencarian toleran** | Menemukan "faded alan walker" untuk "faded - alan walker" |
 | **Pencarian toleran typo** | Menemukan lagu meski huruf tertukar atau salah ketik, dengan petunjuk "maksud kamu" |
 | **Bagikan lagu** | Bagikan info lagu yang sedang diputar beserta file audionya |
+| **Cover art bawaan file** | Cover yang tertanam di file audio diambil dan ditampilkan otomatis, tanpa internet |
 
 ### Perawatan Pustaka
 

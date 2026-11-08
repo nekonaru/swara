@@ -56,7 +56,10 @@
 | Feature | Description |
 |---------|-------------|
 | **Offline playback** | Scan and play music directly from phone storage |
+| **Resume playback** | Picks up the last song at the same minute:second when the app opens again |
+| **Headset unplug** | Playback pauses automatically when the headset is unplugged or the Bluetooth route is lost |
 | **Background playback** | Real Android foreground service with MediaSession: notification and lockscreen controls (play/pause/next/previous) |
+| **Home screen widget** | Current song with prev/play/next controls right on the home screen |
 | **Shuffle and repeat** | Shuffle, repeat off / all / one, plus sleep timer by duration or song count |
 | **Mini player** | Always visible on every page; playback speed control from 0.5x to 2x |
 | **Smart shuffle** | Biases playback toward rarely played and long unplayed songs |
@@ -66,8 +69,8 @@
 
 | Feature | Description |
 |---------|-------------|
-| **Real equalizer** | 9 presets shaping actual playback sound via system DSP |
-| **Crossfade control** | Adjustable 0-12s transition plus custom 5-band EQ |
+| **Real equalizer** | 9 presets shaping actual playback sound via the system DSP, plus a button that opens the system equalizer (Wavelet or the built-in one) |
+| **Crossfade control** | Adjustable 0-12s transition plus custom 5-band EQ (same DSP path) |
 | **Speed and pitch** | Playback speed 0.5x to 2.0x plus pitch control with live apply and reset |
 
 ### Sleep Timer
@@ -101,6 +104,7 @@
 | **Forgiving search** | Finds "faded alan walker" for "faded - alan walker" |
 | **Typo tolerant search** | Finds songs despite swapped or mistyped letters, with a "did you mean" hint |
 | **Share songs** | Share the currently playing info plus audio file |
+| **Embedded cover art** | Cover art stored inside the audio file is extracted and shown automatically, no network needed |
 
 ### Library Maintenance
 

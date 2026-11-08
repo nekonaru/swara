@@ -1,5 +1,26 @@
 # Changelog
 
+## v3.4.0
+
+A native-experience release: playback state resumes where you left off, a real system equalizer, a home screen widget, and crossfade that never skips songs.
+
+## New features
+
+- **Playback resume.** The app reopens paused at the last song and minute:second you listened, like a native player.
+- **Home screen widget.** Swara shows the current song with previous, play and next controls right on the home screen.
+- **Headset unplug pause.** Playback pauses automatically when the headset is unplugged or the Bluetooth route is lost.
+- **System equalizer shortcut.** A new row in Settings opens Wavelet or the phone's built-in equalizer for the current session, the same flow Auxio uses.
+- **Embedded cover art.** Cover art stored inside the audio file is extracted and shown automatically, no network fetch needed.
+
+## Improvements
+
+- **The in-app equalizer is real DSP now.** The presets and the custom 5-band curve are applied through the system audio effect on the active session; the old plugin never returned a result, so the sliders changed nothing.
+
+## Bug fixes
+
+- **Crossfade broke auto advance.** With crossfade enabled, songs stopped continuing automatically after a few tracks because reused players could stop emitting the completed event; a position watchdog now guarantees the queue moves forward.
+- **Player screen froze on the old song.** Starting a new song could leave the player showing the previous title; the screen now rebuilds per song id.
+
 ## v3.3.0
 
 A performance release: lists and artwork now render like a native player, and the project follows one shared release process.
