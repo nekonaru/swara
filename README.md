@@ -161,6 +161,13 @@
 | **Smooth on huge libraries** | Search, sorting, and single-row updates run off the main thread, with cached derived views and hoisted regexes, so nothing stutters |
 | **Fluid scrolling** | Artwork decodes at display size, lists never re-sort or re-group in the build path, and startup decodes lyrics for the whole library off the main thread |
 
+### App
+
+| Feature | Description |
+|---------|-------------|
+| **In-app update check** | Tap the version in About to check the latest GitHub release and install the APK in place, no uninstall needed |
+| **Support links** | The About page offers donation links: GitHub Sponsors, Saweria, SociaBuzz, and BagiBagi |
+
 ---
 
 ## Requirements

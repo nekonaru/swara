@@ -1,5 +1,25 @@
 # Changelog
 
+## v3.5.0
+
+Izin di awal, jalur update langsung dari halaman About, tautan donasi untuk pengembang, dan default yang lebih halus.
+
+## Fitur baru
+
+- **Izin di awal.** Instalasi baru kini meminta akses musik dan izin notifikasi di awal aplikasi, bukan saat onboarding atau scan pertama.
+- **Update dalam aplikasi.** Mengetuk baris versi di About memeriksa rilis GitHub terbaru dan, bila ada, mengunduh split APK yang cocok untuk perangkatmu dan memasangnya di tempat. Tanpa uninstall.
+- **Bagian dukungan.** About kini menyediakan tautan donasi langsung: GitHub Sponsors, Saweria, SociaBuzz, dan BagiBagi.
+- **Pengaturan player tetap tersimpan.** Pilihan shuffle dan repeat bertahan setelah aplikasi dibuka ulang; sebelumnya hanya crossfade, kecepatan, pitch, dan smart shuffle yang bertahan.
+
+## Peningkatan
+
+- **Text scale lebih rapat.** Small sedikit lebih kecil dari default, Normal tetap menjadi default 0.85, Large menjadi opsi teratas, dan extra-large dihilangkan.
+- **Ikuti sistem secara default.** Instalasi baru mengikuti penampilan sistem; gelap bukan lagi default paksa.
+
+## Perbaikan bug
+
+- **Duplicate finder tampil saat ada yang ditemukan.** Kartu duplicate finder di Collections hanya muncul bila memang ada duplikat; tidak lagi tampil hanya janji kosong.
+
 ## v3.4.0
 
 Rilis pengalaman native: pemutaran berlanjut di tempat terakhir, equalizer sistem yang sungguhan, widget layar home, dan crossfade yang tidak lagi melewatkan lagu.

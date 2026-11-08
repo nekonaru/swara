@@ -161,6 +161,13 @@
 | **Mulus di pustaka besar** | Pencarian, pengurutan, dan pembaruan satu baris berjalan di luar main thread, dengan tampilan turunan yang di-cache dan regex yang di-hoist, jadi tidak ada yang tersendat |
 | **Gulir yang jauh lebih halus** | Artwork didecode sesuai ukuran tampilan, daftar tidak pernah mengurut ulang atau mengelompokkan ulang di jalur build, dan startup mendekode lirik seisi pustaka di luar main thread |
 
+### Aplikasi
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **Cek pembaruan dalam aplikasi** | Ketuk versi di About untuk memeriksa rilis GitHub terbaru dan memasang APK di tempat, tanpa uninstall |
+| **Tautan dukungan** | Halaman About menyediakan tautan donasi: GitHub Sponsors, Saweria, SociaBuzz, dan BagiBagi |
+
 ---
 
 ## Persyaratan

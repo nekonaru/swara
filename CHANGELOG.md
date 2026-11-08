@@ -1,5 +1,25 @@
 # Changelog
 
+## v3.5.0
+
+Up-front permissions, an in-app update path from the About screen, support links for the developer, and smaller quality-of-life defaults.
+
+## New features
+
+- **Permissions up front.** Fresh installs now ask for music access and notification permission at first launch, instead of during onboarding or the first scan.
+- **In-app updates.** Tapping the version row in About checks the latest GitHub release and, when one exists, downloads the right split APK for your device and installs it in place. No uninstall needed.
+- **Support section.** About now offers direct donation links: GitHub Sponsors, Saweria, SociaBuzz, and BagiBagi.
+- **Player setup persists.** Shuffle and repeat choices survive a restart; previously only crossfade, speed, pitch, and smart shuffle did.
+
+## Improvements
+
+- **Text scale tightened up.** Small is a bit smaller than default, Normal stays the 0.85 default, Large is the top option, and extra-large is gone.
+- **Follow system by default.** Fresh installs follow the system appearance; dark is no longer the forced default.
+
+## Bug fixes
+
+- **Duplicate finder shows itself.** The duplicate finder card in Collections only appears when there are duplicates to find; it no longer shows an empty promise.
+
 ## v3.4.0
 
 A native-experience release: playback state resumes where you left off, a real system equalizer, a home screen widget, and crossfade that never skips songs.
