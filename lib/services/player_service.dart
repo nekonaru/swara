@@ -72,6 +72,9 @@ class PlayerService extends ChangeNotifier {
   static const String _prefsResumePositionMsKey = 'resume_position_ms';
   static const String _prefsResumeShuffleKey = 'resume_shuffle';
   static const String _prefsResumeRepeatKey = 'resume_repeat_mode';
+  // Player setup choices, persisted independently of the resume slice.
+  static const String _prefsShuffleKey = 'shuffle';
+  static const String _prefsRepeatModeKey = 'repeatMode';
   bool _resumeRestored = false;
   // While true, position events never trigger crossfade or track end.
   // Set during a cold-start resume so a saved position near the end of a
@@ -264,10 +267,9 @@ class PlayerService extends ChangeNotifier {
       if (songs.isEmpty) return;
       _queue = List.of(songs);
       _playOrder = List.generate(_queue.length, (i) => i);
-      _shuffle = prefs.getBool(_prefsResumeShuffleKey) ?? false;
-      _repeatMode = SwaraRepeatMode.values[
-          (prefs.getInt(_prefsResumeRepeatKey) ?? 0)
-              .clamp(0, SwaraRepeatMode.values.length - 1)];
+      // Shuffle and repeat come from their own persistent keys (loaded in
+      // init), not from the resume slice, so the settings the user changed
+      // survive a cold start even when there is no restore data.
       _posInOrder = (prefs.getInt(_prefsResumeIndexKey) ?? 0)
           .clamp(0, _queue.length - 1);
       queueVersion++;
@@ -417,7 +419,6 @@ class PlayerService extends ChangeNotifier {
       }
       // Playback speed and pitch. Clamped on read as well, so a corrupted or
       // out of range stored value can never produce an unplayable rate.
-      // TODO L10N: no user facing string added here, English only.
       final savedSpeed = prefs.getDouble(_prefsSpeedKey);
       if (savedSpeed != null && savedSpeed.isFinite) {
         _speed = savedSpeed.clamp(speedMin, speedMax).toDouble();
@@ -426,8 +427,33 @@ class PlayerService extends ChangeNotifier {
       if (savedPitch != null && savedPitch.isFinite) {
         _pitch = savedPitch.clamp(pitchMin, pitchMax).toDouble();
       }
+      // Shuffle and repeat are persisted on every change. Fall back to the
+      // resume slice when the dedicated key was never written (existing
+      // installs), and migrate the value forward on first read.
+      final savedShuffle = prefs.getBool(_prefsShuffleKey);
+      if (savedShuffle != null) {
+        _shuffle = savedShuffle;
+      } else {
+        final legacy = prefs.getBool(_prefsResumeShuffleKey);
+        if (legacy != null) {
+          _shuffle = legacy;
+          await prefs.setBool(_prefsShuffleKey, legacy);
+        }
+      }
+      final savedRepeat = prefs.getInt(_prefsRepeatModeKey);
+      if (savedRepeat != null) {
+        _repeatMode = SwaraRepeatMode.values[
+            savedRepeat.clamp(0, SwaraRepeatMode.values.length - 1)];
+      } else {
+        final legacy = prefs.getInt(_prefsResumeRepeatKey);
+        if (legacy != null) {
+          _repeatMode = SwaraRepeatMode.values[
+              legacy.clamp(0, SwaraRepeatMode.values.length - 1)];
+          await prefs.setInt(_prefsRepeatModeKey, legacy);
+        }
+      }
     } catch (e) {
-      debugPrint('Crossfade duration load failed: $e');
+      debugPrint('Player settings load failed: $e');
     }
     // The schedule ticker only runs while the schedule is enabled.
     if (_sleepScheduleEnabled) {
@@ -1294,6 +1320,8 @@ class PlayerService extends ChangeNotifier {
   /// "Shuffle" button so it always TURNS shuffle on instead of turning it off.
   void setShuffle(bool value) {
     _shuffle = value;
+    // Persist so a cold start comes back with the same setup.
+    unawaited(_persistShuffleRepeat());
     final song = currentSong;
     if (song == null) {
       notifyListeners();
@@ -1390,7 +1418,21 @@ class PlayerService extends ChangeNotifier {
 
   void cycleRepeatMode() {
     _repeatMode = SwaraRepeatMode.values[(_repeatMode.index + 1) % SwaraRepeatMode.values.length];
+    unawaited(_persistShuffleRepeat());
     notifyListeners();
+  }
+
+  // Write shuffle and repeat to their dedicated keys. Called on every change
+  // and best effort: a failed write only means the next cold start sees the
+  // previous choice, which matches how other prefs behave.
+  Future<void> _persistShuffleRepeat() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefsShuffleKey, _shuffle);
+      await prefs.setInt(_prefsRepeatModeKey, _repeatMode.index);
+    } catch (e) {
+      debugPrint('Shuffle/repeat persist failed: $e');
+    }
   }
 
   /// Set the A-B repeat segment. Returns false when invalid: A must be

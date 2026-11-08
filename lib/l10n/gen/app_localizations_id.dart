@@ -1883,4 +1883,61 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get eqNoSystemEqualizer =>
       'Tidak ada aplikasi equalizer ditemukan. Pasang Wavelet atau pakai preset bawaan.';
+
+  @override
+  String get donateTitle => 'Dukung Swara';
+
+  @override
+  String get donateSubtitle =>
+      'Swara gratis, offline, dan bebas iklan. Sedikit dukunganmu membantu Swara tetap begitu.';
+
+  @override
+  String get donateGithub => 'GitHub Sponsors';
+
+  @override
+  String get donateSaweria => 'Saweria';
+
+  @override
+  String get donateSociabuzz => 'SociaBuzz';
+
+  @override
+  String get donateBagibagi => 'BagiBagi';
+
+  @override
+  String get settingsUpdateChecking => 'Memeriksa pembaruan…';
+
+  @override
+  String get settingsUpToDate => 'Swara sudah versi terbaru';
+
+  @override
+  String get settingsUpdateAvailableTitle => 'Pembaruan tersedia';
+
+  @override
+  String settingsUpdateAvailableBody(String version, String current) {
+    return 'Swara $version tersedia (kamu punya $current). Unduh dan pasang sekarang?';
+  }
+
+  @override
+  String get settingsUpdateDownloading => 'Mengunduh pembaruan…';
+
+  @override
+  String get settingsUpdateCheckFailed =>
+      'Tidak bisa memeriksa pembaruan. Periksa koneksimu.';
+
+  @override
+  String get settingsUpdateFailed =>
+      'Pembaruan gagal. Periksa koneksimu lalu coba lagi.';
+
+  @override
+  String get settingsUpdateInstallFailed =>
+      'Tidak bisa membuka pemasang. Izinkan instalasi dari sumber tidak dikenal untuk Swara.';
+
+  @override
+  String get settingsLater => 'Nanti';
+
+  @override
+  String get settingsUpdate => 'Perbarui';
+
+  @override
+  String get settingsCheckForUpdate => 'Periksa pembaruan';
 }

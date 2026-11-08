@@ -1882,4 +1882,61 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get eqNoSystemEqualizer =>
       'No equalizer app found. Install Wavelet or use the built-in presets.';
+
+  @override
+  String get donateTitle => 'Support Swara';
+
+  @override
+  String get donateSubtitle =>
+      'Swara is free, offline, and ad-free. Even the smallest donation keeps it that way.';
+
+  @override
+  String get donateGithub => 'GitHub Sponsors';
+
+  @override
+  String get donateSaweria => 'Saweria';
+
+  @override
+  String get donateSociabuzz => 'SociaBuzz';
+
+  @override
+  String get donateBagibagi => 'BagiBagi';
+
+  @override
+  String get settingsUpdateChecking => 'Checking for updates…';
+
+  @override
+  String get settingsUpToDate => 'Swara is up to date';
+
+  @override
+  String get settingsUpdateAvailableTitle => 'Update available';
+
+  @override
+  String settingsUpdateAvailableBody(String version, String current) {
+    return 'Swara $version is available (you have $current). Download and install now?';
+  }
+
+  @override
+  String get settingsUpdateDownloading => 'Downloading update…';
+
+  @override
+  String get settingsUpdateCheckFailed =>
+      'Could not check for updates. Check your connection.';
+
+  @override
+  String get settingsUpdateFailed =>
+      'Update failed. Check your connection and try again.';
+
+  @override
+  String get settingsUpdateInstallFailed =>
+      'Could not open the installer. Allow installing from unknown sources for Swara.';
+
+  @override
+  String get settingsLater => 'Not now';
+
+  @override
+  String get settingsUpdate => 'Update';
+
+  @override
+  String get settingsCheckForUpdate => 'Check for updates';
 }

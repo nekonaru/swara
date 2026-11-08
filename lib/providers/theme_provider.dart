@@ -29,7 +29,9 @@ const List<String> kAccentColorNames = [
 ];
 
 // Allowed app text scale factors shown in Settings.
-const List<double> kTextScales = [0.85, 1.0, 1.15, 1.3];
+// 0.8 is the smallest (a bit smaller than normal), 0.85 is the default
+// "normal" size, 1.0 is "large". Extra-large is intentionally gone.
+const List<double> kTextScales = [0.8, 0.85, 1.0];
 
 class ThemeProvider extends ChangeNotifier {
   static const _prefsKey = 'themeMode';
@@ -39,7 +41,7 @@ class ThemeProvider extends ChangeNotifier {
   static const _customEqGainsKey = 'custom_eq_gains';
   static const _amoledBlackKey = 'amoledBlack';
 
-  ThemeMode themeMode = ThemeMode.dark;
+  ThemeMode themeMode = ThemeMode.system;
   int accentColorIndex = 0;
   String equalizerPreset = 'Flat';
   // App text scale factor. 0.85 (kecil) is the default so the app feels
@@ -79,7 +81,7 @@ class ThemeProvider extends ChangeNotifier {
       if (saved != null) {
         themeMode = ThemeMode.values.firstWhere(
           (e) => e.name == saved,
-          orElse: () => ThemeMode.dark,
+          orElse: () => ThemeMode.system,
         );
       }
       accentColorIndex = (prefs.getInt(_accentKey) ?? 0)

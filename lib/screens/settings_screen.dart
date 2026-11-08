@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -11,6 +13,7 @@ import '../providers/library_provider.dart';
 import '../services/backup_service.dart';
 import '../services/db_helper.dart';
 import '../services/audio_effects_service.dart';
+import '../services/update_service.dart';
 import '../services/equalizer_service.dart';
 import '../services/player_service.dart';
 import '../utils/scan_controls.dart';
@@ -106,14 +109,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Open the developer GitHub profile in an external browser.
+  // Ask GitHub whether a newer release exists and, if it does, offer to
+  // download the APK and install it in place (same signature as the
+  // installed copy, so no uninstall is needed).
+  Future<void> _checkForUpdate() async {
+    if (_savingPrefs) return;
+    final l10n = AppLocalizations.of(context)!;
+    // Show the "checking" hint right away; the result replaces it.
+    _showSnack(l10n.settingsUpdateChecking);
+    final result = await UpdateService.instance.checkForUpdate();
+    if (!mounted) return;
+    switch (result.outcome) {
+      case UpdateOutcome.error:
+        _showSnack(l10n.settingsUpdateCheckFailed);
+        return;
+      case UpdateOutcome.upToDate:
+        _showSnack(l10n.settingsUpToDate);
+        return;
+      case UpdateOutcome.updateAvailable:
+        break;
+    }
+    final tag = result.tagName ?? '';
+    final current = result.currentVersion ?? _appVersion;
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.settingsUpdateAvailableTitle),
+        content: Text(l10n.settingsUpdateAvailableBody(tag, current)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.settingsLater)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.settingsUpdate)),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    await _downloadAndInstall(result.downloadUrl!);
+  }
+
+  // Download the release APK behind a progress dialog, then hand it to the
+  // system installer. Installing with the same signature upgrades in place.
+  Future<void> _downloadAndInstall(String downloadUrl) async {
+    final l10n = AppLocalizations.of(context)!;
+    final progress = ValueNotifier<double>(-1);
+    // Non-dismissible while the download runs.
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.settingsUpdateDownloading),
+        content: ValueListenableBuilder<double>(
+          valueListenable: progress,
+          builder: (_, value, __) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinearProgressIndicator(value: value < 0 ? null : value),
+              const SizedBox(height: 12),
+              Text(value < 0 ? '…' : '${(value * 100).toStringAsFixed(0)}%'),
+            ],
+          ),
+        ),
+      ),
+    ));
+    final path = await UpdateService.instance.downloadApk(
+      downloadUrl,
+      onProgress: (p) => progress.value = p,
+    );
+    if (!mounted) return;
+    // Close the progress dialog regardless of the outcome.
+    Navigator.of(context, rootNavigator: true).pop();
+    progress.dispose();
+    if (path == null) {
+      _showSnack(l10n.settingsUpdateFailed);
+      return;
+    }
+    final opened = await AudioEffectsService.instance.installApk(path);
+    if (!mounted) return;
+    if (!opened) {
+      _showSnack(l10n.settingsUpdateInstallFailed);
+    }
+  }
+
+  // Open a link in an external browser.
   // No canLaunchUrl gate: on Android 11+ the http/https check always returns
   // false without a <queries> manifest entry, so the link never opened.
-  Future<void> _openDeveloperPage() async {
-    final url = Uri.parse('https://github.com/nekonaru');
+  Future<void> _openLink(String url) async {
     try {
-      final launched =
-          await launchUrl(url, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
       if (!launched && mounted) {
         _showSnack(AppLocalizations.of(context)!.playerCannotOpenBrowser);
       }
@@ -123,6 +211,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _showSnack(AppLocalizations.of(context)!.playerCannotOpenBrowser);
     }
   }
+
+  Future<void> _openDeveloperPage() =>
+      _openLink('https://github.com/nekonaru');
 
   // Short snackbar helper with a mounted guard.
   void _showSnack(String message) {
@@ -563,22 +654,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SegmentedButton<double>(
                   segments: [
                     ButtonSegment(
-                        value: 0.85,
+                        value: 0.8,
                         label: Text(
                             AppLocalizations.of(context)!.dispSmall)),
                     ButtonSegment(
-                        value: 1.0,
+                        value: 0.85,
                         label: Text(
                             AppLocalizations.of(context)!.dispNormal)),
                     ButtonSegment(
-                        value: 1.15,
+                        value: 1.0,
                         label: Text(
                             AppLocalizations.of(context)!.dispLarge)),
-                    ButtonSegment(
-                        value: 1.3,
-                        label: Text(
-                            AppLocalizations.of(context)!
-                                .dispExtraLarge)),
                   ],
                   // Keep single selection in sync with the provider value.
                   selected: {themeProvider.textScale},
@@ -928,8 +1014,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             title: const Text('Swara'),
             subtitle: Text(_appVersion.isEmpty
-                ? 'vâ€¦'
+                ? 'v...'
                 : l10n.settingsAboutVersion(_appVersion)),
+            trailing: Tooltip(
+              message: l10n.settingsCheckForUpdate,
+              child: const Icon(Icons.refresh, size: 22),
+            ),
+            onTap: _checkForUpdate,
           ),
           ListTile(
             leading: const Icon(Icons.person_outline),
@@ -937,6 +1028,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(l10n.settingsDeveloperName),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: _openDeveloperPage,
+          ),
+
+          // -- SUPPORT --
+          _SectionHeader(l10n.donateTitle),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(
+              l10n.donateSubtitle,
+              style: TextStyle(
+                  fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite_outline),
+            title: Text(l10n.donateGithub),
+            subtitle: const Text('github.com/sponsors/nekonaru'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _openLink('https://github.com/sponsors/nekonaru'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite_outline),
+            title: Text(l10n.donateSaweria),
+            subtitle: const Text('saweria.co/nekonaruu'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _openLink('https://saweria.co/nekonaruu'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite_outline),
+            title: Text(l10n.donateSociabuzz),
+            subtitle: const Text('sociabuzz.com/nekonaru/donate'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _openLink('https://sociabuzz.com/nekonaru/donate'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite_outline),
+            title: Text(l10n.donateBagibagi),
+            subtitle: const Text('bagibagi.co/Nekonaru'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _openLink('https://bagibagi.co/Nekonaru'),
           ),
           const SizedBox(height: 32),
         ],

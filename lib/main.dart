@@ -31,6 +31,11 @@ void main() {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _WidgetBridge.init();
   });
+  // Ask for the two permissions the app needs, right at first launch
+  // instead of later in the onboarding or first scan flow. Only asked once.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_requestEssentialPermissions());
+  });
 
   // Cap the in-memory image cache because the library can hold 2600 songs
   // with artwork, so unbounded cached art can spike memory on scroll.
@@ -56,6 +61,31 @@ void main() {
   // Register dynamic launcher shortcuts (long press on the app icon).
   // Best effort: a shortcut failure must never crash or block the app.
   _setupDynamicShortcuts();
+}
+
+// Keys for the one-time essential permission prompt shown at first launch.
+const String _essentialPermissionsAskedKey = 'essential_permissions_asked';
+
+// Ask for audio (music files) and notification permission once, at app open.
+// Whether the user allows or denies, the prompt never repeats on its own;
+// permission_handler shows nothing when the permission is already granted.
+Future<void> _requestEssentialPermissions() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_essentialPermissionsAskedKey) ?? false) return;
+    await prefs.setBool(_essentialPermissionsAskedKey, true);
+
+    if (!await Permission.audio.isGranted) {
+      final status = await Permission.audio.request();
+      debugPrint('Swara: audio permission result: $status');
+    }
+    if (!await Permission.notification.isGranted) {
+      final status = await Permission.notification.request();
+      debugPrint('Swara: notification permission result: $status');
+    }
+  } catch (e) {
+    debugPrint('Swara: essential permission request failed: $e');
+  }
 }
 
 // Home screen widget bridge. Receives button taps from the native widget

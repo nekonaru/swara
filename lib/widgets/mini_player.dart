@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../widgets/song_art_image.dart';
 import '../services/player_service.dart';
 import '../screens/player_screen.dart';

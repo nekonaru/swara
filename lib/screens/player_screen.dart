@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';

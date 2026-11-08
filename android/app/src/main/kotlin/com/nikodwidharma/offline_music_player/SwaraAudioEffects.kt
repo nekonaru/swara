@@ -7,6 +7,8 @@ import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.Equalizer
+import android.os.Build
+import java.io.File
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -142,6 +144,21 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
                 unregisterNoisy()
                 result.success(null)
             }
+            // The device's supported ABIs, so the updater can pick the right
+            // split APK (arm64-v8a on modern phones, armeabi-v7a on older).
+            "deviceAbi" -> {
+                val abis = mutableListOf<String>()
+                abis.addAll(Build.SUPPORTED_64_BIT_ABIS)
+                abis.addAll(Build.SUPPORTED_32_BIT_ABIS)
+                result.success(abis)
+            }
+            // Hand the downloaded update APK to the system package installer.
+            // Installing an APK signed with the same key over the current
+            // install is an in-place upgrade: no uninstall needed.
+            "installApk" -> {
+                val path = call.argument<String>("path")
+                result.success(installApk(path))
+            }
             else -> result.notImplemented()
         }
     }
@@ -231,6 +248,32 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
             context.unregisterReceiver(receiver)
         } catch (_: Exception) {
             // Already unregistered; nothing to do.
+        }
+    }
+
+    // Hand the downloaded update APK to the system package installer. On
+    // Android N and later the file must go through a FileProvider because
+    // direct file:// URIs are refused. The caller gets a plain boolean:
+    // true when the installer intent was launched.
+    private fun installApk(path: String?): Boolean {
+        val context = appContext ?: return false
+        if (path.isNullOrEmpty()) return false
+        val file = File(path)
+        if (!file.exists()) return false
+        return try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+            true
+        } catch (_: Exception) {
+            false
         }
     }
 }

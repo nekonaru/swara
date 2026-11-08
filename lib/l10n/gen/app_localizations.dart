@@ -3314,6 +3314,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No equalizer app found. Install Wavelet or use the built-in presets.'**
   String get eqNoSystemEqualizer;
+
+  /// Header for the donation section in About
+  ///
+  /// In en, this message translates to:
+  /// **'Support Swara'**
+  String get donateTitle;
+
+  /// Subtitle for the donation section
+  ///
+  /// In en, this message translates to:
+  /// **'Swara is free, offline, and ad-free. Even the smallest donation keeps it that way.'**
+  String get donateSubtitle;
+
+  /// GitHub Sponsors link
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub Sponsors'**
+  String get donateGithub;
+
+  /// Saweria tip jar link
+  ///
+  /// In en, this message translates to:
+  /// **'Saweria'**
+  String get donateSaweria;
+
+  /// SociaBuzz tip jar link
+  ///
+  /// In en, this message translates to:
+  /// **'SociaBuzz'**
+  String get donateSociabuzz;
+
+  /// BagiBagi tip jar link
+  ///
+  /// In en, this message translates to:
+  /// **'BagiBagi'**
+  String get donateBagibagi;
+
+  /// Shown while the update check is running
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get settingsUpdateChecking;
+
+  /// Shown when no newer release exists
+  ///
+  /// In en, this message translates to:
+  /// **'Swara is up to date'**
+  String get settingsUpToDate;
+
+  /// Title of the update available dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get settingsUpdateAvailableTitle;
+
+  /// Body of the update available dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Swara {version} is available (you have {current}). Download and install now?'**
+  String settingsUpdateAvailableBody(String version, String current);
+
+  /// Title of the update download progress dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update…'**
+  String get settingsUpdateDownloading;
+
+  /// Shown when the update check request fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check for updates. Check your connection.'**
+  String get settingsUpdateCheckFailed;
+
+  /// Shown when the update download fails
+  ///
+  /// In en, this message translates to:
+  /// **'Update failed. Check your connection and try again.'**
+  String get settingsUpdateFailed;
+
+  /// Shown when the package installer cannot start
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the installer. Allow installing from unknown sources for Swara.'**
+  String get settingsUpdateInstallFailed;
+
+  /// Dismiss the update dialog button
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get settingsLater;
+
+  /// Confirm update button
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get settingsUpdate;
+
+  /// Tooltip of the refresh button in About
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get settingsCheckForUpdate;
 }
 
 class _AppLocalizationsDelegate

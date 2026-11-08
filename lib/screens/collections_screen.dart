@@ -889,26 +889,27 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                   ),
                 ),
 
-                // â”€â”€ Duplicate finder entry â”€â”€
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                    child: Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.copy_outlined),
-                        title: Text(AppLocalizations.of(context)!
-                            .dupFinderTitle),
-                        subtitle: Text(
-                          AppLocalizations.of(context)!.dupFinderCount(
-                              _duplicateCountFor(lib)),
+                // Duplicate finder entry (only when there is something to find)
+                if (_duplicateCountFor(lib) > 0)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                      child: Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.copy_outlined),
+                          title: Text(AppLocalizations.of(context)!
+                              .dupFinderTitle),
+                          subtitle: Text(
+                            AppLocalizations.of(context)!.dupFinderCount(
+                                _duplicateCountFor(lib)),
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _openPage(
+                              context, const DuplicatesScreen()),
                         ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _openPage(
-                            context, const DuplicatesScreen()),
                       ),
                     ),
                   ),
-                ),
 
                 // â”€â”€ Sort bar + count â”€â”€
                 SliverToBoxAdapter(

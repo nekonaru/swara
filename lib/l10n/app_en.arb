@@ -2116,5 +2116,81 @@
     "eqNoSystemEqualizer":  "No equalizer app found. Install Wavelet or use the built-in presets.",
     "@eqNoSystemEqualizer":  {
                                 "description":  "Shown when no system equalizer panel can be opened"
-                            }
+                            },
+    "donateTitle":  "Support Swara",
+    "@donateTitle":  {
+                         "description":  "Header for the donation section in About"
+                     },
+    "donateSubtitle":  "Swara is free, offline, and ad-free. Even the smallest donation keeps it that way.",
+    "@donateSubtitle":  {
+                           "description":  "Subtitle for the donation section"
+                       },
+    "donateGithub":  "GitHub Sponsors",
+    "@donateGithub":  {
+                         "description":  "GitHub Sponsors link"
+                     },
+    "donateSaweria":  "Saweria",
+    "@donateSaweria":  {
+                         "description":  "Saweria tip jar link"
+                     },
+    "donateSociabuzz":  "SociaBuzz",
+    "@donateSociabuzz":  {
+                            "description":  "SociaBuzz tip jar link"
+                        },
+    "donateBagibagi":  "BagiBagi",
+    "@donateBagibagi":  {
+                           "description":  "BagiBagi tip jar link"
+                       },
+    "settingsUpdateChecking":  "Checking for updates…",
+    "@settingsUpdateChecking":  {
+                                   "description":  "Shown while the update check is running"
+                               },
+    "settingsUpToDate":  "Swara is up to date",
+    "@settingsUpToDate":  {
+                             "description":  "Shown when no newer release exists"
+                         },
+    "settingsUpdateAvailableTitle":  "Update available",
+    "@settingsUpdateAvailableTitle":  {
+                                          "description":  "Title of the update available dialog"
+                                      },
+    "settingsUpdateAvailableBody":  "Swara {version} is available (you have {current}). Download and install now?",
+    "@settingsUpdateAvailableBody":  {
+                                        "description":  "Body of the update available dialog",
+                                        "placeholders":  {
+                                                             "version":  {
+                                                                               "type":  "String"
+                                                                           },
+                                                             "current":  {
+                                                                               "type":  "String"
+                                                                           }
+                                                         }
+                                    },
+    "settingsUpdateDownloading":  "Downloading update…",
+    "@settingsUpdateDownloading":  {
+                                      "description":  "Title of the update download progress dialog"
+                                  },
+    "settingsUpdateCheckFailed":  "Could not check for updates. Check your connection.",
+    "@settingsUpdateCheckFailed":  {
+                                      "description":  "Shown when the update check request fails"
+                                  },
+    "settingsUpdateFailed":  "Update failed. Check your connection and try again.",
+    "@settingsUpdateFailed":  {
+                                 "description":  "Shown when the update download fails"
+                             },
+    "settingsUpdateInstallFailed":  "Could not open the installer. Allow installing from unknown sources for Swara.",
+    "@settingsUpdateInstallFailed":  {
+                                       "description":  "Shown when the package installer cannot start"
+                                   },
+    "settingsLater":  "Not now",
+    "@settingsLater":  {
+                          "description":  "Dismiss the update dialog button"
+                      },
+    "settingsUpdate":  "Update",
+    "@settingsUpdate":  {
+                           "description":  "Confirm update button"
+                       },
+    "settingsCheckForUpdate":  "Check for updates",
+    "@settingsCheckForUpdate":  {
+                                   "description":  "Tooltip of the refresh button in About"
+                               }
 }

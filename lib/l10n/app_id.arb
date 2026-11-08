@@ -2116,5 +2116,81 @@
     "eqNoSystemEqualizer":  "Tidak ada aplikasi equalizer ditemukan. Pasang Wavelet atau pakai preset bawaan.",
     "@eqNoSystemEqualizer":  {
                                 "description":  "Ditampilkan saat panel equalizer sistem tidak bisa dibuka"
-                            }
+                            },
+    "donateTitle":  "Dukung Swara",
+    "@donateTitle":  {
+                         "description":  "Header bagian donasi di About"
+                     },
+    "donateSubtitle":  "Swara gratis, offline, dan bebas iklan. Sedikit dukunganmu membantu Swara tetap begitu.",
+    "@donateSubtitle":  {
+                           "description":  "Subjudul bagian donasi"
+                       },
+    "donateGithub":  "GitHub Sponsors",
+    "@donateGithub":  {
+                         "description":  "Tautan GitHub Sponsors"
+                     },
+    "donateSaweria":  "Saweria",
+    "@donateSaweria":  {
+                         "description":  "Tautan tip jar Saweria"
+                     },
+    "donateSociabuzz":  "SociaBuzz",
+    "@donateSociabuzz":  {
+                            "description":  "Tautan tip jar SociaBuzz"
+                        },
+    "donateBagibagi":  "BagiBagi",
+    "@donateBagibagi":  {
+                           "description":  "Tautan tip jar BagiBagi"
+                       },
+    "settingsUpdateChecking":  "Memeriksa pembaruan…",
+    "@settingsUpdateChecking":  {
+                                   "description":  "Ditampilkan selama pemeriksaan pembaruan berjalan"
+                               },
+    "settingsUpToDate":  "Swara sudah versi terbaru",
+    "@settingsUpToDate":  {
+                             "description":  "Ditampilkan saat tidak ada rilis yang lebih baru"
+                         },
+    "settingsUpdateAvailableTitle":  "Pembaruan tersedia",
+    "@settingsUpdateAvailableTitle":  {
+                                          "description":  "Judul dialog pembaruan tersedia"
+                                      },
+    "settingsUpdateAvailableBody":  "Swara {version} tersedia (kamu punya {current}). Unduh dan pasang sekarang?",
+    "@settingsUpdateAvailableBody":  {
+                                        "description":  "Isi dialog pembaruan tersedia",
+                                        "placeholders":  {
+                                                             "version":  {
+                                                                               "type":  "String"
+                                                                           },
+                                                             "current":  {
+                                                                               "type":  "String"
+                                                                           }
+                                                         }
+                                    },
+    "settingsUpdateDownloading":  "Mengunduh pembaruan…",
+    "@settingsUpdateDownloading":  {
+                                      "description":  "Judul dialog progres unduhan pembaruan"
+                                  },
+    "settingsUpdateCheckFailed":  "Tidak bisa memeriksa pembaruan. Periksa koneksimu.",
+    "@settingsUpdateCheckFailed":  {
+                                      "description":  "Ditampilkan saat permintaan cek pembaruan gagal"
+                                  },
+    "settingsUpdateFailed":  "Pembaruan gagal. Periksa koneksimu lalu coba lagi.",
+    "@settingsUpdateFailed":  {
+                                 "description":  "Ditampilkan saat unduhan pembaruan gagal"
+                             },
+    "settingsUpdateInstallFailed":  "Tidak bisa membuka pemasang. Izinkan instalasi dari sumber tidak dikenal untuk Swara.",
+    "@settingsUpdateInstallFailed":  {
+                                       "description":  "Ditampilkan saat pemasang tidak bisa dibuka"
+                                   },
+    "settingsLater":  "Nanti",
+    "@settingsLater":  {
+                          "description":  "Tombol untuk menunda dialog pembaruan"
+                      },
+    "settingsUpdate":  "Perbarui",
+    "@settingsUpdate":  {
+                           "description":  "Tombol konfirmasi pembaruan"
+                       },
+    "settingsCheckForUpdate":  "Periksa pembaruan",
+    "@settingsCheckForUpdate":  {
+                                   "description":  "Tooltip tombol refresh di About"
+                               }
 }

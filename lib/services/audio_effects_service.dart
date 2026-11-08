@@ -98,6 +98,20 @@ class AudioEffectsService {
     await _invoke<void>('unregisterNoisyListener');
   }
 
+  /// The device's supported ABIs (64-bit first), e.g. [arm64-v8a, armeabi-v7a].
+  /// Used to pick the right split APK for an in-app update.
+  Future<List<String>> deviceAbi() async {
+    final raw = await _invoke<List<dynamic>>('deviceAbi');
+    if (raw == null) return const <String>[];
+    return raw.map((e) => e.toString()).toList();
+  }
+
+  /// Hand a downloaded APK to the system package installer. Returns true
+  /// when the installer intent was launched.
+  Future<bool> installApk(String path) async {
+    return (await _invoke<bool>('installApk', {'path': path})) ?? false;
+  }
+
   Future<dynamic> _onNativeCall(MethodCall call) async {
     final handler = _handlers[call.method];
     if (handler != null) handler();
