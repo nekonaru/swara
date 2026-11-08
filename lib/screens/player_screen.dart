@@ -1,11 +1,10 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../services/player_service.dart';
-import '../services/art_cache_service.dart';
 import '../services/metadata_service.dart';
 import '../services/db_helper.dart';
 import '../utils/lrc.dart';
@@ -13,6 +12,7 @@ import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../utils/song_options.dart';
 import '../widgets/marquee_text.dart';
+import '../widgets/song_art_image.dart';
 import '../widgets/sleep_timer_sheet.dart';
 import 'edit_lyrics_screen.dart';
 import 'queue_screen.dart';
@@ -518,13 +518,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (song == null) {
           return Scaffold(body: Center(child: Text(AppLocalizations.of(context)!.playerEmptyState)));
         }
-        // Only the favorite flag of this song matters for the controls, so
-        // the scaffold rebuilds on player state and on this one bool, never
-        // on every library notification (bulk scan ticks included).
-        return Selector<LibraryProvider, bool>(
+        // Only the current song id and the favorite flag matter for the
+        // scaffold, so it rebuilds on player state and on those two values,
+        // never on every library notification (bulk scan ticks included).
+        // A record gives value equality, so swapping in a different song
+        // always rebuilds even when the favorite flag did not change.
+        return Selector<LibraryProvider, (int, bool)>(
           selector: (_, lib) =>
-              lib.songById(song.id)?.isFavorite ?? song.isFavorite,
-          builder: (_, isFavorite, __) => _buildScaffold(song, isFavorite),
+              (song.id, lib.songById(song.id)?.isFavorite ?? song.isFavorite),
+          builder: (_, value, __) => _buildScaffold(song, value.$2),
         );
       },
     );
@@ -866,31 +868,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         tag: 'swara_art_${song.id}',
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: song.albumArtUrl != null
-                              // Disk cached artwork with network fallback.
-                              ? CachedArtImage(
-                                  url: song.albumArtUrl!,
-                                  width: 260, height: 260, fit: BoxFit.cover,
-                                  // Decode near display size to save image memory.
-                                  cacheWidth: 520,
-                                  loading: Container(
-                                    width: 260,
-                                    height: 260,
-                                    color: Colors.grey[300],
-                                    child: const Center(
-                                        child: CircularProgressIndicator()),
-                                  ),
-                                  fallback: Container(
-                                    width: 260, height: 260, color: Colors.grey[300],
-                                    child: const Icon(Icons.music_note, size: 80),
-                                  ),
-                                )
-                              : Container(
-                                  width: 260,
-                                  height: 260,
-                                  color: Colors.grey[300],
-                                  child: const Icon(Icons.music_note, size: 80),
-                                ),
+                          child: SongArtImage(
+                            song: song,
+                            width: 260, height: 260, fit: BoxFit.cover,
+                            // Decode near display size to save image memory.
+                            cacheWidth: 520,
+                            fallback: Container(
+                              width: 260, height: 260, color: Colors.grey[300],
+                              child: const Icon(Icons.music_note, size: 80),
+                            ),
+                          ),
                         ),
                       ),
                     ),
