@@ -165,7 +165,7 @@
 |------------|---------------|---------|
 | **Flutter** | 3.47 | Channel stable, hanya diperlukan untuk build dari source |
 | **JDK** | 17 | Hanya diperlukan untuk build dari source |
-| **Android SDK** | API 34+ | Hanya diperlukan untuk build dari source |
+| **Android SDK** | API 36 | Hanya diperlukan untuk build dari source (template Flutter 3.47 menargetkan API 36) |
 | **Ponsel atau emulator Android** | Android 8.0 (API 26) | Diperlukan untuk menjalankan aplikasi |
 
 > [!TIP]
@@ -363,7 +363,7 @@ Lint ditegakkan lewat `analysis_options.yaml` (flutter_lints plus `prefer_single
 | `build-apk.yml` | Build APK di setiap push ke main |
 | `build.yml` | Build APK di setiap push ke main, publish rilis GitHub yang dirakit dari changelog saat tag v* |
 
-Workflow rilis membuild proyek `android/` yang sudah dikomit dan melampirkan APK split ke draf rilis. Ikon notifikasi tersimpan di `android/app/src/main/res/drawable/`.
+Workflow rilis membuild proyek `android/` yang sudah dikomit dan melampirkan APK split ke rilis. Ikon notifikasi tersimpan di `android/app/src/main/res/drawable/`.
 
 ---
 

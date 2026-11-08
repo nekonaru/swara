@@ -165,7 +165,7 @@
 |------------|-----------------|-------|
 | **Flutter** | 3.47 | Stable channel, required only to build from source |
 | **JDK** | 17 | Required only to build from source |
-| **Android SDK** | API 34+ | Required only to build from source |
+| **Android SDK** | API 36 | Required only to build from source (the Flutter 3.47 template targets API 36) |
 | **Android device or emulator** | Android 8.0 (API 26) | Required to run the app |
 
 > [!TIP]
@@ -363,7 +363,7 @@ Lints are enforced through `analysis_options.yaml` (flutter_lints plus `prefer_s
 | `build-apk.yml` | Build APK on every push to main |
 | `build.yml` | Build APK on every push to main, publish the GitHub release assembled from the changelogs on v* tags |
 
-The release workflow builds the committed `android/` project and attaches the split APKs to the draft release. The notification icons live in `android/app/src/main/res/drawable/`.
+The release workflow builds the committed `android/` project and attaches the split APKs to the release. The notification icons live in `android/app/src/main/res/drawable/`.
 
 ---
 
