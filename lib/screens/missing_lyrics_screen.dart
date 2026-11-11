@@ -3,6 +3,7 @@ import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
+import '../services/db_helper.dart';
 import '../services/metadata_service.dart';
 
 // Screen listing songs that have no lyrics, with per song and bulk refetch.
@@ -105,6 +106,13 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
             break;
           }
           final limited = await MetadataService.instance.enrichSong(song);
+          // enrichSong only upserts file facts; persist the filled fields,
+          // otherwise the list reverts on the next reload.
+          try {
+            await DBHelper.instance.applyEnrichedMetadata(song);
+          } catch (e) {
+            debugPrint('Missing lyrics persist failed for ${song.id}: $e');
+          }
           if (limited) {
             stoppedEarly = true;
             break;

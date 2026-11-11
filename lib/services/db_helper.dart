@@ -25,7 +25,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 9,
+      version: 10,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -142,12 +142,12 @@ class DBHelper {
           // so the "scan only songs missing metadata" feature stays accurate.
           try {
             await db.execute('ALTER TABLE songs ADD COLUMN metadataScanned INTEGER DEFAULT 0');
-            // Never mark 'Tidak diketahui' as scanned - that is a fallback
+            // Never mark 'Unknown' as scanned - that is a fallback
             // value, not a real fetch result. Only genuine genre/lyrics count.
             // Empty strings count as unscanned too, so use NULLIF to treat
             // '' the same as NULL for both genre and lyrics.
             await db.execute(
-                "UPDATE songs SET metadataScanned = 1 WHERE (NULLIF(genre, '') IS NOT NULL AND genre != 'Tidak diketahui') OR NULLIF(lyrics, '') IS NOT NULL");
+                "UPDATE songs SET metadataScanned = 1 WHERE (NULLIF(genre, '') IS NOT NULL AND genre != 'Unknown') OR NULLIF(lyrics, '') IS NOT NULL");
           } catch (_) {
             // Column may already exist, ignore
           }
@@ -217,7 +217,7 @@ class DBHelper {
             await db.execute('''
               UPDATE songs SET metadataScanned = 0
               WHERE metadataScanned = 1
-                AND (NULLIF(genre, '') IS NULL OR genre = 'Tidak diketahui')
+                AND (NULLIF(genre, '') IS NULL OR genre = 'Unknown')
                 AND NULLIF(lyrics, '') IS NULL
             ''');
           } catch (_) {
@@ -238,6 +238,19 @@ class DBHelper {
             await db.execute('DROP INDEX IF EXISTS idx_songs_album');
           } catch (e) {
             debugPrint('DBHelper: dropping the unused v9 indexes failed: $e');
+          }
+        }
+        if (oldVersion < 10) {
+          // v10 replaces the Indonesian placeholder 'Tidak diketahui' with the
+          // language-neutral 'Unknown'. Rewrite stored values so charts and
+          // grouping keep working for existing installs.
+          try {
+            await db.execute(
+                "UPDATE songs SET genre = 'Unknown' WHERE genre = 'Tidak diketahui'");
+            await db.execute(
+                "UPDATE songs SET region = 'Unknown' WHERE region = 'Tidak diketahui'");
+          } catch (e) {
+            debugPrint('DBHelper: v10 Unknown migration failed: $e');
           }
         }
         // No automatic prune of listening_entries here. Besides deleting
@@ -701,10 +714,16 @@ class DBHelper {
   }
 
   Future<void> markPlayed(int songId) async {
-    final database = await db;
-    await database.update(
-        'songs', {'lastPlayedAt': DateTime.now().toIso8601String()},
-        where: 'id = ?', whereArgs: [songId]);
+    try {
+      final database = await db;
+      await database.update(
+          'songs', {'lastPlayedAt': DateTime.now().toIso8601String()},
+          where: 'id = ?', whereArgs: [songId]);
+    } catch (e) {
+      // A failed marker write must never abort a track change: playback
+      // depends on this being best-effort.
+      debugPrint('DBHelper: markPlayed failed for $songId: $e');
+    }
   }
 
   Future<List<Song>> getRecentlyPlayed({int limit = 50}) async {
@@ -855,7 +874,7 @@ class DBHelper {
   Future<Map<String, int>> getGenreDistribution() async {
     final database = await db;
     final rows = await database.rawQuery('''
-      SELECT COALESCE(genre, 'Tidak diketahui') as genre, COUNT(*) as cnt
+      SELECT COALESCE(genre, 'Unknown') as genre, COUNT(*) as cnt
       FROM songs GROUP BY genre ORDER BY cnt DESC
     ''');
     return {
@@ -869,7 +888,7 @@ class DBHelper {
   Future<Map<String, int>> getRegionDistribution() async {
     final database = await db;
     final rows = await database.rawQuery('''
-      SELECT COALESCE(region, 'Tidak diketahui') as region, COUNT(*) as cnt
+      SELECT COALESCE(region, 'Unknown') as region, COUNT(*) as cnt
       FROM songs GROUP BY region ORDER BY cnt DESC
     ''');
     return {

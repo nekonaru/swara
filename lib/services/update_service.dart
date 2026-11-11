@@ -135,24 +135,37 @@ class UpdateService {
     }
   }
 
-  /// Pick the APK asset matching this device's ABI, falling back to any APK.
+  /// Pick the APK asset to install, matching the device's ABI.
   String? _pickApkAsset(List assets, List<String> abis) {
     final lower = abis.map((a) => a.toLowerCase()).toSet();
-    final wantsArm64 = lower.contains('arm64-v8a') ||
-        lower.contains('x86_64') || // emulators run the arm64 build happily
-        lower.isEmpty;
-    final preferred = wantsArm64 ? 'app-arm64-v8a-release.apk' : 'app-armeabi-v7a-release.apk';
+    final wantsArm64 = lower.contains('arm64-v8a');
+    final wantsArmv7 = lower.contains('armeabi-v7a') &&
+        !lower.contains('arm64-v8a') &&
+        !lower.contains('x86_64');
 
-    String? bestUrl;
+    // Preference order per device class. x86_64 builds ship from v1.8.1 only;
+    // everywhere else falls back to the newest available compatible APK.
+    String? arm64Url;
+    String? armv7Url;
+    String? x86_64Url;
+    String? anyUrl;
+
     for (final raw in assets) {
       if (raw is! Map) continue;
       final name = (raw['name'] as String?)?.toLowerCase() ?? '';
       final url = raw['browser_download_url'] as String?;
       if (url == null || !name.endsWith('.apk')) continue;
-      if (name == preferred) return url;
-      bestUrl ??= url;
+      anyUrl ??= url;
+      if (name == 'app-arm64-v8a-release.apk') arm64Url = url;
+      if (name == 'app-armeabi-v7a-release.apk') armv7Url = url;
+      if (name == 'app-x86_64-release.apk') x86_64Url = url;
     }
-    return bestUrl;
+    if (lower.contains('x86_64')) return x86_64Url ?? arm64Url ?? armv7Url ?? anyUrl;
+    if (wantsArm64) return arm64Url ?? armv7Url ?? x86_64Url ?? anyUrl;
+    if (wantsArmv7) return armv7Url ?? arm64Url ?? x86_64Url ?? anyUrl;
+    if (arm64Url != null) return arm64Url;
+    if (armv7Url != null) return armv7Url;
+    return anyUrl;
   }
 
   /// Compare two semver-ish version strings like `v3.10.0` and `3.4.0`.

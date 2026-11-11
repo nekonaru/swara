@@ -15,19 +15,6 @@ const List<Color> kAccentColors = [
   Color(0xFF558B2F), // Light Green
 ];
 
-const List<String> kAccentColorNames = [
-  'Ungu',
-  'Biru',
-  'Teal',
-  'Hijau',
-  'Oranye',
-  'Merah',
-  'Ungu Tua',
-  'Pink',
-  'Cyan',
-  'Hijau Muda',
-];
-
 // Allowed app text scale factors shown in Settings.
 // 0.8 is the smallest (a bit smaller than normal), 0.85 is the default
 // "normal" size, 1.0 is "large". Extra-large is intentionally gone.
@@ -60,9 +47,14 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> _writeChain = Future<void>.value();
 
   Future<void> _write(Future<void> Function(SharedPreferences) op) async {
-    await _writeChain;
-    _writeChain = _doWrite(op);
-    await _writeChain;
+    // Chain through the previous write so two quick taps cannot land out of
+    // order and a slower earlier write can never win the race.
+    final future = _writeChain.then((_) => _doWrite(op));
+    _writeChain = future.catchError((Object e) {
+      // Keep the chain alive even when one write fails.
+      debugPrint('ThemeProvider write chain error: $e');
+    });
+    return future;
   }
 
   Future<void> _doWrite(Future<void> Function(SharedPreferences) op) async {
@@ -87,8 +79,8 @@ class ThemeProvider extends ChangeNotifier {
       accentColorIndex = (prefs.getInt(_accentKey) ?? 0)
           .clamp(0, kAccentColors.length - 1);
       equalizerPreset = prefs.getString(_equalizerPresetKey) ?? 'Flat';
-      // Fall back to 1.0 when nothing is stored or the stored value is unknown.
-      final savedScale = prefs.getDouble(_textScaleKey) ?? 1.0;
+      // Fall back to normal (0.85) when nothing is stored or the value is unknown.
+      final savedScale = prefs.getDouble(_textScaleKey) ?? 0.85;
       textScale = kTextScales.contains(savedScale) ? savedScale : 0.85;
       customEqGains = _readCustomGains(prefs);
       amoledBlack = prefs.getBool(_amoledBlackKey) ?? false;

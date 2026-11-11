@@ -1,5 +1,27 @@
 # Changelog
 
+## v3.5.1
+
+Rilis perbaikan bug: audit menyeluruh untuk menghilangkan anomali di player, pemindai, pembaruan aplikasi, dan pustaka.
+
+## Perbaikan bug
+
+- **Crossfade tidak pernah melanjutkan antrean.** Watchdog posisi berjalan sebelum fade selesai, sehingga `next()` membatalkan fade dan memutar lagu berikutnya dari awal; watchdog sekarang mengalah selama fade masih memegang trek, dan player cadangan ikut tersusun saat dijeda.
+- **Jeda hanya mempause lagu yang keluar.** Selama fade, jeda menghentikan satu trek sementara trek lainnya tetap berbunyi; jalur jeda sekarang menghentikan pasangan yang sedang menyatu seluruhnya.
+- **Updater gagal saat install.** `installApk` kekurangan flag `FLAG_ACTIVITY_NEW_TASK` di intent installer, jadi setiap percobaan install gagal dan kembali ke pengguna.
+- **Scan metadata massal tidak menyimpan apa pun.** Judul, artis, dan cover yang di-refetch oleh bulk scan hilang saat reload berikutnya; sekarang tersimpan, begitu juga alur bulk missing-art dan missing-lyrics.
+- **Mengambil lagu yang salah setelah pustaka berubah.** Resume sekarang menyimpan id lagu, bukan indeks mentah, jadi menghapus satu lagu tidak menggeser pemutaran ke lagu sebelah.
+- **File yang dipindah kehilangan riwayatnya.** File yang di-rename atau dipindah dianggap hilang dan dihapus beserta playlist, favorit, dan riwayat dengar; file yang dipindah kini dideteksi dari nama dan durasi dan barisnya tetap dipertahankan.
+- **Urutan sortir tidak konsisten.** Pilihan sortir yang disimpan sekarang diterapkan secara deterministik dari pemuatan pertama.
+- **Lagu "palsu" di cold start.** Saat memulihkan sesi setelah aplikasi dimatikan, trek yang dipulihkan tidak merespons tombol jeda/berikutnya sampai aplikasi disentuh; tombol sekarang berfungsi langsung setelah pemulihan.
+- **Antrean menampilkan data basi setelah rename/favorit.** Antrean menyimpan lagu berdasarkan referensi; pustaka sekarang mendorong field terbaru ke baris antrean yang cocok.
+- **Indikator lagu bisa macet setelah cold start.** Saat memulihkan sesi setelah aplikasi dimatikan, trek yang dipulihkan tidak merespons tombol jeda/berikutnya sampai aplikasi disentuh; tombol sekarang berfungsi langsung setelah pemulihan.
+
+## Peningkatan
+
+- **Upgrade database ke v10.** Placeholder "Tidak diketahui" diganti menjadi "Unknown" yang netral bahasa untuk genre dan region.
+- **Updater memilih APK yang tepat.** Updater dalam aplikasi memilih split arm64, armeabi-v7a, atau x86_64 yang cocok dengan perangkat.
+
 ## v3.5.0
 
 Izin di awal, jalur update langsung dari halaman About, tautan donasi untuk pengembang, dan default yang lebih halus.
@@ -29,7 +51,7 @@ Rilis pengalaman native: pemutaran berlanjut di tempat terakhir, equalizer siste
 - **Resume pemutaran.** Aplikasi terbuka kembali dalam kondisi paused di lagu dan menit:detik terakhir yang kamu dengar, seperti pemutar native.
 - **Widget layar home.** Swara menampilkan lagu yang sedang diputar dengan kontrol sebelumnya, putar, dan berikutnya langsung di layar home.
 - **Jeda saat headset dicabut.** Pemutaran jeda otomatis saat headset dicabut atau rute Bluetooth terputus.
-- **Pintasan equalizer sistem.** Baris baru di Pengaturan membuka Wavelet atau equalizer bawaan HPmu untuk sesi ini, alur yang sama seperti Auxio.
+- **Pintasan equalizer sistem.** Baris baru di Pengaturan membuka Wavelet atau equalizer bawaan HPmu untuk sesi ini, alur yang sama seperti equalizer bawaan HP.
 - **Cover art bawaan file.** Cover yang tertanam di file audio diambil dan ditampilkan otomatis, tanpa fetch internet.
 
 ## Peningkatan

@@ -16,7 +16,7 @@ import io.flutter.plugin.common.MethodChannel
 // Native audio effect helpers for Swara. One MethodChannel carries every call:
 //  - Open/close the audio effect control session, so system effect apps
 //    (Wavelet, OEM equalizers) can attach to our audio session while music
-//    plays. This is exactly how Auxio hands the session to external apps.
+//    plays. External effect apps (system Music FX, Wavelet) attach the same way.
 //  - A real in-process equalizer (android.media.audiofx.Equalizer), so the
 //    in-app 5-band curve is applied by the system DSP, not drawn on screen.
 //  - Opening the system equalizer panel for this audio session.
@@ -46,7 +46,7 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
         when (call.method) {
             // Broadcast that an audio effect control session opened. External
             // effect apps (Wavelet and similar) attach to the session for the
-            // duration of playback. Auxio does the same on play/pause.
+            // duration of playback. Open on play, close on pause and stop.
             "openAudioEffectSession" -> {
                 val sessionId = call.argument<Int>("sessionId")
                 broadcastAudioEffectEvent(
@@ -127,7 +127,7 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.error("eq_band_failed", e.message, null)
                 }
             }
-            // Open the system equalizer UI for this audio session, like Auxio
+            // Open the system equalizer UI for this audio session, the standard flow
             // does, so users with Wavelet or an OEM equalizer get its panel.
             "openEqualizerPanel" -> {
                 val sessionId = call.argument<Int>("sessionId") ?: -1
@@ -269,6 +269,9 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                // We hold a plain application context, so the installer needs
+                // a fresh task behind its own flag or Android throws.
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
             true

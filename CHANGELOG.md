@@ -1,5 +1,26 @@
 # Changelog
 
+## v3.5.1
+
+Bug-fix release: audit passes that stamp out anomalies across the player, the scanner, the updater and the library.
+
+## Bug fixes
+
+- **Crossfade could never advance the queue.** The position watchdog fired before the fade finished, so `next()` aborted the fade and restarted the next song from zero; the watchdog now yields while a fade owns the track, and the standby player is paused with the outgoing one on pause.
+- **Pause only paused the outgoing song.** During the fade, pause stopped one track and left the other playing; the pause path now stops the whole blended pair.
+- **Updater crashed on install.** `installApk` was missing `FLAG_ACTIVITY_NEW_TASK` on the installer intent, so every install attempt threw back to the user.
+- **Bulk metadata scans saved nothing.** Titles, artists and art refetched by bulk scans were dropped on the next reload; they now persist, and the missing-art and missing-lyrics bulk flows persist too.
+- **Restoring the wrong song after the library changes.** Resume now stores the song id instead of the raw index, so deleting or moving one song no longer shifts playback by one.
+- **Moved files lost their history.** A file renamed or moved on disk was deleted as a ghost along with its playlists, favorites and listening history; moved files are detected by name and duration and keep their rows.
+- **Scanner could not see moves and the sort could be ignored.** The startup sort option is now applied deterministically from the first load.
+- **Mock tracks on cold start.** A cold start restored to the old index when songs were deleted; resume now locates the saved song id in the restored queue.
+- **Stale queue displays after rename/favorite.** The queue snapshots songs by reference; the library now pushes fresh fields into matching queued rows.
+
+## Improvements
+
+- **DB upgrade to v10.** The Indonesian "Tidak diketahui" placeholder is replaced with the language-neutral "Unknown" for genre and region.
+- **Updater picks the right APK.** The in-app updater selects the arm64, armeabi-v7a or x86_64 split that matches the device.
+
 ## v3.5.0
 
 Up-front permissions, an in-app update path from the About screen, support links for the developer, and smaller quality-of-life defaults.
@@ -29,7 +50,7 @@ A native-experience release: playback state resumes where you left off, a real s
 - **Playback resume.** The app reopens paused at the last song and minute:second you listened, like a native player.
 - **Home screen widget.** Swara shows the current song with previous, play and next controls right on the home screen.
 - **Headset unplug pause.** Playback pauses automatically when the headset is unplugged or the Bluetooth route is lost.
-- **System equalizer shortcut.** A new row in Settings opens Wavelet or the phone's built-in equalizer for the current session, the same flow Auxio uses.
+- **System equalizer shortcut.** A new row in Settings opens Wavelet or the phone's built-in equalizer for the current session, the same standard panel flow.
 - **Embedded cover art.** Cover art stored inside the audio file is extracted and shown automatically, no network fetch needed.
 
 ## Improvements

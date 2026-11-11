@@ -51,6 +51,10 @@ void main() {
     themeProvider: themeProvider,
     languageProvider: languageProvider,
   );
+  // Widget actions from the home-screen widget need the boot work (playback
+  // restore) to be done first, otherwise a cold start from the widget would
+  // find an empty queue and swallow the tap.
+  _WidgetBridge.bootFuture = bootFuture;
 
   runApp(MusicApp(
     themeProvider: themeProvider,
@@ -94,6 +98,9 @@ Future<void> _requestEssentialPermissions() async {
 class _WidgetBridge {
   static const MethodChannel _channel = MethodChannel('swara/widget');
   static bool _initialized = false;
+  // Set to the in-flight boot future by main() so a widget tap launched
+  // from a dead process dispatches after the playback restore finishes.
+  static Future<void>? bootFuture;
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -119,7 +126,14 @@ class _WidgetBridge {
     return null;
   }
 
-  static void _handleAction(String action) {
+  static Future<void> _handleAction(String action) async {
+    // Wait for the boot work (which restores playback state) before acting,
+    // otherwise a tap that launched the app would hit an empty queue.
+    try {
+      await _WidgetBridge.bootFuture;
+    } catch (_) {
+      // Boot failures are logged at the call site; act anyway.
+    }
     final service = PlayerService.instance;
     switch (action) {
       case 'swara.widget.TOGGLE':

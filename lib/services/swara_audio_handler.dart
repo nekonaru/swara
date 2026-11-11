@@ -209,6 +209,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
           MediaAction.seek,
           MediaAction.skipToPrevious,
           MediaAction.skipToNext,
+          MediaAction.skipToQueueItem,
         },
         androidCompactActionIndices: const [1, 2, 3],
         processingState: AudioProcessingState.ready,

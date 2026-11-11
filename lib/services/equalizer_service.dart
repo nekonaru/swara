@@ -239,7 +239,7 @@ class EqualizerService {
   }
 
   /// Open the system equalizer panel for the attached session, the same
-  /// flow Auxio uses (ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL). Returns
+  /// standard flow (ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL). Returns
   /// false when no equalizer app is installed or the panel cannot open.
   Future<bool> openSystemEqualizer() async {
     final sessionId = _sessionId;

@@ -475,8 +475,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // Open the system equalizer panel for this session, the same flow Auxio
-  // uses. The EQ effect session exists only after a song has played; when
+  // Open the system equalizer panel for this session, using the standard
+  // audio effect control flow.
+  // The EQ effect session exists only after a song has played; when
   // none is attached yet, fall back to the active player's raw session id
   // so the panel can still open. If no equalizer app answers, say so
   // instead of pretending it worked.
@@ -863,7 +864,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           // Open the system equalizer (Wavelet or the built-in panel) for
-          // this session, the same flow Auxio uses.
+          // this session, the standard panel flow.
           ListTile(
             contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 2),
             leading: const Icon(Icons.tune_outlined),

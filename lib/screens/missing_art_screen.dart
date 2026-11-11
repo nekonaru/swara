@@ -3,6 +3,7 @@ import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
+import '../services/db_helper.dart';
 import '../services/metadata_service.dart';
 
 import '../services/embedded_art_service.dart';
@@ -112,6 +113,13 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
             break;
           }
           final limited = await MetadataService.instance.enrichSong(song);
+          // enrichSong only upserts file facts; persist the filled fields,
+          // otherwise the list reverts on the next reload.
+          try {
+            await DBHelper.instance.applyEnrichedMetadata(song);
+          } catch (e) {
+            debugPrint('Missing art persist failed for ${song.id}: $e');
+          }
           if (limited) {
             stoppedEarly = true;
             break;

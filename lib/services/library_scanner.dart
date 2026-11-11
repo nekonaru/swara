@@ -275,6 +275,15 @@ class LibraryScanner {
     final updateIds = scanResult.updateIds;
     final result = scanResult.result;
     final allDeviceIds = scanResult.allDeviceIds;
+    // Move detection MUST run before the insert batch or matched new files
+    // would be inserted as duplicates of their own ghost rows.
+    if (safeToDelete && pendingMaps.isNotEmpty) {
+      await _suppressMovedGhosts(
+        pendingMaps: pendingMaps,
+        dbIdsAtScanStart: dbIdsAtScanStart,
+        allDeviceIds: allDeviceIds,
+      );
+    }
     if (pendingMaps.isNotEmpty || pendingUpdates.isNotEmpty) {
       final batch = database.batch();
       for (final map in pendingMaps) {
@@ -305,6 +314,68 @@ class LibraryScanner {
     }
 
     return result;
+  }
+
+  /// Reuse rows for files that moved on disk (rename, folder change, storage
+  /// migration) instead of deleting them as "ghosts". Without this, a moved
+  /// file is treated as a brand new song and the original row, along with
+  /// its playlists, favorites and listening history, gets deleted.
+  ///
+  /// Matching is by (file name, duration bucket of 2s) against rows that were
+  /// in the DB at scan start but are not on the device anymore. Anything
+  /// ambiguous (two candidates, name mismatch) is left alone and inserted as
+  /// a new row, which is always safe.
+  Future<void> _suppressMovedGhosts({
+    required List<Map<String, dynamic>> pendingMaps,
+    required Set<int> dbIdsAtScanStart,
+    required Set<int> allDeviceIds,
+  }) async {
+    final ghostIds = dbIdsAtScanStart.difference(allDeviceIds);
+    if (ghostIds.isEmpty) return;
+    final database = await DBHelper.instance.db;
+    final placeholders = List.filled(ghostIds.length, '?').join(',');
+    final rows = await database.rawQuery(
+        'SELECT id, filePath, durationMs FROM songs WHERE id IN ($placeholders)',
+        ghostIds.toList());
+    final ghostByKey = <String, Map<String, Object?>>{};
+    for (final row in rows) {
+      final path = row['filePath'] as String?;
+      final dur = (row['durationMs'] as num?)?.toInt() ?? 0;
+      if (path == null || dur <= 0) continue;
+      ghostByKey[_moveKey(path, dur)] = row;
+    }
+    final toRemove = <int>[];
+    for (var i = 0; i < pendingMaps.length; i++) {
+      final map = pendingMaps[i];
+      final path = map['filePath'] as String?;
+      final dur = (map['durationMs'] as num?)?.toInt() ?? 0;
+      if (path == null || dur <= 0) continue;
+      final ghost = ghostByKey[_moveKey(path, dur)];
+      if (ghost == null) continue;
+      final ghostId = ghost['id'] as int;
+      try {
+        await database.update(
+          'songs',
+          {'filePath': path, 'durationMs': dur},
+          where: 'id = ?',
+          whereArgs: [ghostId],
+        );
+      } catch (e) {
+        debugPrint('Moved ghost path update failed: $e');
+        continue;
+      }
+      toRemove.add(i);
+      ghostByKey.remove(_moveKey(path, dur));
+    }
+    for (final i in toRemove.reversed) {
+      pendingMaps.removeAt(i);
+    }
+  }
+
+  /// Key that identifies "the same file" for move detection.
+  String _moveKey(String filePath, int durationMs) {
+    final name = filePath.replaceAll('\\', '/').split('/').last.toLowerCase();
+    return '$name|${durationMs ~/ 2000}';
   }
 
   /// Unique list of folders where music files were found, for the "Song Folders" feature

@@ -70,6 +70,7 @@ class PlayerService extends ChangeNotifier {
   static const String _prefsResumeQueueKey = 'resume_queue_ids';
   static const String _prefsResumeIndexKey = 'resume_pos_in_order';
   static const String _prefsResumePositionMsKey = 'resume_position_ms';
+  static const String _prefsResumeSongIdKey = 'resume_current_song_id';
   static const String _prefsResumeShuffleKey = 'resume_shuffle';
   static const String _prefsResumeRepeatKey = 'resume_repeat_mode';
   // Player setup choices, persisted independently of the resume slice.
@@ -167,9 +168,6 @@ class PlayerService extends ChangeNotifier {
     _volumeChain = next;
     return next;
   }
-  // File path currently preloaded in the idle player (crossfade off only).
-  // Best effort cache, never played directly from here.
-  String? _preloadedFilePath;
   String? lastError;
 
   DateTime? _playStartedAt;
@@ -233,6 +231,10 @@ class PlayerService extends ChangeNotifier {
         await prefs.setString(_prefsResumeQueueKey, queueKey);
       }
       await prefs.setInt(_prefsResumeIndexKey, idx);
+      // Save the song id alongside its index so a library change that drops
+      // one song before it does not shift the resume position by one.
+      final currentId = _queue[_playOrder[idx]].id;
+      await prefs.setInt(_prefsResumeSongIdKey, currentId);
       await prefs.setInt(
         _prefsResumePositionMsKey,
         _activePlayer.position.inMilliseconds,
@@ -270,8 +272,16 @@ class PlayerService extends ChangeNotifier {
       // Shuffle and repeat come from their own persistent keys (loaded in
       // init), not from the resume slice, so the settings the user changed
       // survive a cold start even when there is no restore data.
-      _posInOrder = (prefs.getInt(_prefsResumeIndexKey) ?? 0)
-          .clamp(0, _queue.length - 1);
+      // Prefer the stored song id to locate the index inside the restored
+      // queue; the raw index breaks when a song was deleted or moved.
+      final storedSongId = prefs.getInt(_prefsResumeSongIdKey);
+      final restoredIndex = storedSongId == null
+          ? -1
+          : _playOrder.indexWhere((i) => _queue[i].id == storedSongId);
+      _posInOrder = restoredIndex >= 0
+          ? restoredIndex
+          : (prefs.getInt(_prefsResumeIndexKey) ?? 0)
+              .clamp(0, _queue.length - 1);
       queueVersion++;
       final song = currentSong;
       if (song == null) return;
@@ -363,7 +373,6 @@ class PlayerService extends ChangeNotifier {
   /// that case is released on the next track change instead.
   void _releaseCrossfadePlayer() {
     if (_usingCrossfadePlayer) return;
-    _preloadedFilePath = null;
     _crossfadeStateSub?.cancel();
     _crossfadeStateSub = null;
     final standby = _crossfadePlayer;
@@ -392,6 +401,36 @@ class PlayerService extends ChangeNotifier {
   Duration? get abRepeatA => _abRepeatA;
   Duration? get abRepeatB => _abRepeatB;
   bool get hasABRepeat => _abRepeatA != null && _abRepeatB != null;
+
+  /// Copy the mutable song fields of [source] onto every queued copy with
+  /// the same id. The queue snapshots its songs at insertion time by object
+  /// reference, but the reference usually came from the library list anyway.
+  /// Some screens (history, playlist detail) hand in fresh DB rows, so a
+  /// copy kept by the queue would drift from the library row otherwise.
+  void syncQueueSong(Song source) {
+    var changed = false;
+    for (var i = 0; i < _queue.length; i++) {
+      final row = _queue[i];
+      if (row.id != source.id || identical(row, source)) continue;
+      row.title = source.title;
+      row.artist = source.artist;
+      row.album = source.album;
+      row.genre = source.genre;
+      row.region = source.region;
+      row.albumArtPath = source.albumArtPath;
+      row.albumArtUrl = source.albumArtUrl;
+      row.lyrics = source.lyrics;
+      row.durationMs = source.durationMs;
+      row.isFavorite = source.isFavorite;
+      row.addedAt = source.addedAt;
+      row.metadataScanned = source.metadataScanned;
+      changed = true;
+    }
+    if (changed) {
+      queueVersion++;
+      notifyListeners();
+    }
+  }
 
   /// Queue in the actual playback order (used by the Queue page)
   List<Song> get queue => _playOrder.map((i) => _queue[i]).toList();
@@ -482,7 +521,7 @@ class PlayerService extends ChangeNotifier {
     // Broadcast the audio effect session for both players whenever the
     // playing state flips, so system effect apps (Wavelet and similar)
     // attach while music plays and detach on pause, the same contract
-    // Auxio uses. Attaching on every play event also keeps the broadcast
+    // the system effect layer expects. Attaching on every play event also keeps the broadcast
     // correct across crossfade flips and per-source session ids.
     _effectStateSub?.cancel();
     _effectStateSub = _player.playerStateStream.listen((state) {
@@ -547,7 +586,12 @@ class PlayerService extends ChangeNotifier {
   /// position stream keeps running, so once the playhead reaches the end we
   /// treat the track as finished and advance the same way the completed
   /// listener does.
+  ///
+  /// Never fires while a crossfade fade is in flight: the fade loop owns the
+  /// outgoing track's end-of-life, and an early advance would abort the fade
+  /// and restart the incoming song from zero.
   void _maybeAdvanceAtDuration(Duration position) {
+    if (_crossfadeActiveGeneration != -1) return; // fade owns this track's end
     final dur = _activePlayer.duration;
     if (dur == null || dur <= Duration.zero) return;
     if (position < dur - const Duration(milliseconds: 100)) return;
@@ -851,6 +895,10 @@ class PlayerService extends ChangeNotifier {
       return;
     }
     if (playGen != _playGeneration || _disposed) return;
+    // A cold-start restore leaves _suspendAutoActions true so the passive
+    // resume cannot self-advance. A load is an explicit user action, so the
+    // guard must lift now or the watchdog and crossfade stay dead forever.
+    _suspendAutoActions = false;
     _completionHandled = false; // fresh load: completion may fire again
     try {
       await _player.play();
@@ -875,8 +923,6 @@ class PlayerService extends ChangeNotifier {
     // crossfade keeps triggering for the following songs too (not just once).
     await _subscribePosition();
     if (playGen != _playGeneration || _disposed) return;
-    // Warm the idle player with the next file when crossfade is off.
-    _preloadNextSong();
     // Persist the fresh queue and position immediately so a kill right after
     // a track change resumes on the right song.
     unawaited(_saveResumeState());
@@ -897,6 +943,9 @@ class PlayerService extends ChangeNotifier {
       // A manual pause during a sleep fade stops the fade so the volume
       // does not keep dropping in the background.
       if (_sleepFadeActive) _cancelSleepFadeOut();
+      // A crossfade in flight owns the next track: stop it so the pause
+      // applies to the blended pair, not only the outgoing song.
+      if (isCrossfadeActive) _abortCrossfadeForQueueEdit();
       // Cancel any in flight resume fade before starting the pause fade.
       final generation = ++_pauseFadeGeneration;
       _pauseFadeOutActive = true;
@@ -1101,7 +1150,6 @@ class PlayerService extends ChangeNotifier {
     _queue.add(song);
     _playOrder.insert(_posInOrder + 1, _queue.length - 1);
     // The next song changed, so any cached preload is stale.
-    _preloadedFilePath = null;
     notifyListeners();
   }
 
@@ -1143,7 +1191,6 @@ class PlayerService extends ChangeNotifier {
     // so _queue does not keep growing for the whole session without an app restart.
     _compactQueue();
     // Order changed, so any cached preload is stale.
-    _preloadedFilePath = null;
     notifyListeners();
   }
 
@@ -1193,7 +1240,6 @@ class PlayerService extends ChangeNotifier {
       _posInOrder++;
     }
     // Order changed, so any cached preload is stale.
-    _preloadedFilePath = null;
     notifyListeners();
   }
 
@@ -1338,7 +1384,6 @@ class PlayerService extends ChangeNotifier {
       _posInOrder = currentQueueIndex;
     }
     // Order changed, so any cached preload is stale.
-    _preloadedFilePath = null;
     notifyListeners();
   }
 
@@ -1369,8 +1414,7 @@ class PlayerService extends ChangeNotifier {
         ..remove(currentQueueIndex);
       _playOrder = [currentQueueIndex, ..._shuffleRest(rest)];
       _posInOrder = 0;
-      _preloadedFilePath = null;
-      notifyListeners();
+        notifyListeners();
     }
   }
 
@@ -1471,18 +1515,13 @@ class PlayerService extends ChangeNotifier {
     crossfadeEnabled = value;
     if (!value) {
       // Cancel any fade in flight and drop any stale crossfade state.
-      // A fresh gap preload is prepared below, so the idle player keeps
-      // at most one cached file while crossfade stays off. When the
-      // standby player is currently audible, the release is deferred to
-      // the next track change inside _releaseCrossfadePlayer.
+      // When the standby player is currently audible, the release is
+      // deferred to the next track change inside _releaseCrossfadePlayer.
       _cancelCrossfade();
       _releaseCrossfadePlayer();
-      // Refresh the gap preload for the new mode.
-      _preloadNextSong();
     } else {
       // Preload cache is only used when crossfade is off.
-      _preloadedFilePath = null;
-    }
+      }
     notifyListeners();
   }
 
@@ -1633,40 +1672,6 @@ class PlayerService extends ChangeNotifier {
   /// Prepare the next song file in the idle player when crossfade is off.
   /// Loads the file only (never plays). Errors are ignored silently
   /// apart from a debug log so preload never breaks playback.
-  void _preloadNextSong() {
-    if (crossfadeEnabled) return;
-    if (_disposed) return;
-    if (_playOrder.isEmpty) return;
-    final nextPos = _computeNextPosition();
-    if (nextPos == null) return;
-    if (nextPos == _posInOrder) return; // repeat-one, already loaded
-    final nextSong = _queue[_playOrder[nextPos]];
-    if (_preloadedFilePath == nextSong.filePath) return;
-    final AudioPlayer idle;
-    if (_usingCrossfadePlayer) {
-      idle = _player;
-    } else {
-      try {
-        idle = _ensureCrossfadePlayer();
-      } catch (e) {
-        debugPrint('Preload next failed: $e');
-        return;
-      }
-    }
-    final path = nextSong.filePath;
-    idle.setFilePath(path).then((_) {
-      if (_disposed) return null;
-      if (crossfadeEnabled) return null;
-      return _syncSpeedPitch(idle);
-    }).then((_) {
-      if (_disposed) return;
-      if (crossfadeEnabled) return;
-      _preloadedFilePath = path;
-    }).catchError((Object e) {
-      debugPrint('Preload next failed: $e');
-    });
-  }
-
   void cancelSleepTimer() {
     _sleepTimer?.cancel();
     _sleepTimer = null;
@@ -1898,7 +1903,6 @@ class PlayerService extends ChangeNotifier {
     _sleepFadeActive = false;
     _pauseFadeGeneration++;
     _pauseFadeOutActive = false;
-    _preloadedFilePath = null;
     _logListening();
     _sleepTimer?.cancel();
     // Fire and forget: dispose is sync, the cancel future still runs.

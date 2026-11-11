@@ -6,6 +6,7 @@ import '../models/song.dart';
 import '../services/db_helper.dart';
 import '../services/library_scanner.dart';
 import '../services/metadata_service.dart';
+import '../services/player_service.dart';
 import '../utils/format.dart';
 
 enum SortOption {
@@ -96,8 +97,12 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   LibraryProvider() {
-    _loadPrefs();
+    // Await it in loadFromDb so the saved sort order is applied to the very
+    // first list, not just on the next restart or sort tap.
+    _prefsFuture = _loadPrefs();
   }
+
+  late final Future<void> _prefsFuture;
 
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -112,6 +117,8 @@ class LibraryProvider extends ChangeNotifier {
 
   /// Load from DB (instant, no device scan) - called when the app opens
   Future<void> loadFromDb() async {
+    // The stored sort option must be in place before the first sort.
+    await _prefsFuture;
     final all = await DBHelper.instance.getAllSongs();
     final excluded = await DBHelper.instance.getExcludedFolders();
     songs = excluded.isEmpty
@@ -294,6 +301,16 @@ class LibraryProvider extends ChangeNotifier {
         final batch = targets.skip(i).take(batchSize).toList();
         final results =
             await Future.wait(batch.map((song) => MetadataService.instance.enrichSong(song)));
+        // enrichSong fills the in-memory row but only upserts file facts
+        // to the DB. Persist the enriched fields too, otherwise the scan
+        // report "done" with everything reverting on the next loadFromDb.
+        for (final song in batch) {
+          try {
+            await DBHelper.instance.applyEnrichedMetadata(song);
+          } catch (e) {
+            debugPrint('Bulk metadata persist failed for ${song.id}: $e');
+          }
+        }
         bulkScanProgress += batch.length;
         maybeNotify(bulkScanProgress);
         if (results.any((limited) => limited)) break;
@@ -379,7 +396,11 @@ class LibraryProvider extends ChangeNotifier {
     for (var i = 0; i < list.length; i++) {
       final row = list[i];
       if (row.id != source.id) continue;
-      if (identical(row, source)) return true;
+      if (identical(row, source)) {
+        // Keep the queue in sync too (some seats hold their own copies).
+        PlayerService.instance.syncQueueSong(source);
+        return true;
+      }
       row.title = source.title;
       row.artist = source.artist;
       row.album = source.album;
@@ -392,6 +413,7 @@ class LibraryProvider extends ChangeNotifier {
       row.isFavorite = source.isFavorite;
       row.addedAt = source.addedAt;
       row.metadataScanned = source.metadataScanned;
+      PlayerService.instance.syncQueueSong(row);
       return true;
     }
     return false;
@@ -407,6 +429,7 @@ class LibraryProvider extends ChangeNotifier {
       final row = list[i];
       if (row.id == id) {
         row.isFavorite = value;
+        PlayerService.instance.syncQueueSong(row);
         return true;
       }
     }

@@ -285,16 +285,16 @@ class MetadataService {
         // Corrupt cache entries return false and fall through to network.
         final applied = _applyItunesResponseBody(song, cachedResponse);
         if (applied) {
-          song.region ??= 'Tidak diketahui';
-          song.genre ??= 'Tidak diketahui';
+          song.region ??= 'Unknown';
+          song.genre ??= 'Unknown';
           await fetchLyricsOnly(song, bypassCache: bypassCache);
           song.metadataScanned = true;
           await DBHelper.instance.upsertSong(song);
           return false;
         }
       } else {
-        song.region ??= 'Tidak diketahui';
-        song.genre ??= 'Tidak diketahui';
+        song.region ??= 'Unknown';
+        song.genre ??= 'Unknown';
         await fetchLyricsOnly(song, bypassCache: bypassCache);
         song.metadataScanned = true;
         await DBHelper.instance.upsertSong(song);
@@ -346,22 +346,22 @@ class MetadataService {
       }
     }
     if (rateLimited) {
-      song.region ??= 'Tidak diketahui';
-      song.genre ??= 'Tidak diketahui';
+      song.region ??= 'Unknown';
+      song.genre ??= 'Unknown';
       song.metadataScanned = false;
       await DBHelper.instance.upsertSong(song);
       return true;
     }
     if (itunesFailed) {
-      song.region ??= 'Tidak diketahui';
-      song.genre ??= 'Tidak diketahui';
+      song.region ??= 'Unknown';
+      song.genre ??= 'Unknown';
       await fetchLyricsOnly(song, bypassCache: bypassCache);
       song.metadataScanned = false;
       await DBHelper.instance.upsertSong(song);
       return false;
     }
-    song.region ??= 'Tidak diketahui';
-    song.genre ??= 'Tidak diketahui';
+    song.region ??= 'Unknown';
+    song.genre ??= 'Unknown';
 
     // Fetch lyrics separately (small response, stays on main thread).
     await fetchLyricsOnly(song, bypassCache: bypassCache);
@@ -658,7 +658,7 @@ class MetadataService {
   }
 
   String _guessRegion(String? countryCode, String artist) {
-    if (countryCode == null || countryCode.isEmpty) return 'Tidak diketahui';
+    if (countryCode == null || countryCode.isEmpty) return 'Unknown';
     const map = {
       'IDN': 'Indonesia',
       'USA': 'Amerika Serikat',

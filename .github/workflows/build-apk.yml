@@ -35,7 +35,7 @@ jobs:
             ${{ runner.os }}-flutter-3.47.0-
 
       - name: Patch legacy plugins missing a namespace (AGP 8+)
-        # equalizer_flutter and on_audio_query ship a build.gradle without a
+        # on_audio_query ships a build.gradle without a
         # namespace, which AGP 8+ refuses to configure. The app code itself
         # needs no patching: the whole Android project lives in android/.
         run: |
