@@ -1,21 +1,36 @@
 # Changelog
 
+## v3.5.2
+
+Rilis hardening untuk updater dalam aplikasi dan widget layar home, plus beberapa kasus tepi cold-start.
+
+## Perbaikan bug
+
+- **Installer selalu membuka layar yang salah.** Instalasi baru tidak pernah bisa memasang pembaruan di tempat karena sistem memblokir sumber tidak dikenal secara diam-diam dan aplikasi tetap menampilkan sukses. Updater sekarang memeriksa izin `Install unknown apps`, membuka layar pengaturan Android yang benar bila belum diaktifkan, dan hanya menampilkan sukses setelah pemasang sistem benar-benar berjalan.
+- **Ketukan widget tidak andal di ROM yang ketat.** Jalur penerima widget bisa terblokir oleh pembatasan aktivitas background Android. Tombol widget sekarang meluncurkan activity secara langsung dengan aksi sebagai intent extra, diputar ulang oleh Flutter saat cold start dan diteruskan ke engine yang hidup saat warm start.
+
+## Peningkatan
+
+- **Widget hanya update saat status berubah.** Seret slider selama memutar tidak lagi membangun ulang widget puluhan kali per detik; widget hanya berganti saat lagu atau status play benar-benar berubah.
+- **Penjaga cold restore disetel sebelum seek.** Trek yang dipulihkan yang hampir berakhir tidak bisa lagi memicu crossfade, A-B repeat, atau maju otomatis sebelum pengguna menekan play.
+- **Preferensi rusak tidak bisa membunuh pustaka.** Kegagalan membaca SharedPreferences kini kembali ke urutan A-Z alih-alih menggagalkan seluruh pemuatan database.
+- **Ketukan sortir baru menang.** Mengetuk opsi sortir sesaat setelah startup tidak bisa lagi dikembalikan oleh pembacaan nilai tersimpan yang terlambat.
+- **Fallback installer.** Bila pemasang sistem tidak bisa dibuka karena alasan apa pun, pengguna langsung dibawa ke halaman rilis GitHub, bukan berhenti di pesan error.
+
 ## v3.5.1
 
 Rilis perbaikan bug: audit menyeluruh untuk menghilangkan anomali di player, pemindai, pembaruan aplikasi, dan pustaka.
 
 ## Perbaikan bug
 
-- **Crossfade tidak pernah melanjutkan antrean.** Watchdog posisi berjalan sebelum fade selesai, sehingga `next()` membatalkan fade dan memutar lagu berikutnya dari awal; watchdog sekarang mengalah selama fade masih memegang trek, dan player cadangan ikut tersusun saat dijeda.
-- **Jeda hanya mempause lagu yang keluar.** Selama fade, jeda menghentikan satu trek sementara trek lainnya tetap berbunyi; jalur jeda sekarang menghentikan pasangan yang sedang menyatu seluruhnya.
-- **Updater gagal saat install.** `installApk` kekurangan flag `FLAG_ACTIVITY_NEW_TASK` di intent installer, jadi setiap percobaan install gagal dan kembali ke pengguna.
-- **Scan metadata massal tidak menyimpan apa pun.** Judul, artis, dan cover yang di-refetch oleh bulk scan hilang saat reload berikutnya; sekarang tersimpan, begitu juga alur bulk missing-art dan missing-lyrics.
-- **Mengambil lagu yang salah setelah pustaka berubah.** Resume sekarang menyimpan id lagu, bukan indeks mentah, jadi menghapus satu lagu tidak menggeser pemutaran ke lagu sebelah.
-- **File yang dipindah kehilangan riwayatnya.** File yang di-rename atau dipindah dianggap hilang dan dihapus beserta playlist, favorit, dan riwayat dengar; file yang dipindah kini dideteksi dari nama dan durasi dan barisnya tetap dipertahankan.
-- **Urutan sortir tidak konsisten.** Pilihan sortir yang disimpan sekarang diterapkan secara deterministik dari pemuatan pertama.
-- **Lagu "palsu" di cold start.** Saat memulihkan sesi setelah aplikasi dimatikan, trek yang dipulihkan tidak merespons tombol jeda/berikutnya sampai aplikasi disentuh; tombol sekarang berfungsi langsung setelah pemulihan.
-- **Antrean menampilkan data basi setelah rename/favorit.** Antrean menyimpan lagu berdasarkan referensi; pustaka sekarang mendorong field terbaru ke baris antrean yang cocok.
-- **Indikator lagu bisa macet setelah cold start.** Saat memulihkan sesi setelah aplikasi dimatikan, trek yang dipulihkan tidak merespons tombol jeda/berikutnya sampai aplikasi disentuh; tombol sekarang berfungsi langsung setelah pemulihan.
+- **Crossfade tidak pernah melanjutkan antrean.** Watchdog mematikan trek sebelum fade selesai, sehingga `next()` membatalkan fade dan memutar ulang dari 0; watchdog sekarang mengalah selama fade masih memegang trek, dan jalur jeda menghentikan pasangan yang sedang menyatu.
+- **Scan metadata massal tidak menyimpan apa pun.** Judul, artis, cover, dan lirik yang di-refetch oleh bulk scan dan layar missing-art/missing-lyrics hilang saat reload berikutnya; sekarang tersimpan.
+- **Cold restore membekukan semua otomasi.** Trek yang dipulihkan tidak pernah lanjut sendiri, tidak ada crossfade maupun A-B repeat sampai pengguna menekan play; penjaga cold-start sekarang terangkat oleh aksi pemutaran apa pun.
+- **Pemulihan menggeser lagu.** Menghapus atau memindahkan satu lagu menggeser antrean yang dipulihkan sebanyak satu posisi; pemulihan kini berpatokan pada id lagu.
+- **File yang dipindah kehilangan riwayat.** Lagu yang direname atau dipindah dianggap hilang dan dihapus beserta playlist, favorit, dan riwayat dengar; file yang dipindah kini dideteksi dari nama dan durasi dan barisnya dipertahankan.
+- **Installer selalu gagal.** Intent install lacked FLAG_ACTIVITY_NEW_TASK; sekarang pemasang terbuka dan bisa memasang.
+- **Antrean menampilkan data basi.** Edit rename/favorit tidak pernah sampai ke snapshot antrean; pustaka sekarang mendorong field terbaru ke baris antrean yang cocok.
+- **Urutan sortir bisa diabaikan.** Pilihan sortir yang disimpan kini diterapkan secara deterministik sejak pemuatan pertama.
 
 ## Peningkatan
 

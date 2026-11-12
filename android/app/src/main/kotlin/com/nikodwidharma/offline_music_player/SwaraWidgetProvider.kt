@@ -10,9 +10,10 @@ import android.widget.RemoteViews
 
 // Bridge between the widget provider (which can run with the process dead)
 // and the live Flutter engine. MainActivity registers a handler while the
-// engine is up; the receiver uses it for instant in-process actions. When the
-// process is dead, the receiver launches MainActivity with the action and
-// Flutter reads it on startup.
+// engine is up; the widget taps launch MainActivity with the action inside
+// the intent. On a dead process the app starts, Flutter replays the action
+// from the intent extra via getInitialAction; when the engine is up, the
+// handler forwards it directly.
 object SwaraWidgetBridge {
     @Volatile
     var handler: ((String) -> Unit)? = null
@@ -20,8 +21,9 @@ object SwaraWidgetBridge {
 
 // Home screen widget showing the current song with prev / play / next.
 // The app pushes state to it on every track or playing change through
-// SwaraWidgetProvider.updateAll. Button taps go through the broadcast
-// receiver below.
+// SwaraWidgetProvider.updateAll. Button taps launch MainActivity carrying
+// the requested action as an extra; MainActivity forwards it to Flutter
+// directly when the engine is up, or Flutter replays it on cold start.
 class SwaraWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(
@@ -80,56 +82,28 @@ class SwaraWidgetProvider : AppWidgetProvider() {
                 R.id.widget_play,
                 if (playing) R.drawable.ic_widget_pause else R.drawable.ic_widget_play,
             )
-            views.setOnClickPendingIntent(R.id.widget_prev, buttonIntent(context, ACTION_PREV, 1001))
-            views.setOnClickPendingIntent(R.id.widget_play, buttonIntent(context, ACTION_TOGGLE, 1002))
-            views.setOnClickPendingIntent(R.id.widget_next, buttonIntent(context, ACTION_NEXT, 1003))
+            views.setOnClickPendingIntent(R.id.widget_prev, actionIntent(context, ACTION_PREV, 1001))
+            views.setOnClickPendingIntent(R.id.widget_play, actionIntent(context, ACTION_TOGGLE, 1002))
+            views.setOnClickPendingIntent(R.id.widget_next, actionIntent(context, ACTION_NEXT, 1003))
             return views
         }
 
-        private fun buttonIntent(context: Context, action: String, requestCode: Int): PendingIntent {
-            val intent = Intent(context, SwaraWidgetActionReceiver::class.java).apply {
-                this.action = action
-                // Distinct component so multiple buttons do not collapse.
-                putExtra("request_code", requestCode)
+        // Launch MainActivity carrying the requested action. Single task +
+        // clear top keeps the widget responsive while the app is alive; the
+        // same extra is replayed by Flutter on a cold start.
+        private fun actionIntent(context: Context, action: String, requestCode: Int): PendingIntent {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                // Distinct action so the extra is always fresh on each tap.
+                this.action = Intent.ACTION_MAIN
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra("swara_widget_action", action)
             }
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             } else {
                 PendingIntent.FLAG_UPDATE_CURRENT
             }
-            return PendingIntent.getBroadcast(context, requestCode, intent, flags)
-        }
-    }
-}
-
-// Routes widget button taps. If the engine is alive, forward in-process; if
-// the app is dead, launch the app with the action and Flutter replays it on
-// startup. Either way the toggle, next and previous buttons work.
-class SwaraWidgetActionReceiver : AppWidgetProvider() {
-
-    override fun onReceive(context: Context, intent: Intent) {
-        // Keep the AppWidgetProvider semantics for direct provider calls.
-        super.onReceive(context, intent)
-        val action = intent.action ?: return
-        when (action) {
-            SwaraWidgetProvider.ACTION_TOGGLE,
-            SwaraWidgetProvider.ACTION_NEXT,
-            SwaraWidgetProvider.ACTION_PREV -> {
-                val handler = SwaraWidgetBridge.handler
-                if (handler != null) {
-                    handler.invoke(action)
-                } else {
-                    // App process is dead; start the app and pass the action
-                    // as an extra. MainActivity forwards it to Flutter.
-                    val launch = Intent(context, MainActivity::class.java).apply {
-                        this.action = Intent.ACTION_MAIN
-                        addCategory(Intent.CATEGORY_LAUNCHER)
-                        putExtra("swara_widget_action", action)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    }
-                    context.startActivity(launch)
-                }
-            }
+            return PendingIntent.getActivity(context, requestCode, intent, flags)
         }
     }
 }

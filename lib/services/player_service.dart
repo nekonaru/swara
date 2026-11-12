@@ -265,6 +265,12 @@ class PlayerService extends ChangeNotifier {
           if (int.tryParse(token) != null) int.parse(token),
       ];
       if (ids.isEmpty) return;
+      // The paused track must never trigger anything on its own while we
+      // rebuild the session; set the guards BEFORE the restore writes the
+      // source, or a near-end restored track could fire crossfade / A-B /
+      // auto-advance on its own.
+      _completionHandled = true;
+      _suspendAutoActions = true;
       final songs = await DBHelper.instance.getSongsByIds(ids);
       if (songs.isEmpty) return;
       _queue = List.of(songs);

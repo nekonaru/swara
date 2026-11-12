@@ -186,10 +186,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _showSnack(l10n.settingsUpdateFailed);
       return;
     }
-    final opened = await AudioEffectsService.instance.installApk(path);
+    final status = await AudioEffectsService.instance.installApk(path);
     if (!mounted) return;
-    if (!opened) {
-      _showSnack(l10n.settingsUpdateInstallFailed);
+    switch (status) {
+      case 'ok':
+        // The system installer is up; nothing to say here.
+        break;
+      case 'no_permission':
+        _showSnack(l10n.settingsUpdateInstallFailed);
+        break;
+      default:
+        // The installer would not start. Fall back to the GitHub releases
+        // page so the user can still update by hand.
+        await _openLink('https://github.com/nekonaru/swara/releases');
+        break;
     }
   }
 
@@ -1033,44 +1043,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // -- SUPPORT --
           _SectionHeader(l10n.donateTitle),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Text(
-              l10n.donateSubtitle,
-              style: TextStyle(
-                  fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ),
           ListTile(
             leading: const Icon(Icons.favorite_outline),
-            title: Text(l10n.donateGithub),
-            subtitle: const Text('github.com/sponsors/nekonaru'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () => _openLink('https://github.com/sponsors/nekonaru'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite_outline),
-            title: Text(l10n.donateSaweria),
-            subtitle: const Text('saweria.co/nekonaruu'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () => _openLink('https://saweria.co/nekonaruu'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite_outline),
-            title: Text(l10n.donateSociabuzz),
-            subtitle: const Text('sociabuzz.com/nekonaru/donate'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () => _openLink('https://sociabuzz.com/nekonaru/donate'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite_outline),
-            title: Text(l10n.donateBagibagi),
-            subtitle: const Text('bagibagi.co/Nekonaru'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () => _openLink('https://bagibagi.co/Nekonaru'),
+            title: Text(l10n.donateTitle),
+            subtitle: Text(l10n.donateSubtitle),
+            trailing: const Icon(Icons.favorite, size: 20),
+            onTap: _showSupportSheet,
           ),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  // Show the support picker. Kept as one calm row instead of four
+  // permanent sponsor buttons; the list appears only on tap.
+  Future<void> _showSupportSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+    final options = <(String, String, String, IconData)>[
+      (l10n.donateGithub, 'github.com/sponsors/nekonaru', 'https://github.com/sponsors/nekonaru', Icons.favorite),
+      (l10n.donateSaweria, 'saweria.co/nekonaruu', 'https://saweria.co/nekonaruu', Icons.favorite),
+      (l10n.donateSociabuzz, 'sociabuzz.com/nekonaru/donate', 'https://sociabuzz.com/nekonaru/donate', Icons.favorite),
+      (l10n.donateBagibagi, 'bagibagi.co/Nekonaru', 'https://bagibagi.co/Nekonaru', Icons.favorite),
+    ];
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
+              child: Text(l10n.donateTitle,
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+            for (final (title, subtitle, url, icon) in options)
+              ListTile(
+                leading: Icon(icon),
+                title: Text(title),
+                subtitle: Text(subtitle),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _openLink(url);
+                },
+              ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

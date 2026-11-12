@@ -105,9 +105,14 @@ class LibraryProvider extends ChangeNotifier {
   late final Future<void> _prefsFuture;
 
   Future<void> _loadPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final idx = prefs.getInt(_kSortOption) ?? 0;
-    sortOption = SortOption.values[idx.clamp(0, SortOption.values.length - 1)];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final idx = prefs.getInt(_kSortOption) ?? 0;
+      sortOption = SortOption.values[idx.clamp(0, SortOption.values.length - 1)];
+    } catch (e) {
+      // A prefs failure must never abort the whole library load.
+      debugPrint('LibraryProvider prefs read failed: $e');
+    }
   }
 
   Future<void> _savePrefs() async {
@@ -352,12 +357,16 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   void setSortOption(SortOption option) {
-    sortOption = option;
-    _applySort();
-    // Same rows, different order: derived indexes must be rebuilt.
-    _songsVersion++;
-    _savePrefs();
-    notifyListeners();
+    // Wait for the initial prefs read so a late stored value can never
+    // overwrite the user's fresh tap.
+    _prefsFuture.then((_) {
+      sortOption = option;
+      _applySort();
+      // Same rows, different order: derived indexes must be rebuilt.
+      _songsVersion++;
+      _savePrefs();
+      notifyListeners();
+    });
   }
 
   /// Cheap change token for the current [songs] list, content and order.

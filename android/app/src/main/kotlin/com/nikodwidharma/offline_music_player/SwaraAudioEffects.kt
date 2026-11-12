@@ -154,7 +154,9 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
             // Hand the downloaded update APK to the system package installer.
             // Installing an APK signed with the same key over the current
-            // install is an in-place upgrade: no uninstall needed.
+            // install is an in-place upgrade. Returns "ok" when the installer
+            // is running, "no_permission" when the user must first allow
+            // installing unknown apps for this package, "error" otherwise.
             "installApk" -> {
                 val path = call.argument<String>("path")
                 result.success(installApk(path))
@@ -252,14 +254,32 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     // Hand the downloaded update APK to the system package installer. On
-    // Android N and later the file must go through a FileProvider because
-    // direct file:// URIs are refused. The caller gets a plain boolean:
-    // true when the installer intent was launched.
-    private fun installApk(path: String?): Boolean {
-        val context = appContext ?: return false
-        if (path.isNullOrEmpty()) return false
+    // Android 8+ the user must first grant "Install unknown apps" to Swara;
+    // when it is not granted we send them to the matching Settings page and
+    // report "no_permission" so the UI can say so. Returns "ok" when the
+    // installer intent was launched, "no_permission" when the grant screen
+    // was opened, or "error" otherwise.
+    private fun installApk(path: String?): String {
+        val context = appContext ?: return "error"
+        if (path.isNullOrEmpty()) return "error"
         val file = File(path)
-        if (!file.exists()) return false
+        if (!file.exists()) return "error"
+        // On Android 8+ installing an unknown-source package requires the
+        // per-app "Install unknown apps" special access; the manifest alone
+        // is not enough.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            !context.packageManager.canRequestPackageInstalls()) {
+            try {
+                val intent = Intent(
+                    android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    android.net.Uri.parse("package:${context.packageName}"),
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (_: Exception) {
+                return "error"
+            }
+            return "no_permission"
+        }
         return try {
             val uri = androidx.core.content.FileProvider.getUriForFile(
                 context,
@@ -269,14 +289,12 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                // We hold a plain application context, so the installer needs
-                // a fresh task behind its own flag or Android throws.
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-            true
+            "ok"
         } catch (_: Exception) {
-            false
+            "error"
         }
     }
 }

@@ -67,15 +67,6 @@
                 android:resource="@xml/swara_update_paths" />
         </provider>
         <receiver
-            android:name=".SwaraWidgetActionReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="swara.widget.TOGGLE" />
-                <action android:name="swara.widget.NEXT" />
-                <action android:name="swara.widget.PREV" />
-            </intent-filter>
-        </receiver>
-        <receiver
             android:name=".SwaraWidgetProvider"
             android:exported="true">
             <intent-filter>

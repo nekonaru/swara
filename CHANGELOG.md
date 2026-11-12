@@ -1,20 +1,36 @@
 # Changelog
 
+## v3.5.2
+
+Hardening release for the in-app updater and the home screen widget, plus a few cold-start edge cases.
+
+## Bug fixes
+
+- **Installer always opened the wrong screen.** Fresh installations could never install an update in place because the system blocked unknown sources silently and the app showed success anyway. The updater now checks the `Install unknown apps` permission, opens the right Android settings screen when it is missing, and only reports success after the system installer actually runs.
+- **Widget taps were unreliable on strict ROMs.** The widget receiver path could be blocked by Android's background activity restrictions. Widget buttons now launch the activity directly with the action as an intent extra, replayed by Flutter on cold start and delivered to the live engine on warm start.
+
+## Improvements
+
+- **Widget updates only on state changes.** Slider drags during playback no longer rebuild the widget many times per second; it only rebinds when the song or play state actually changes.
+- **Cold restore guard is set before the seek.** A restored near-end track can no longer fire crossfade, A-B repeat or auto-advance on its own before the user presses play.
+- **Corrupt preferences can no longer kill the library.** A failing SharedPreferences read now falls back to title A-Z instead of aborting the whole database load.
+- **A fresh sort tap wins.** Tapping a sort option immediately after startup can no longer be reverted by the late stored-value read.
+- **Installer fallback.** When the system installer cannot start for any reason, the user is taken to the GitHub releases page instead of seeing a dead-end error.
+
 ## v3.5.1
 
 Bug-fix release: audit passes that stamp out anomalies across the player, the scanner, the updater and the library.
 
 ## Bug fixes
 
-- **Crossfade could never advance the queue.** The position watchdog fired before the fade finished, so `next()` aborted the fade and restarted the next song from zero; the watchdog now yields while a fade owns the track, and the standby player is paused with the outgoing one on pause.
-- **Pause only paused the outgoing song.** During the fade, pause stopped one track and left the other playing; the pause path now stops the whole blended pair.
-- **Updater crashed on install.** `installApk` was missing `FLAG_ACTIVITY_NEW_TASK` on the installer intent, so every install attempt threw back to the user.
-- **Bulk metadata scans saved nothing.** Titles, artists and art refetched by bulk scans were dropped on the next reload; they now persist, and the missing-art and missing-lyrics bulk flows persist too.
-- **Restoring the wrong song after the library changes.** Resume now stores the song id instead of the raw index, so deleting or moving one song no longer shifts playback by one.
-- **Moved files lost their history.** A file renamed or moved on disk was deleted as a ghost along with its playlists, favorites and listening history; moved files are detected by name and duration and keep their rows.
-- **Scanner could not see moves and the sort could be ignored.** The startup sort option is now applied deterministically from the first load.
-- **Mock tracks on cold start.** A cold start restored to the old index when songs were deleted; resume now locates the saved song id in the restored queue.
-- **Stale queue displays after rename/favorite.** The queue snapshots songs by reference; the library now pushes fresh fields into matching queued rows.
+- **Crossfade never advanced the queue.** The position watchdog cut the track before the fade landed, so `next()` aborted the fade and restarted from zero; the watchdog now yields while a fade owns the track, and the pause path stops the blended pair.
+- **Bulk scans persisted nothing.** Titles, artists, art and lyrics refetched by bulk and missing-art/missing-lyrics flows were dropped on the next reload; they now persist.
+- **Cold restore froze all automation.** A restored track never auto-advanced, faded, or A-B looped until the user touched the screen; the cold-start guard now lifts on any playback action.
+- **Resume shifted playback.** Deleting or moving one song shifted the restored queue by one; resume now anchors to the song id.
+- **Moved files lost history.** Songs renamed or relocated were ghosted and wiped along with playlists, favorites and listening history; moved files are matched by name and duration and keep their rows.
+- **Installer always failed.** The update install intent lacked `FLAG_ACTIVITY_NEW_TASK`; the system installer now opens and can finish the install.
+- **Queue showed stale data.** Rename/favorite edits never reached the queue snapshot; the library now pushes fresh fields into matching queued rows.
+- **Startup sort could be ignored.** The stored sort order now applies deterministically from the first load.
 
 ## Improvements
 

@@ -36,12 +36,19 @@ class MainActivity : AudioServiceFragmentActivity() {
                         result.success(null)
                     }
                     "getInitialAction" -> {
-                        result.success(intent?.getStringExtra("swara_widget_action"))
+                        // Replay the widget tap that cold-started the app;
+                        // consume it so a restart never double-fires it.
+                        val action = intent?.getStringExtra("swara_widget_action")
+                        intent?.removeExtra("swara_widget_action")
+                        result.success(action)
                     }
                     else -> result.notImplemented()
                 }
             }
         }
+        // If the app was launched from a widget tap while the process was
+        // dead, the extra still exists; Flutter's getInitialAction replay
+        // picks it up during engine startup. Nothing to forward here.
         // Live bridge so a widget tap with the app already running reaches
         // Flutter without restarting anything.
         SwaraWidgetBridge.handler = { action ->
@@ -52,8 +59,10 @@ class MainActivity : AudioServiceFragmentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         // Widget tapped while the activity is already up; forward the action.
+        // Remove the extra right away so a later cold start never replays it.
         val action = intent.getStringExtra("swara_widget_action")
         if (action != null) {
+            intent.removeExtra("swara_widget_action")
             widgetChannel?.invokeMethod("onWidgetAction", action)
         }
     }

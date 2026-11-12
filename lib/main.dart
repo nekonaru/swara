@@ -243,14 +243,31 @@ Future<void> _handleAppShortcut(String shortcutType) async {
 // and reads its state lazily at runtime.
 // Subscribe to playback state and mirror it into the home screen widget.
 void _startWidgetStatePush() {
+  var lastTitle = '';
+  var lastArtist = '';
+  var lastPlaying = false;
+  var hasPushed = false;
+
   Future<void> push() async {
     final service = PlayerService.instance;
     final song = service.currentSong;
-    await _WidgetBridge.pushState(
-      song?.title ?? 'Swara',
-      song?.artist ?? '',
-      song != null && service.player.playing,
-    );
+    final title = song?.title ?? 'Swara';
+    final artist = song?.artist ?? '';
+    final playing = song != null && service.player.playing;
+    // Push only on real state transitions, not on every notification
+    // (speed/pitch slider drags would otherwise rebind the widget 60 times
+    // per second).
+    if (hasPushed &&
+        title == lastTitle &&
+        artist == lastArtist &&
+        playing == lastPlaying) {
+      return;
+    }
+    lastTitle = title;
+    lastArtist = artist;
+    lastPlaying = playing;
+    hasPushed = true;
+    await _WidgetBridge.pushState(title, artist, playing);
   }
 
   PlayerService.instance.addListener(() => unawaited(push()));

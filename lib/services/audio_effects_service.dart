@@ -106,10 +106,12 @@ class AudioEffectsService {
     return raw.map((e) => e.toString()).toList();
   }
 
-  /// Hand a downloaded APK to the system package installer. Returns true
-  /// when the installer intent was launched.
-  Future<bool> installApk(String path) async {
-    return (await _invoke<bool>('installApk', {'path': path})) ?? false;
+  /// Hand a downloaded APK to the system package installer. Returns
+  /// "ok" when the installer intent launched, "no_permission" when the
+  /// per-app "Install unknown apps" grant screen was opened instead (the
+  /// user must enable it once and tap the update again), or "error".
+  Future<String> installApk(String path) async {
+    return (await _invoke<String>('installApk', {'path': path})) ?? 'error';
   }
 
   Future<dynamic> _onNativeCall(MethodCall call) async {
