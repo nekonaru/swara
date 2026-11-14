@@ -3306,8 +3306,20 @@ abstract class AppLocalizations {
   /// Subtitle for the system equalizer button
   ///
   /// In en, this message translates to:
-  /// **'Opens Wavelet or the equalizer built into your phone'**
+  /// **'Opens Wavelet or the phone equalizer; falls back to the in-app one'**
   String get eqOpenSystemSubtitle;
+
+  /// Title of the bottom sheet shown when no system equalizer exists
+  ///
+  /// In en, this message translates to:
+  /// **'In-app equalizer'**
+  String get eqInAppTitle;
+
+  /// Subtitle of the in-app equalizer bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'No equalizer app was found on this phone, so the in-app equalizer is shown instead.'**
+  String get eqInAppSubtitle;
 
   /// Shown when no system equalizer panel can be opened
   ///

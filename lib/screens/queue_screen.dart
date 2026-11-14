@@ -294,6 +294,10 @@ class _QueueScreenState extends State<QueueScreen> {
                       child: ReorderableListView.builder(
                         scrollController: _scrollController,
                         itemCount: queue.length,
+                        // The list must know its extent without laying out
+                        // rows; without this, jumping to the playing row in a
+                        // huge queue builds it in one frame and ANRs.
+                        itemExtent: _itemHeight,
                         onReorderItem: (oldIndex, newIndex) => _player.reorderQueue(oldIndex, newIndex),
                         itemBuilder: (context, i) {
                           final song = queue[i];

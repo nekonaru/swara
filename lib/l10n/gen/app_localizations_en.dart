@@ -1877,7 +1877,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eqOpenSystemSubtitle =>
-      'Opens Wavelet or the equalizer built into your phone';
+      'Opens Wavelet or the phone equalizer; falls back to the in-app one';
+
+  @override
+  String get eqInAppTitle => 'In-app equalizer';
+
+  @override
+  String get eqInAppSubtitle =>
+      'No equalizer app was found on this phone, so the in-app equalizer is shown instead.';
 
   @override
   String get eqNoSystemEqualizer =>

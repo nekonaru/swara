@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.5.3
+
+Rilis perbaikan: tombol equalizer sekarang selalu berfungsi, dan layar antrean terbuka seketika bahkan di pustaka yang sangat besar.
+
+## Perbaikan bug
+
+- **Layar antrean freeze dan memicu peringatan "tidak menanggapi".** Saat acak dimatikan, membuka antrean memaksa semua baris di atas lagu yang diputar dibangun dalam satu frame untuk menghitung posisi scroll-nya. Baris kini punya tinggi tetap yang bisa dihitung langsung oleh list, jadi melompat ke baris lagu yang diputar instan pada ukuran antrean berapa pun.
+- **"Buka equalizer sistem" tidak melakukan apa-apa.** Saat tidak ada aplikasi equalizer sistem (Wavelet atau panel bawaan HP) terpasang, atau sesi audio belum ada, tombol langsung kembali tanpa umpan balik. Sekarang selalu jatuh kembali ke bottom sheet equalizer dalam aplikasi dengan preset dan editor 5-band custom.
+
+## Peningkatan
+
+- **Kontrol equalizer dipakai bersama.** Chip preset, slider band custom, dan visualizer band kini berada di satu widget yang dipakai Settings dan bottom sheet equalizer dalam aplikasi, jadi keduanya tidak pernah berbeda.
+- **Copy equalizer lebih jelas.** Baris equalizer sistem mencantumkan bahwa ia jatuh kembali ke equalizer dalam aplikasi, dan sheet fallback menjelaskan kenapa ia ditampilkan.
+
 ## v3.5.2
 
 Rilis hardening untuk updater dalam aplikasi dan widget layar home, plus beberapa kasus tepi cold-start.

@@ -1878,7 +1878,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get eqOpenSystemSubtitle =>
-      'Membuka Wavelet atau equalizer bawaan HPmu';
+      'Membuka Wavelet atau equalizer bawaan HP; jatuh kembali ke equalizer dalam aplikasi';
+
+  @override
+  String get eqInAppTitle => 'Equalizer dalam aplikasi';
+
+  @override
+  String get eqInAppSubtitle =>
+      'Tidak ada aplikasi equalizer di HP ini, jadi equalizer dalam aplikasi yang ditampilkan.';
 
   @override
   String get eqNoSystemEqualizer =>

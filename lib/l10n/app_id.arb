@@ -2109,10 +2109,18 @@
     "@eqOpenSystem":  {
                          "description":  "Tombol untuk membuka aplikasi equalizer sistem untuk sesi ini"
                      },
-    "eqOpenSystemSubtitle":  "Membuka Wavelet atau equalizer bawaan HPmu",
+    "eqOpenSystemSubtitle":  "Membuka Wavelet atau equalizer bawaan HP; jatuh kembali ke equalizer dalam aplikasi",
     "@eqOpenSystemSubtitle":  {
                                  "description":  "Subjudul tombol equalizer sistem"
                              },
+    "eqInAppTitle":  "Equalizer dalam aplikasi",
+    "@eqInAppTitle":  {
+                        "description":  "Judul bottom sheet saat tidak ada equalizer sistem"
+                    },
+    "eqInAppSubtitle":  "Tidak ada aplikasi equalizer di HP ini, jadi equalizer dalam aplikasi yang ditampilkan.",
+    "@eqInAppSubtitle":  {
+                           "description":  "Subjudul bottom sheet equalizer dalam aplikasi"
+                       },
     "eqNoSystemEqualizer":  "Tidak ada aplikasi equalizer ditemukan. Pasang Wavelet atau pakai preset bawaan.",
     "@eqNoSystemEqualizer":  {
                                 "description":  "Ditampilkan saat panel equalizer sistem tidak bisa dibuka"

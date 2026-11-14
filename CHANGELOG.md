@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.5.3
+
+Fix release: the equalizer button now always does something, and the queue screen opens instantly even on very large libraries.
+
+## Bug fixes
+
+- **Queue screen froze and triggered "not responding".** With shuffle off, opening the queue forced every row above the playing one to build in a single frame to compute its scroll offset. Rows now have a fixed height the list can compute from, so jumping to the playing row is instant at any queue size.
+- **"Open system equalizer" did nothing.** When no system equalizer app (Wavelet or the phone's built-in panel) was installed, or no audio session existed yet, the button returned silently. It now always falls back to an in-app equalizer sheet with presets and the 5-band custom editor.
+
+## Improvements
+
+- **Shared equalizer controls.** The preset chips, custom band sliders and band visualizer now live in one widget used by both Settings and the in-app equalizer sheet, so the two never drift apart.
+- **Clearer equalizer copy.** The system equalizer row now says it falls back to the in-app one, and the fallback sheet explains why it is showing.
+
 ## v3.5.2
 
 Hardening release for the in-app updater and the home screen widget, plus a few cold-start edge cases.

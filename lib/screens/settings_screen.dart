@@ -17,36 +17,7 @@ import '../services/update_service.dart';
 import '../services/equalizer_service.dart';
 import '../services/player_service.dart';
 import '../utils/scan_controls.dart';
-
-const List<String> kEqualizerPresets = [
-  'Flat',
-  'Pop',
-  'Rock',
-  'Classical',
-  'Jazz',
-  'Electronic',
-  'Hip-Hop',
-  'Bass Boost',
-  'Vocal',
-  'Custom',
-];
-
-// Simple per-preset EQ representation (relative gains, for UI reference).
-// When a real EQ package is added, these values can be used directly.
-const Map<String, List<double>> kPresetBands = {
-  'Flat': [0, 0, 0, 0, 0],
-  'Pop': [1, 2, 2, 1, 0],
-  'Rock': [3, 1, -1, 1, 3],
-  'Classical': [2, 0, 0, 0, 2],
-  'Jazz': [2, 1, 0, 1, 2],
-  'Electronic': [3, 1, 0, 2, 3],
-  'Hip-Hop': [3, 2, 0, 0, 1],
-  'Bass Boost': [4, 3, 0, 0, 0],
-  'Vocal': [-1, 0, 2, 2, 0],
-  'Custom': [0, 0, 0, 0, 0],
-};
-
-const List<String> _bandLabels = ['60Hz', '250Hz', '1kHz', '4kHz', '16kHz'];
+import '../widgets/eq_controls.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -58,29 +29,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Guard against rapid successive taps on preferences:
   // the save future is awaited and input is disabled while saving.
   bool _savingPrefs = false;
-
-  // Local mirror of the 5 custom EQ gains, so a slider drag only repaints.
-  // Every pref write and every platform call happens on onChangeEnd, once the
-  // finger is up. See _eqDraft.
-  final List<double> _eqDraft = [0, 0, 0, 0, 0];
-  bool _eqDraftReady = false;
-
-  // Lazily seeds the drag draft from the persisted gains.
-  List<double> _eqDraftFrom(ThemeProvider theme) {
-    if (!_eqDraftReady) {
-      _eqDraft
-        ..clear()
-        ..addAll(theme.customEqGains);
-      _eqDraftReady = true;
-    }
-    return _eqDraft;
-  }
-
-  // Forget the draft so it is re-seeded from prefs on the next build, used when
-  // the preset changes from outside the sliders.
-  void _resetEqDraft() {
-    _eqDraftReady = false;
-  }
 
   // State for the Data section (backup export/import + art cache).
   bool _busyData = false;
@@ -486,21 +434,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // Open the system equalizer panel for this session, using the standard
-  // audio effect control flow.
-  // The EQ effect session exists only after a song has played; when
-  // none is attached yet, fall back to the active player's raw session id
-  // so the panel can still open. If no equalizer app answers, say so
-  // instead of pretending it worked.
+  // audio effect control flow. The EQ effect session exists only after a
+  // song has played; when none is attached yet, fall back to the active
+  // player's raw session id so the panel can still open. When no equalizer
+  // app answers (or no session exists), fall back to the in-app equalizer
+  // sheet so the button always does something useful.
   Future<void> _openSystemEqualizer() async {
     if (_savingPrefs) return;
     final sessionId = EqualizerService.instance.sessionId ??
         PlayerService.instance.player.androidAudioSessionId;
-    if (sessionId == null || sessionId <= 0) return;
-    final opened = await AudioEffectsService.instance.openEqualizerPanel(sessionId);
+    final opened = (sessionId != null && sessionId > 0)
+        ? await AudioEffectsService.instance.openEqualizerPanel(sessionId)
+        : false;
     if (!mounted) return;
-    if (!opened) {
-      _showSnack(AppLocalizations.of(context)!.eqNoSystemEqualizer);
-    }
+    if (opened) return;
+    await _showInAppEqualizerSheet();
+  }
+
+  // Bottom sheet hosting the in-app equalizer (presets + custom bands).
+  // Shown when no system equalizer app is installed, so the EQ is always
+  // reachable from this button.
+  Future<void> _showInAppEqualizerSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.eqInAppTitle,
+                        style: Theme.of(ctx).textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.eqInAppSubtitle,
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const EqControls(),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // Returns the localized display name for an accent color index.
@@ -787,94 +776,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
-          // Preset chips
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: kEqualizerPresets.map((preset) {
-                final isSelected = preset == themeProvider.equalizerPreset;
-                return ChoiceChip(
-                  label: Text(preset),
-                  selected: isSelected,
-                  onSelected: _savingPrefs
-                      ? null
-                      : (_) => _savePrefs(() async {
-                            await themeProvider.setEqualizerPreset(preset);
-                            setState(_resetEqDraft);
-                            if (preset == 'Custom') {
-                              await EqualizerService.instance.applyCustom(
-                                  themeProvider.customEqGains);
-                            } else {
-                              await EqualizerService.instance
-                                  .applyPreset(preset);
-                            }
-                          }),
-                );
-              }).toList(),
-            ),
-          ),
-          // Custom 5-band sliders, shown only for the Custom preset.
-          // Changes apply live to the DSP and persist to prefs.
-          // TODO L10N: English literals, localize after string freeze.
-          if (themeProvider.equalizerPreset == 'Custom')
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Column(
-                children: List.generate(5, (i) {
-                  final gains = _eqDraftFrom(themeProvider);
-                  return Row(
-                    children: [
-                      SizedBox(
-                        width: 52,
-                        child: Text(_bandLabels[i],
-                            style: const TextStyle(fontSize: 12)),
-                      ),
-                      Expanded(
-                        child: Slider(
-                          value: gains[i].clamp(-6.0, 6.0),
-                          min: -6,
-                          max: 6,
-                          divisions: 24,
-                          label: '${gains[i].toStringAsFixed(1)} dB',
-                          // Drag only repaints: no prefs write, no platform
-                          // call per frame. The service throttles and
-                          // serializes applies, so even a burst of ticks could
-                          // not race, but the drag should stay smooth.
-                          onChanged: (v) => setState(() => gains[i] = v),
-                          // Finger up: persist and commit the final curve.
-                          onChangeEnd: (v) => _savePrefs(() async {
-                            final updated = List.of(gains)..[i] = v;
-                            await themeProvider.setCustomEqGains(updated);
-                            await EqualizerService.instance
-                                .applyCustom(updated);
-                          }),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 56,
-                        child: Text(
-                          '${gains[i].toStringAsFixed(1)} dB',
-                          textAlign: TextAlign.end,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ),
-          // EQ band visualizer
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: _EqVisualizer(
-              preset: themeProvider.equalizerPreset,
-              customGains: _eqDraftFrom(themeProvider),
-            ),
-          ),
-          // Open the system equalizer (Wavelet or the built-in panel) for
-          // this session, the standard panel flow.
+          // Preset chips, Custom band sliders and visualizer (shared with
+          // the in-app equalizer bottom sheet).
+          const EqControls(),
+          // Open the system equalizer for this session; falls back to the
+          // in-app equalizer sheet when no system panel exists.
           ListTile(
             contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 2),
             leading: const Icon(Icons.tune_outlined),
@@ -1136,59 +1042,3 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// Simple EQ bar visualizer mirroring the selected preset curve.
-class _EqVisualizer extends StatelessWidget {
-  final String preset;
-  final List<double> customGains;
-  const _EqVisualizer({required this.preset, this.customGains = const [0.0, 0.0, 0.0, 0.0, 0.0]});
-
-  @override
-  Widget build(BuildContext context) {
-    final bands =
-        preset == 'Custom' ? customGains : (kPresetBands[preset] ?? const [0.0, 0.0, 0.0, 0.0, 0.0]);
-    final max = bands.map((b) => b.abs()).reduce((a, b) => a > b ? a : b);
-    final normalizer = max < 1 ? 1.0 : max;
-    final color = Theme.of(context).colorScheme.primary;
-
-    return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(bands.length, (i) {
-          final gain = bands[i];
-          final ratio = (gain / normalizer).clamp(-1.0, 1.0);
-          final barHeight = (ratio.abs() * 32 + 4).clamp(4.0, 44.0);
-
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-                width: 24,
-                height: barHeight,
-                decoration: BoxDecoration(
-                  color: gain > 0
-                      ? color
-                      : gain < 0
-                          ? color.withValues(alpha: 0.4)
-                          : Theme.of(context).colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(_bandLabels[i],
-                  style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}
