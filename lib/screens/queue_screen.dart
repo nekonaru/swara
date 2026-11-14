@@ -234,7 +234,11 @@ class _QueueScreenState extends State<QueueScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<PlayerService, (int, int)>(
+    // Provide the singleton locally so this screen is self-sufficient and
+    // Selector never depends on the ancestor setup.
+    return ChangeNotifierProvider.value(
+      value: _player,
+      child: Selector<PlayerService, (int, int)>(
       // Rebuild only when the track index or the queue itself changes;
       // the rest (volume drag, speed throttle, favourite toggle) stays cheap.
       selector: (_, ps) => (ps.currentIndex, ps.queueVersion),
@@ -359,6 +363,7 @@ class _QueueScreenState extends State<QueueScreen> {
                 ),
         );
       },
+      ),
     );
   }
 }

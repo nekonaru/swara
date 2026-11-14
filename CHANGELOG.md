@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.6.1
+
+Hotfix: the queue screen showed a blank grey page in v3.6.0.
+
+## Bug fixes
+
+- **Queue screen opened to a blank grey screen.** The queue used a scoped listener without the provider it needs being registered for it, so the screen crashed on build. PlayerService is now registered in the app's provider tree, and the queue screen provides it locally like every other screen. A widget smoke test plus a source guard prevent this regression.
+
 ## v3.6.0
 
 New brand icon plus a native-feel polish pass: Android 12+ splash screen, a smaller release build and a deep performance audit.

@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.6.1
+
+Hotfix: layar antrean menampilkan halaman abu-abu kosong di v3.6.0.
+
+## Perbaikan bug
+
+- **Layar antrean terbuka sebagai halaman abu-abu kosong.** Antrean memakai scoped listener tanpa provider yang dibutuhkan terdaftar untuknya, sehingga layar gagal saat build. PlayerService kini terdaftar di provider tree aplikasi, dan layar antrean menyediakannya secara lokal seperti layar lainnya. Widget smoke test plus penjaga sumber mencegah regresi ini.
+
 ## v3.6.0
 
 Ikon aplikasi baru plus sentuhan native: splash screen Android 12+, build rilis lebih kecil, dan audit performa mendalam.

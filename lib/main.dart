@@ -351,6 +351,9 @@ class MusicApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: languageProvider),
+        // PlayerService is a singleton; register it once globally so any
+        // Selector can read it without a local wrapper.
+        ChangeNotifierProvider.value(value: PlayerService.instance),
       ],
       child: Consumer2<ThemeProvider, LanguageProvider>(
         builder: (context, tp, lp, _) => MaterialApp(
