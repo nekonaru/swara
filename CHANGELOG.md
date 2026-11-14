@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.6.3
+
+A proper intro: the splash screen now choreographs the mark, wordmark and loader, and hands off to the app with a soft fade.
+
+## Improvements
+
+- **Smoother intro animation.** Cold start now fades the mark in while it scales up from 0.88, staggers the "Swara" wordmark right behind it, and shows a small animated equalizer instead of a spinner while the app loads; the status bar and background match the native splash, and the handoff to the app is a soft fade. Reduced motion settings get opacity-only with the loader replaced by a static bar.
+
 ## v3.6.2
 
 The icon was redrawn: the letterform is gone, the sound wave is back as one continuous gesture flowing into a play arrowhead.

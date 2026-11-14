@@ -390,7 +390,7 @@ class MusicApp extends StatelessWidget {
 }
 
 // Shows the splash while boot init runs, then hands off to StartupGate.
-// Keeps the original StartupGate and HomeScreen flow untouched.
+// The handoff is a soft fade so the app does not hard-cut after boot.
 class BootGate extends StatelessWidget {
   final Future<void> bootFuture;
   const BootGate({super.key, required this.bootFuture});
@@ -400,10 +400,19 @@ class BootGate extends StatelessWidget {
     return FutureBuilder<void>(
       future: bootFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const SplashScreen();
-        }
-        return const StartupGate();
+        final ready = snapshot.connectionState == ConnectionState.done;
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          // Same curve family as the splash entrance.
+          switchInCurve: const Cubic(0.23, 1.0, 0.32, 1.0),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+          child: ready
+              ? const StartupGate(key: ValueKey('gate'))
+              : const SplashScreen(key: ValueKey('splash')),
+        );
       },
     );
   }

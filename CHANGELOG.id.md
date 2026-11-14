@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.6.3
+
+Intro baru yang layak: splash sekarang mengkoreografikan mark, wordmark, dan loader, lalu berpindah ke aplikasi dengan fade lembut.
+
+## Peningkatan
+
+- **Animasi intro lebih halus.** Cold start kini memunculkan mark dengan fade sambil scale dari 0.88, wordmark "Swara" menyusul berjarak sedikit, dan loader diganti equalizer animasi kecil pengganti spinner; status bar dan latar menyatu dengan splash native, dan perpindahan ke aplikasi memakai fade lembut. Pengaturan reduced motion hanya mendapat opacity dan loader statis.
+
 ## v3.6.2
 
 Ikon digambar ulang: huruf dibuang, gelombang suara kembali sebagai satu gerakan kontinu yang mengalir menjadi kepala panah play.
