@@ -1,5 +1,6 @@
 package com.nikodwidharma.offline_music_player
 
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -11,6 +12,17 @@ import io.flutter.plugin.common.MethodChannel
 // Theme.AppCompat descendant theme (see values/styles.xml).
 class MainActivity : AudioServiceFragmentActivity() {
     private var widgetChannel: MethodChannel? = null
+    // Widget rebinds touch RemoteViews and the widget manager; keep that
+    // off the main looper.
+    private val widgetExecutor =
+        java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        // Android 12+ native splash (navy tile, brand glyph); a no-op on
+        // older devices, which fall back to LaunchTheme's windowBackground.
+        installSplashScreen()
+        super.onCreate(savedInstanceState)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -32,7 +44,9 @@ class MainActivity : AudioServiceFragmentActivity() {
                         val title = args?.get("title") as? String ?: "Swara"
                         val artist = args?.get("artist") as? String ?: ""
                         val playing = args?.get("playing") as? Boolean ?: false
-                        SwaraWidgetProvider.updateAll(this@MainActivity, title, artist, playing)
+                        widgetExecutor.execute {
+                            SwaraWidgetProvider.updateAll(this@MainActivity, title, artist, playing)
+                        }
                         result.success(null)
                     }
                     "getInitialAction" -> {
@@ -69,6 +83,7 @@ class MainActivity : AudioServiceFragmentActivity() {
 
     override fun onDestroy() {
         SwaraWidgetBridge.handler = null
+        widgetExecutor.shutdown()
         super.onDestroy()
     }
 }

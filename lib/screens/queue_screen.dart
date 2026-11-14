@@ -234,9 +234,11 @@ class _QueueScreenState extends State<QueueScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _player,
-      builder: (context, _) {
+    return Selector<PlayerService, (int, int)>(
+      // Rebuild only when the track index or the queue itself changes;
+      // the rest (volume drag, speed throttle, favourite toggle) stays cheap.
+      selector: (_, ps) => (ps.currentIndex, ps.queueVersion),
+      builder: (context, _, __) {
         final queue = _player.queue;
         final slotIds = _player.queueSlotIds;
         final currentIndex = _player.currentIndex;

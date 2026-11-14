@@ -902,6 +902,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildControls(Song song, bool isFavorite) {
+    // Hoisted out of the position-tick StreamBuilder so the theme copy is
+    // built once per control-tree rebuild instead of per tick.
+    final sliderThemeData = SliderTheme.of(context).copyWith(
+      trackHeight: 3,
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -914,10 +920,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               return Column(
                 children: [
                   SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 3,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                    ),
+                    data: sliderThemeData,
                     child: Slider(
                       value: pos.inMilliseconds.toDouble().clamp(0, dur.inMilliseconds.toDouble()),
                       max: dur.inMilliseconds.toDouble() > 0 ? dur.inMilliseconds.toDouble() : 1,

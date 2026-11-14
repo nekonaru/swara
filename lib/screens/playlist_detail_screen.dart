@@ -512,24 +512,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         )
                       : Stack(
                           children: [
-                            AnimatedBuilder(
-                              animation: PlayerService.instance,
-                              builder: (context, _) =>
-                                // Use ReorderableListView only in custom mode without search
-                                _sortOption == _PlsSortOption.custom && _query.isEmpty
-                                ? ReorderableListView.builder(
-                                scrollController: _scrollController,
-                                itemCount: displayed.length,
-                                onReorderItem: _onReorder,
-                                itemBuilder: (context, i) => _buildTile(displayed, i, reorderable: true),
-                              )
-                                : ListView.builder(
-                                controller: _scrollController,
-                                itemCount: displayed.length,
-                                itemExtent: _itemHeight,
-                                itemBuilder: (context, i) => _buildTile(displayed, i, reorderable: false),
-                              ),
-                            ),
+                            // Only the rows whose current/playing flags flip
+                            // rebuild; see _buildTile. No AnimatedBuilder here.
+                            _sortOption == _PlsSortOption.custom && _query.isEmpty
+                            ? ReorderableListView.builder(
+                            scrollController: _scrollController,
+                            itemCount: displayed.length,
+                            itemExtent: _itemHeight,
+                            onReorderItem: _onReorder,
+                            itemBuilder: (context, i) => _buildTile(displayed, i, reorderable: true),
+                          )
+                            : ListView.builder(
+                            controller: _scrollController,
+                            itemCount: displayed.length,
+                            itemExtent: _itemHeight,
+                            itemBuilder: (context, i) => _buildTile(displayed, i, reorderable: false),
+                          ),
                             if (showAzBar)
                               Positioned(
                                 right: 0, top: 0, bottom: 0,
@@ -548,8 +546,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
   Widget _buildTile(List<Song> songs, int i, {required bool reorderable}) {
     final song = songs[i];
-    final currentSong = PlayerService.instance.currentSong;
-    final isCurrentlyPlaying = currentSong != null && currentSong.id == song.id;
+    final songId = song.id;
+    // Provide the singleton locally so Selector works; only rows whose
+    // current/playing state flips rebuild on PlayerService notifies.
+    return ChangeNotifierProvider.value(
+      value: PlayerService.instance,
+      child: Selector<PlayerService, bool>(
+        selector: (_, ps) => ps.currentSong?.id == songId,
+        builder: (context, isCurrentlyPlaying, _) {
     final tile = Dismissible(
       key: ValueKey('pls_${song.id}'),
       direction: DismissDirection.endToStart,
@@ -573,9 +577,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: PlayingIndicator(
-                  isPlaying: PlayerService.instance.player.playing,
-                  color: Theme.of(context).colorScheme.primary,
+                // Inner selector: play/pause only rebuilds the bars.
+                child: Selector<PlayerService, bool>(
+                  selector: (_, ps) => ps.player.playing,
+                  builder: (context, playing, _) => PlayingIndicator(
+                    isPlaying: playing,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               )
             : const Icon(Icons.music_note),
@@ -606,8 +614,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
     return EntranceFade(
       index: i,
-      key: ValueKey('plssong_${song.id}'), // without $i - avoid re-animation on reorder
+      key: ValueKey('plssong_$songId'), // without $i - avoid re-animation on reorder
       child: tile,
+    );
+        },
+      ),
     );
   }
 

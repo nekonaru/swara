@@ -139,18 +139,17 @@ class SwaraAudioHandler extends BaseAudioHandler {
   void _syncState() {
     final ps = PlayerService.instance;
     final song = ps.currentSong;
-    final slotIds = ps.queueSlotIds;
     final queueVersion = ps.queueVersion;
     // Decide FIRST whether the queue actually changed. Building the MediaItem
     // list allocates one object per queue entry, and _syncState runs on every
     // PlayerService notification (volume drag, favourite toggle, speed change,
-    // crossfade steps). Comparing the fingerprint first keeps those cheap.
-    // The fingerprint is order sensitive and duplicate safe because it uses
-    // the stable slot ids in playback order plus the version that bumps on
-    // every queue mutation.
-    final fingerprint = '$queueVersion|${slotIds.join(',')}';
+    // crossfade steps). queueVersion bumps on every queue mutation and
+    // reorder, so it alone is a sufficient invalidation token; building the
+    // slot id list here would allocate an O(queue) list per notify.
+    final fingerprint = '$queueVersion';
     if (fingerprint != _lastQueueFingerprint) {
       _lastQueueFingerprint = fingerprint;
+      final slotIds = ps.queueSlotIds;
       // Build MediaSession queue in playback order with one stable id
       // per queue entry so repeated songs stay distinct.
       final q = ps.queue;
@@ -173,15 +172,12 @@ class SwaraAudioHandler extends BaseAudioHandler {
       }
     }
     final currentIndex = ps.currentIndex;
-    // The queue length equals the play order length, so the slot ids are
-    // enough to bound the index without materializing the queue list.
-    final queueLength = slotIds.length;
-    // This is the same item the queue entry for the current slot would
-    // produce, built directly so a full list is never needed here.
+    // The media item id is built with queueSlotIdAt, an O(1) lookup; the
+    // materialized slot id list only exists inside the branch above.
     final currentItem = song == null
         ? null
         : MediaItem(
-            id: 'queue_${currentIndex >= 0 && currentIndex < queueLength ? slotIds[currentIndex] : 0}_${song.filePath}',
+            id: 'queue_${ps.queueSlotIdAt(currentIndex) ?? 0}_${song.filePath}',
             title: song.title,
             artist: song.artist,
             album: song.album,
@@ -217,7 +213,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
         updatePosition: ps.player.position,
         speed: ps.player.speed,
         queueIndex:
-            (currentIndex >= 0 && currentIndex < queueLength)
+            (currentIndex >= 0 && currentIndex < ps.queueOrderLength)
                 ? currentIndex
                 : null,
       ),

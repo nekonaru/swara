@@ -2094,6 +2094,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
         ],
       ),
     );
+    controller.dispose();
     if (name != null && name.isNotEmpty) {
       if (mounted) context.read<PlaylistProvider>().create(name);
     }

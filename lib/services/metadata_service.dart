@@ -209,6 +209,29 @@ Future<Map<String, dynamic>> _lrclibFetchIsolate(
 /// - Lyrics via lyrics.ovh (free, no API key)
 /// - Genre via the iTunes Search API
 /// - Region guessed from the artist's home country (simple heuristic, manually editable)
+// Off-isolate iTunes body parser: the cached body can be a few KB and bulk
+// scans replay it hundreds of times; parsing on the main thread stalls the UI.
+Map<String, dynamic>? _parseItunesBody(String body) {
+  try {
+    final data = jsonDecode(body);
+    if (data['resultCount'] == null || data['resultCount'] <= 0) {
+      return null;
+    }
+    final track = data['results'][0];
+    if (track is! Map) return null;
+    return <String, dynamic>{
+      'title': track['trackName']?.toString(),
+      'artist': track['artistName']?.toString(),
+      'album': track['collectionName']?.toString(),
+      'genre': track['primaryGenreName']?.toString(),
+      'artwork': track['artworkUrl100']?.toString(),
+      'country': track['country']?.toString(),
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 class MetadataService {
   MetadataService._();
   static final MetadataService instance = MetadataService._();
@@ -283,7 +306,7 @@ class MetadataService {
     if (cachedResponse != null) {
       if (cachedResponse != _cacheMissMarker) {
         // Corrupt cache entries return false and fall through to network.
-        final applied = _applyItunesResponseBody(song, cachedResponse);
+        final applied = await _applyItunesResponseBody(song, cachedResponse);
         if (applied) {
           song.region ??= 'Unknown';
           song.genre ??= 'Unknown';
@@ -333,7 +356,7 @@ class MetadataService {
       } catch (_) {}
     } else {
       final body = itunesResult['body'] as String?;
-      if (body == null || !_applyItunesResponseBody(song, body)) {
+      if (body == null || !(await _applyItunesResponseBody(song, body))) {
         // Empty map or an answer that does not apply: transient failure,
         // keep the song retryable instead of locking it as missing.
         itunesFailed = true;
@@ -629,25 +652,18 @@ class MetadataService {
   /// Apply a cached iTunes JSON body to [song] using the same field
   /// mapping as a live 200 response. Returns false when the body is
   /// corrupt so the caller can fall back to the network.
-  bool _applyItunesResponseBody(Song song, String body) {
-    try {
-      final data = jsonDecode(body);
-      if (data['resultCount'] == null || data['resultCount'] <= 0) {
-        return false;
-      }
-      final track = data['results'][0];
-      song.title = _sanitizeField(track['trackName'], song.title);
-      song.artist = _sanitizeField(track['artistName'], song.artist);
-      song.album = _sanitizeField(track['collectionName'], song.album);
-      final genre = track['primaryGenreName']?.toString();
-      song.genre = genre != null ? _sanitizeField(genre, genre) : song.genre;
-      song.albumArtUrl =
-          (track['artworkUrl100'] as String?)?.replaceAll('100x100', '600x600');
-      song.region = _guessRegion(track['country']?.toString(), song.artist);
-      return true;
-    } catch (_) {
-      return false;
-    }
+  Future<bool> _applyItunesResponseBody(Song song, String body) async {
+    final parsed = await compute(_parseItunesBody, body);
+    if (parsed == null) return false;
+    song.title = _sanitizeField(parsed['title'], song.title);
+    song.artist = _sanitizeField(parsed['artist'], song.artist);
+    song.album = _sanitizeField(parsed['album'], song.album);
+    final genre = parsed['genre'] as String?;
+    song.genre = genre != null ? _sanitizeField(genre, genre) : song.genre;
+    song.albumArtUrl =
+        (parsed['artwork'] as String?)?.replaceAll('100x100', '600x600');
+    song.region = _guessRegion(parsed['country']?.toString(), song.artist);
+    return true;
   }
 
   /// Limit metadata field length (keep giant HTML out of the DB) + trim.

@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.6.0
+
+New brand icon plus a native-feel polish pass: Android 12+ splash screen, a smaller release build and a deep performance audit.
+
+## Improvements
+
+- **New app icon.** Swara is now a geometric lowercase "s" with an azure sound-drop accent on a deep navy tile. The mark is crisper at small sizes, and the notification and widget use the same mono glyph.
+- **Native splash screen on Android 12 and later.** Cold start shows the navy tile and the brand glyph instead of a white flash; older Android keeps a simple navy splash.
+- **Smaller install.** Release builds now use R8 minification and resource shrinking, and native libraries load directly from the APK instead of being extracted, reducing both APK and install size.
+- **Playlist, queue and search screens rebuild less.** Playlist rows and the mini player only rebuild when their own song or play state changes; the queue rebuilds only when the queue or current track changes; search rebuilds only when the library actually changes.
+- **Backup import and iTunes cache replay run off the main thread.** A large restore no longer blocks the UI, and bulk scans replay cached metadata without stalling.
+- **Duplicate detection runs off the main isolate.** The Collections screen shows the duplicate count when it is ready instead of computing it during startup.
+
+## Bug fixes
+
+- **Restore did hundreds of queries per row.** Favorites and listening history imported from a backup are now checked with chunked batched lookups; large restores apply in seconds instead of blocking.
+
 ## v3.5.3
 
 Fix release: the equalizer button now always does something, and the queue screen opens instantly even on very large libraries.

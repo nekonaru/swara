@@ -343,6 +343,12 @@ class DBHelper {
         'idx_listening_ts ON listening_entries(timestamp)',
     'idx_playlist_songs_pid_pos': 'CREATE INDEX IF NOT EXISTS '
         'idx_playlist_songs_pid_pos ON playlist_songs(playlistId, position)',
+    // Partial indexes for the flag columns used by the favorites view and
+    // the metadata-scan bookkeeping; tiny, only matching rows are indexed.
+    'idx_songs_favorite': 'CREATE INDEX IF NOT EXISTS '
+        'idx_songs_favorite ON songs(isFavorite) WHERE isFavorite = 1',
+    'idx_songs_scanned': 'CREATE INDEX IF NOT EXISTS '
+        'idx_songs_scanned ON songs(metadataScanned) WHERE metadataScanned = 1',
   };
 
   /// Make sure every index exists. Called from onOpen, which sqflite runs after

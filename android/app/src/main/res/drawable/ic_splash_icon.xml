@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="256dp" android:height="256dp" android:viewportWidth="256" android:viewportHeight="256">
+    <!-- Swara brand glyph for the Android 12+ splash screen: navy background
+         is supplied by the theme (windowSplashScreenBackground), this drawable
+         is the masked icon content, scaled to fit the circular mask. -->
+    <path android:strokeColor="#FFF5F3EE" android:strokeWidth="26.7"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M 154.68 103.64 C 154.68 80.44 102.48 80.44 102.48 117.56 C 103.64 139.60 152.36 116.40 153.52 138.44 C 153.52 174.40 101.32 174.40 101.32 153.52" />
+    <path android:fillColor="#FF2E6BFF"
+        android:pathData="M 168.02 103.64 A 13.34 13.34 0 1 1 141.34 103.64 A 13.34 13.34 0 1 1 168.02 103.64 Z" />
+</vector>

@@ -1176,6 +1176,15 @@ class PlayerService extends ChangeNotifier {
   /// changed mid-swipe (a plain positional index may be stale, this slot ID is not).
   List<int> get queueSlotIds => List.unmodifiable(_playOrder);
 
+  /// Length of the active play order without materializing a list.
+  int get queueOrderLength => _playOrder.length;
+
+  /// Slot id at a play order position, or null when out of range.
+  int? queueSlotIdAt(int orderIndex) {
+    if (orderIndex < 0 || orderIndex >= _playOrder.length) return null;
+    return _playOrder[orderIndex];
+  }
+
   /// Position in _playOrder for a stable slot ID, or null when gone.
   int? queuePosForSlot(int slotId) {
     final pos = _playOrder.indexOf(slotId);
@@ -1426,7 +1435,7 @@ class PlayerService extends ChangeNotifier {
 
   /// Load the play counts used by smart shuffle from the listening history.
   /// The Song model carries no play count or last played field, so the counts
-  /// come from DBHelper.getTopSongIdsSince.
+  /// come from DBHelper.getTopSongIds (all time, no date filter).
   ///
   /// The last played stamps are loaded here too. They used to be filled only
   /// by [_markSongPlayed] while the app ran, so every launch started with an
@@ -1440,10 +1449,9 @@ class PlayerService extends ChangeNotifier {
   // TODO L10N: no user facing string added here, English only.
   Future<void> refreshSmartShuffleStats() async {
     try {
-      final rows = await DBHelper.instance.getTopSongIdsSince(
-        DateTime(2000).toIso8601String(),
-        limit: 500,
-      );
+      // DateTime(2000) was "all time", so call the all-time query directly:
+      // it drops the per-row julianday() conversion on a full table scan.
+      final rows = await DBHelper.instance.getTopSongIds(limit: 500);
       _playCounts = {for (final e in rows) e.key: e.value};
       final stamps = await DBHelper.instance.getLastPlayedStamps(limit: 500);
       // Merge, never replace: a song already played in this session has an in

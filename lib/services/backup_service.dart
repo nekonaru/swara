@@ -1,11 +1,27 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+
 import '../services/embedded_art_service.dart';
 
 import '../services/db_helper.dart';
 
 // Backup format version. Bump when the JSON schema changes.
 const int kBackupFormatVersion = 1;
+
+// Decode the backup payload off the main isolate; the import can be a
+// multi-megabyte JSON document and the parse must not block the UI.
+Map<String, dynamic> _decodeBackup(String rawJson) {
+  final decoded = jsonDecode(rawJson);
+  if (decoded is! Map<String, dynamic>) {
+    throw const FormatException('Invalid backup: root must be an object');
+  }
+  return decoded;
+}
+
+// Encode the export payload off the main isolate as well.
+String _encodeBackup(Map<String, dynamic> payload) => jsonEncode(payload);
 
 // Summary of an import operation. Counts only rows actually restored.
 class BackupImportResult {
@@ -94,17 +110,14 @@ class BackupService {
       'favorites': favoriteIds,
       'listening_entries': entriesJson,
     };
-    return jsonEncode(payload);
+    return compute(_encodeBackup, payload);
   }
 
   // Validate the JSON structure and write it back with a replace-safe
   // additive strategy. Each section is guarded by try/catch so one
   // bad section does not abort the others.
   static Future<BackupImportResult> importLibrary(String rawJson) async {
-    final decoded = jsonDecode(rawJson);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Invalid backup: root must be an object');
-    }
+    final decoded = await compute(_decodeBackup, rawJson);
     final playlistsRaw = decoded['playlists'];
     final favoritesRaw = decoded['favorites'];
     final entriesRaw = decoded['listening_entries'];
@@ -204,23 +217,42 @@ class BackupService {
     }
 
     // Section 2: favorites. Mark each listed song id as favorite
-    // when the song still exists.
+    // when the song still exists. Existence is checked with chunked IN
+    // queries instead of one query per id.
     try {
       final database = await dbHelper.db;
+      final candidates = <int>[];
+      final seen = <int>{};
       for (final rawId in (favoritesRaw as List? ?? [])) {
         try {
           final songId = (rawId as num?)?.toInt();
           if (songId == null) continue;
-          final found = await database.query('songs',
-              columns: ['id'],
-              where: 'id = ?',
-              whereArgs: [songId],
-              limit: 1);
-          if (found.isEmpty) continue;
-          await dbHelper.setFavorite(songId, true);
-          favoritesRestored++;
+          if (seen.add(songId)) candidates.add(songId);
         } catch (_) {
           continue;
+        }
+      }
+      if (candidates.isNotEmpty) {
+        final existingIds = <int>{};
+        // Stay well below SQLITE_MAX_VARIABLE_NUMBER.
+        const chunk = 400;
+        for (var off = 0; off < candidates.length; off += chunk) {
+          final end = off + chunk > candidates.length ? candidates.length : off + chunk;
+          final slice = candidates.sublist(off, end);
+          final placeholders = List.filled(slice.length, '?').join(',');
+          final found = await database.rawQuery(
+            'SELECT id FROM songs WHERE id IN ($placeholders)',
+            slice,
+          );
+          existingIds.addAll(found.map((r) => r['id']).whereType<int>());
+        }
+        for (final songId in existingIds) {
+          try {
+            await dbHelper.setFavorite(songId, true);
+            favoritesRestored++;
+          } catch (_) {
+            continue;
+          }
         }
       }
     } catch (_) {
@@ -248,6 +280,11 @@ class BackupService {
       } catch (_) {
         // When the preload fails, fall back to inserting validated rows.
       }
+      // Validate every candidate row first (parse, clamp, dedupe), gather
+      // the song ids, then check existence with chunked IN queries instead
+      // of one query per row.
+      final parsedEntries = <Map<String, dynamic>>[];
+      final entrySongIds = <int>{};
       for (final item in (entriesRaw as List? ?? [])) {
         try {
           if (item is! Map) continue;
@@ -264,19 +301,40 @@ class BackupService {
           listenedMs = listenedMs.clamp(0, 86400000);
           final triple = '$songId|$tsRaw|$listenedMs';
           if (existingTriples.contains(triple)) continue;
-          // Skip entries pointing at songs that no longer exist.
-          final found = await database.query('songs',
-              columns: ['id'],
-              where: 'id = ?',
-              whereArgs: [songId],
-              limit: 1);
-          if (found.isEmpty) continue;
-          await database.insert('listening_entries', {
+          parsedEntries.add({
             'songId': songId,
             'timestamp': tsRaw,
             'listenedMs': listenedMs,
+            'triple': triple,
           });
-          existingTriples.add(triple);
+          entrySongIds.add(songId);
+        } catch (_) {
+          continue;
+        }
+      }
+      final existingEntrySongIds = <int>{};
+      const chunk = 400;
+      final entryIdList = entrySongIds.toList();
+      for (var off = 0; off < entryIdList.length; off += chunk) {
+        final end = off + chunk > entryIdList.length ? entryIdList.length : off + chunk;
+        final slice = entryIdList.sublist(off, end);
+        final placeholders = List.filled(slice.length, '?').join(',');
+        final found = await database.rawQuery(
+          'SELECT id FROM songs WHERE id IN ($placeholders)',
+          slice,
+        );
+        existingEntrySongIds.addAll(found.map((r) => r['id']).whereType<int>());
+      }
+      for (final entry in parsedEntries) {
+        try {
+          // Skip entries pointing at songs that no longer exist.
+          if (!existingEntrySongIds.contains(entry['songId'])) continue;
+          await database.insert('listening_entries', {
+            'songId': entry['songId'],
+            'timestamp': entry['timestamp'],
+            'listenedMs': entry['listenedMs'],
+          });
+          existingTriples.add(entry['triple'] as String);
           entriesRestored++;
         } catch (_) {
           continue;

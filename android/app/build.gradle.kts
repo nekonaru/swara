@@ -29,12 +29,18 @@ android {
 
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            // NOTE: enabling isMinifyEnabled or isShrinkResources lets R8 strip
-            // native classes used through JNI and reflection by plugins such as
-            // on_audio_query. That fails only on a real device and nowhere else,
-            // so minification stays off on purpose.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 + resource shrinking: strips unused Java/Kotlin code and
+            // resources from the release APK. Conservative keeps for the
+            // plugins that touch the framework through reflection/JNI are in
+            // proguard-rules.pro. Verify playback, scanning and the home
+            // widget after installing an update built with this config.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
@@ -53,4 +59,6 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // Required for the Theme.AppCompat.* themes in styles.xml (AudioServiceFragmentActivity).
     implementation("androidx.appcompat:appcompat:1.7.0")
+    // Android 12+ splash screen API (navy tile + brand glyph at cold start).
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }

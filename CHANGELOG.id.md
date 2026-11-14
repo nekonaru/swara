@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.6.0
+
+Ikon aplikasi baru plus sentuhan native: splash screen Android 12+, build rilis lebih kecil, dan audit performa mendalam.
+
+## Peningkatan
+
+- **Ikon aplikasi baru.** Swara sekarang berupa huruf "s" geometris dengan aksen titik suara azure di atas tile biru tinta. Mark terlihat lebih tajam di ukuran kecil, dan notifikasi serta widget memakai glyph mono yang sama.
+- **Splash screen native di Android 12 dan yang lebih baru.** Cold start menampilkan tile navy dan glyph merek, bukan layar putih kosong; Android yang lebih lama tetap mendapat splash navy sederhana.
+- **Ukuran instalasi lebih kecil.** Build rilis kini memakai R8 dan resource shrinking, dan native library dimuat langsung dari APK tanpa diekstrak terlebih dahulu.
+- **Layar playlist, anak antrean, dan pencarian lebih jarang rebuild.** Baris playlist dan mini player hanya rebuild saat lagu atau status play miliknya berubah; antrean hanya rebuild saat antrean atau lagu aktif berubah; pencarian hanya rebuild saat pustaka benar-benar berubah.
+- **Import backup dan pemutaran ulang cache iTunes berjalan di luar main thread.** Restore besar tidak lagi memblokir UI, dan bulk scan memutar ulang metadata cache tanpa tersendat.
+- **Deteksi duplikat berjalan di luar isolate utama.** Layar Collections menampilkan jumlah duplikat begitu hasilnya siap, bukan dihitung saat startup.
+
+## Perbaikan bug
+
+- **Restore melakukan ratusan query per baris.** Favorit dan riwayat dengar yang diimpor dari backup kini diperiksa dengan batch query, jadi restore besar selesai dalam hitungan detik.
+
 ## v3.5.3
 
 Rilis perbaikan: tombol equalizer sekarang selalu berfungsi, dan layar antrean terbuka seketika bahkan di pustaka yang sangat besar.

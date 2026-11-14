@@ -897,11 +897,13 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final lib = context.watch<LibraryProvider>();
+    // Only the songsVersion token triggers a rebuild (metadata scans notify
+    // on every batch, so watching the whole provider is too wide).
+    final songsVersion = context.select<LibraryProvider, int>((lib) => lib.songsVersion);
     // A library change invalidates the published results, re-run the search.
     // Compared on the version token, not the length: a metadata scan can
     // change every title while the song count stays the same.
-    if (!_searchScheduled && lib.songsVersion != _resultsLibVersion) {
+    if (!_searchScheduled && songsVersion != _resultsLibVersion) {
       _scheduleSearch();
     }
     // Results live in state, published only by a generation checked search.

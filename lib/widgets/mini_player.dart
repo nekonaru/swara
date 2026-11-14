@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/song_art_image.dart';
 import '../services/player_service.dart';
 import '../screens/player_screen.dart';
@@ -10,9 +11,15 @@ class MiniPlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final player = PlayerService.instance;
-    return AnimatedBuilder(
-      animation: player,
-      builder: (context, _) {
+    // Rebuild only when the identity or visible fields of the song change,
+    // not on every playback notify (volume drag, favourite toggle). The
+    // play/pause icon already listens to the state stream by itself.
+    return ChangeNotifierProvider.value(
+      value: player,
+      child: Selector<PlayerService, (int?, String?, String?, String?)>(
+        selector: (_, ps) => (ps.currentSong?.id, ps.currentSong?.title,
+            ps.currentSong?.artist, ps.currentSong?.albumArtPath),
+        builder: (context, _, __) {
         final song = player.currentSong;
         if (song == null) return const SizedBox.shrink();
         return TweenAnimationBuilder<double>(
@@ -108,7 +115,8 @@ class MiniPlayer extends StatelessWidget {
           ),
           ),
         );
-      },
+        },
+      ),
     );
   }
 }

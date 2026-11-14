@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
@@ -10,6 +11,7 @@ import '../services/m3u_service.dart';
 import '../services/playlist_art_service.dart';
 import 'extra_screens.dart';
 import 'duplicates_screen.dart';
+import '../models/song.dart';
 import 'history_screen.dart';
 import 'playlist_detail_screen.dart';
 import '../widgets/mini_player.dart';
@@ -23,6 +25,11 @@ const _cardColors = [
   Color(0xFF1A3A6B), // Recently played - blue
   Color(0xFF1A5C30), // Most played - green
 ];
+
+// Off-isolate duplicate scan: grouping 2600 songs with regexes is O(n log n)
+// and must not run on the first frame.
+int _countDuplicateGroupsInIsolate(List<Song> songs) =>
+    countDuplicateGroups(songs);
 
 class CollectionsScreen extends StatefulWidget {
   const CollectionsScreen({super.key});
@@ -48,16 +55,32 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   int _autoSyncedVersion = -1;
   // Extra salt added to the date seed when the user taps refresh.
   int _dailySalt = 0;
-  // Duplicate group count shown on the duplicate finder card. Rebuilt only
-  // when the library changes: computing it per render meant an O(n log n)
-  // grouping with regexes on every notification.
-  int _dupCountCache = 0;
+  // Duplicate group count shown on the duplicate finder card. Recomputed
+  // off the main isolate whenever the library changes; -1 means unknown and
+  // the card stays hidden until a count is ready.
+  int _dupCountCache = -1;
   int _dupCountVersion = -1;
+  bool _dupCountLoading = false;
 
   int _duplicateCountFor(LibraryProvider lib) {
-    if (_dupCountVersion != lib.songsVersion) {
-      _dupCountVersion = lib.songsVersion;
-      _dupCountCache = countDuplicateGroups(lib.songs);
+    if (_dupCountVersion != lib.songsVersion && !_dupCountLoading) {
+      _dupCountLoading = true;
+      final version = lib.songsVersion;
+      compute(_countDuplicateGroupsInIsolate, lib.songs).then((n) {
+        if (!mounted) return;
+        setState(() {
+          _dupCountCache = n;
+          _dupCountVersion = version;
+          _dupCountLoading = false;
+        });
+      }).catchError((_) {
+        if (!mounted) return;
+        setState(() {
+          _dupCountCache = 0;
+          _dupCountVersion = version;
+          _dupCountLoading = false;
+        });
+      });
     }
     return _dupCountCache;
   }
