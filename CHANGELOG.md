@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.6.2
+
+The icon was redrawn: the letterform is gone, the sound wave is back as one continuous gesture flowing into a play arrowhead.
+
+## Improvements
+
+- **New app icon.** Swara is now a single azure sound wave on a deep navy tile that flows into a play arrowhead drawn with the same stroke, no glow, no gradients. Same mark in the notification icon, the widget and the splash screen.
+
 ## v3.6.1
 
 Hotfix: the queue screen showed a blank grey page in v3.6.0.

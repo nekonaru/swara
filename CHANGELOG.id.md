@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.6.2
+
+Ikon digambar ulang: huruf dibuang, gelombang suara kembali sebagai satu gerakan kontinu yang mengalir menjadi kepala panah play.
+
+## Peningkatan
+
+- **Ikon aplikasi baru.** Swara sekarang berupa satu gelombang suara azure di atas tile biru tinta yang mengalir menjadi kepala panah play, digambar dengan stroke yang sama, tanpa glow dan tanpa gradien. Mark yang sama dipakai untuk notifikasi, widget, dan splash screen.
+
 ## v3.6.1
 
 Hotfix: layar antrean menampilkan halaman abu-abu kosong di v3.6.0.

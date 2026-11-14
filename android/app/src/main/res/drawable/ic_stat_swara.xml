@@ -1,8 +1,9 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp" android:viewportWidth="256" android:viewportHeight="256">
-    <!-- Swara brand glyph: lowercase geometric "s" silhouette (white). -->
-    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="42"
+    <!-- Swara brand glyph: sound wave flowing into a play arrowhead
+         (solid white silhouette for media notifications). -->
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="30"
         android:fillColor="#00000000"
         android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M 174 86 C 174 46, 84 46, 84 110 C 86 148, 170 108, 172 146 C 172 208, 82 208, 82 172" />
+        android:pathData="M 16 150 C 27 94, 50 64, 70 69 C 92 75, 96 145, 114 149 C 128 152, 132 78, 148 60 L 230 126 L 148 196" />
 </vector>
