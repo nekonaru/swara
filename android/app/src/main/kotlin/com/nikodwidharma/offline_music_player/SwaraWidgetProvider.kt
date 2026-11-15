@@ -5,19 +5,9 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.widget.RemoteViews
-
-// Bridge between the widget provider (which can run with the process dead)
-// and the live Flutter engine. MainActivity registers a handler while the
-// engine is up; the widget taps launch MainActivity with the action inside
-// the intent. On a dead process the app starts, Flutter replays the action
-// from the intent extra via getInitialAction; when the engine is up, the
-// handler forwards it directly.
-object SwaraWidgetBridge {
-    @Volatile
-    var handler: ((String) -> Unit)? = null
-}
 
 // Home screen widget showing the current song with prev / play / next.
 // The app pushes state to it on every track or playing change through
@@ -44,6 +34,7 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         const val KEY_TITLE = "title"
         const val KEY_ARTIST = "artist"
         const val KEY_PLAYING = "playing"
+        const val KEY_ART = "art"
 
         private fun prefs(context: Context) =
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -55,11 +46,13 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             title: String,
             artist: String,
             playing: Boolean,
+            artPath: String?,
         ) {
             prefs(context).edit()
                 .putString(KEY_TITLE, title)
                 .putString(KEY_ARTIST, artist)
                 .putBoolean(KEY_PLAYING, playing)
+                .putString(KEY_ART, artPath ?: "")
                 .apply()
             val manager = AppWidgetManager.getInstance(context)
             val component = android.content.ComponentName(
@@ -77,6 +70,16 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.swara_widget)
             views.setTextViewText(R.id.widget_title, state.getString(KEY_TITLE, "Swara"))
             views.setTextViewText(R.id.widget_artist, state.getString(KEY_ARTIST, ""))
+            // Artwork: decode a downscaled bitmap on first build after a
+            // state change. RemoteViews transactions have a size budget, so
+            // never ship the full resolution image.
+            val artPath = state.getString(KEY_ART, "") ?: ""
+            val art = if (artPath.isNotEmpty()) decodeArt(artPath, 192) else null
+            if (art != null) {
+                views.setImageViewBitmap(R.id.widget_art, art)
+            } else {
+                views.setImageViewResource(R.id.widget_art, R.drawable.ic_widget_art)
+            }
             val playing = state.getBoolean(KEY_PLAYING, false)
             views.setImageViewResource(
                 R.id.widget_play,
@@ -86,6 +89,27 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_play, actionIntent(context, ACTION_TOGGLE, 1002))
             views.setOnClickPendingIntent(R.id.widget_next, actionIntent(context, ACTION_NEXT, 1003))
             return views
+        }
+
+        // Decode a downscaled artwork bitmap: first a bounds pass to pick a
+        // sample size without loading the file, then a single sampled decode.
+        // Returns null when the file is missing or unreadable.
+        private fun decodeArt(path: String, maxPx: Int): android.graphics.Bitmap? {
+            return try {
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(path, bounds)
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+                val longest = maxOf(bounds.outWidth, bounds.outHeight)
+                var sample = 1
+                while (longest / sample > maxPx) sample *= 2
+                val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+                val bmp = BitmapFactory.decodeFile(path, opts)
+                // RemoteViews transactions have a size budget; refuse to hand a
+                // huge bitmap to the system if it still decodes large.
+                if (bmp != null && (bmp.width > 512 || bmp.height > 512)) null else bmp
+            } catch (_: Exception) {
+                null
+            }
         }
 
         // Launch MainActivity carrying the requested action. Single task +

@@ -315,9 +315,17 @@ class PlayerService extends ChangeNotifier {
 
   /// Broadcast the audio effect session for [player] with [playing] as the
   /// current state. Fire and forget; failures are logged, never thrown.
+  /// Deduplicated per player: seeks and similar re-emissions that keep the
+  /// same playing flag do not re-broadcast the session, so Wavelet-class
+  /// receivers are not spammed with OPEN/CLOSE duplicates.
+  final Map<int, bool> _lastEffectEmit = <int, bool>{};
+
   void _emitEffectSession(AudioPlayer player, bool playing) {
     final sessionId = player.androidAudioSessionId;
     if (sessionId == null) return;
+    final key = player.hashCode;
+    if (_lastEffectEmit[key] == playing) return;
+    _lastEffectEmit[key] = playing;
     if (playing) {
       unawaited(EqualizerService.instance
           .openSystemAudioEffectSession(sessionId));
@@ -1117,7 +1125,15 @@ class PlayerService extends ChangeNotifier {
       await previous();
     } else {
       _lastPreviousPressAt = now;
-      await _activePlayer.seek(Duration.zero);
+      try {
+        // A previous press on a cold-restored session is an explicit user
+        // action; the guard that keeps the restored track silent must lift,
+        // or a later play can never advance on its own.
+        if (!_disposed) await _activePlayer.seek(Duration.zero);
+        _suspendAutoActions = false;
+      } catch (e) {
+        debugPrint('smartPrevious seek failed: $e');
+      }
       notifyListeners();
     }
   }
@@ -1199,6 +1215,8 @@ class PlayerService extends ChangeNotifier {
     // standby player. Dropping it from the queue would leave that song
     // audible while the queue no longer contains it.
     if (isCrossfadeActive && posInOrder == pendingCrossfadePosition) return;
+    // The fade captured its target index; any other removal shifts it.
+    if (isCrossfadeActive) _abortCrossfadeForQueueEdit();
     queueVersion++;
     _playOrder.removeAt(posInOrder);
     if (posInOrder < _posInOrder) _posInOrder--;
@@ -1243,6 +1261,8 @@ class PlayerService extends ChangeNotifier {
   void reorderQueue(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= _playOrder.length) return;
     if (newIndex < 0 || newIndex >= _playOrder.length) return;
+    // A fade in flight holds a target by index; reordering shifts it.
+    if (isCrossfadeActive) _abortCrossfadeForQueueEdit();
     queueVersion++;
     final moved = _playOrder.removeAt(oldIndex);
     _playOrder.insert(newIndex, moved);
@@ -1380,6 +1400,9 @@ class PlayerService extends ChangeNotifier {
   /// Set the shuffle state explicitly (not a toggle), used by the
   /// "Shuffle" button so it always TURNS shuffle on instead of turning it off.
   void setShuffle(bool value) {
+    // A fade in flight captured the pre-shuffle order; rebuilding the
+    // order now would land the fade on a different song.
+    if (isCrossfadeActive) _abortCrossfadeForQueueEdit();
     _shuffle = value;
     // Persist so a cold start comes back with the same setup.
     unawaited(_persistShuffleRepeat());

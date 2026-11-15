@@ -152,6 +152,13 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
                 abis.addAll(Build.SUPPORTED_32_BIT_ABIS)
                 result.success(abis)
             }
+            // SHA-256 of a local file, streamed. Used to verify an update
+            // APK against the digest GitHub publishes for the asset before
+            // handing it to the installer.
+            "sha256" -> {
+                val path = call.argument<String>("path")
+                result.success(sha256(path))
+            }
             // Hand the downloaded update APK to the system package installer.
             // Installing an APK signed with the same key over the current
             // install is an in-place upgrade. Returns "ok" when the installer
@@ -162,6 +169,27 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
                 result.success(installApk(path))
             }
             else -> result.notImplemented()
+        }
+    }
+
+    // Stream a file through SHA-256 and return the hex digest, or null when
+    // the file cannot be read. Computed here so the Dart side does not need
+    // a hashing dependency for a single integrity check.
+    private fun sha256(path: String?): String? {
+        if (path.isNullOrEmpty()) return null
+        return try {
+            val md = java.security.MessageDigest.getInstance("SHA-256")
+            File(path).inputStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read <= 0) break
+                    md.update(buffer, 0, read)
+                }
+            }
+            md.digest().joinToString("") { "%02x".format(it) }
+        } catch (_: Exception) {
+            null
         }
     }
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## v3.7.0
+
+Pembaruan besar: widget home dengan sampul album, warna Material You, updater yang memverifikasi unduhan, dan audit mendalam yang memperbaiki semua anomali terkonfirmasi di pemutaran, backup, database, dan widget.
+
+## Peningkatan
+
+- **Widget di layar home sekarang menampilkan sampul album.** Cover lagu aktif tampil di sebelah judul dan artis, di-decode di background thread tanpa menyentuh main looper, dengan placeholder navy saat tidak ada sampul.
+- **Material You.** Toggle baru di Settings → Appearance membuat Swara mengikuti warna aksen sistem Android 12+; dimatikan kembali ke palet bawaan, dan Android yang tidak mendukung kembali diam-diam ke palet itu.
+- **Artwork yang sama untuk notifikasi, widget, dan splash.** Ketiganya sekarang memakai glyph gelombang azure dan tile navy yang sama.
+
+## Perbaikan bug
+
+- **Perubahan lagu tidak lagi merusak antrean sesudah crossfade.** Menghapus, mengurut ulang, atau mengacak antrean saat crossfade berlangsung kini membatalkan fade terlebih dahulu; sebelumnya fade bisa mendarat di lagu yang salah.
+- **Slider dan ikon play/pause bertahan melewati crossfade.** Tiga stream di player kini di-re-key pada instance player yang audible, jadi tidak beku di track yang keluar.
+- **Unduhan update diverifikasi.** Updater memeriksa SHA-256 digest yang dipublikasikan GitHub untuk APK, dan menolak instalasi jika tidak cocok; unduhan terpotong ditolak sebelum masuk installer.
+- **Ketukan widget tidak pernah hilang.** Ketukan yang tiba sebelum handler Flutter terpasang di-buffer native lalu diputar ulang; cold start via widget dan shortcut sama-sama menunggu pemulihan pemutaran.
+- **Restore backup tidak menggandakan riwayat.** Dedup riwayat dengar kini ada di dalam transaksi insert, dan pengecekan anggota playlist di-chunk supaya backup besar terimpor utuh.
+- **Migrasi database setengah jadi tidak bisa ter-commit.** Migrasi skema kini memeriksa keberadaan kolom dengan `PRAGMA table_info` sebelum `ALTER TABLE`.
+- **Dialog progress tidak nyangkut.** Dialog progress tertutup dan di-dispose walau settings hilang di tengah unduhan.
+- **Antrean MediaSession tidak republish di setiap notify.** Badai drag-reorder bergabung menjadi satu republish 200 ms setelah antrean tenang.
+- **Siaran efek sistem tidak lagi diduplikasi.** Aplikasi seperti Wavelet tidak menerima notifikasi OPEN berulang untuk state play yang sama.
+- **Eviction cache art bertahap.** Cache art notifikasi membuang setengah tertua, bukan membersihkan semuanya sekaligus.
+- **String widget mengikuti bahasa sistem.** Semua string widget kini tersedia dalam bahasa Indonesia.
+
 ## v3.6.3
 
 Intro baru yang layak: splash sekarang mengkoreografikan mark, wordmark, dan loader, lalu berpindah ke aplikasi dengan fade lembut.

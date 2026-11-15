@@ -114,6 +114,12 @@ class AudioEffectsService {
     return (await _invoke<String>('installApk', {'path': path})) ?? 'error';
   }
 
+  /// SHA-256 hex digest of a local file, computed natively. Null when the
+  /// file cannot be read.
+  Future<String?> sha256(String path) async {
+    return _invoke<String>('sha256', {'path': path});
+  }
+
   Future<dynamic> _onNativeCall(MethodCall call) async {
     final handler = _handlers[call.method];
     if (handler != null) handler();

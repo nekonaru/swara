@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp" android:height="64dp" android:viewportWidth="64" android:viewportHeight="64">
+    <!-- Placeholder art for the home screen widget: azure note on navy. -->
+    <path android:fillColor="#FF0A1830"
+        android:pathData="M0,0 h64 v64 h-64 z" />
+    <path android:fillColor="#FF2E6BFF"
+        android:pathData="M24,44 L24,18 L42,14 L42,38 A7,7 0 1,1 35,36 A7,7 0 0,1 24,44 Z M32,36 A2.5,2.5 0 1,0 37,36 A2.5,2.5 0 0,0 32,36 Z" />
+</vector>

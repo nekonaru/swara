@@ -3038,6 +3038,18 @@ abstract class AppLocalizations {
   /// **'Crossfade duration: {seconds}s'**
   String xfDuration(int seconds);
 
+  /// Material You option title
+  ///
+  /// In en, this message translates to:
+  /// **'Material You'**
+  String get materialYouTitle;
+
+  /// Material You option subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Follow the system accent colors (Android 12+)'**
+  String get materialYouSubtitle;
+
   /// AMOLED option title
   ///
   /// In en, this message translates to:

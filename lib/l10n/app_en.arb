@@ -1859,6 +1859,14 @@
                                                           }
                                           }
                      },
+    "materialYouTitle":  "Material You",
+    "@materialYouTitle":  {
+                             "description":  "Material You option title"
+                         },
+    "materialYouSubtitle":  "Follow the system accent colors (Android 12+)",
+    "@materialYouSubtitle":  {
+                                "description":  "Material You option subtitle"
+                            },
     "amoledTitle":  "AMOLED black",
     "@amoledTitle":  {
                           "description":  "AMOLED option title"

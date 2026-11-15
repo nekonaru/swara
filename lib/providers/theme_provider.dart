@@ -27,6 +27,7 @@ class ThemeProvider extends ChangeNotifier {
   static const _textScaleKey = 'textScale';
   static const _customEqGainsKey = 'custom_eq_gains';
   static const _amoledBlackKey = 'amoledBlack';
+  static const _dynamicColorKey = 'dynamicColor';
 
   ThemeMode themeMode = ThemeMode.system;
   int accentColorIndex = 0;
@@ -38,6 +39,9 @@ class ThemeProvider extends ChangeNotifier {
   List<double> customEqGains = [0, 0, 0, 0, 0];
   // Pitch black background for the dark theme. Wired in main by someone else.
   bool amoledBlack = false;
+  // Material You: follow the Android 12+ system accent colors instead of the
+  // built-in seed palette. Falls back to the seed when unavailable.
+  bool dynamicColor = false;
 
   Color get accentColor => kAccentColors[accentColorIndex];
 
@@ -84,6 +88,7 @@ class ThemeProvider extends ChangeNotifier {
       textScale = kTextScales.contains(savedScale) ? savedScale : 0.85;
       customEqGains = _readCustomGains(prefs);
       amoledBlack = prefs.getBool(_amoledBlackKey) ?? false;
+      dynamicColor = prefs.getBool(_dynamicColorKey) ?? false;
     } catch (e) {
       // Keep defaults if storage is unavailable.
       debugPrint('ThemeProvider load failed: $e');
@@ -147,13 +152,21 @@ class ThemeProvider extends ChangeNotifier {
     await _write((prefs) => prefs.setBool(_amoledBlackKey, value));
   }
 
+  // Toggle Material You (system accent colors) and persist it.
+  Future<void> setDynamicColor(bool value) async {
+    dynamicColor = value;
+    notifyListeners();
+    await _write((prefs) => prefs.setBool(_dynamicColorKey, value));
+  }
+
   // Dark theme for main to use. The plain dark theme normally, or the pitch
   // black variant when amoledBlack is on. Same seed either way; every visual
   // default comes from the shared buildSwaraTheme so the light and the dark
   // side cannot drift apart.
-  ThemeData buildDarkTheme() => buildSwaraTheme(
+  ThemeData buildDarkTheme({ColorScheme? dynamicScheme}) => buildSwaraTheme(
         seed: accentColor,
         brightness: Brightness.dark,
         amoledBlack: amoledBlack,
+        dynamicScheme: dynamicScheme,
       );
 }

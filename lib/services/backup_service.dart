@@ -185,14 +185,21 @@ class BackupService {
             }
           }
           if (candidates.isNotEmpty) {
-            // Only link songs that still exist in the library.
-            final placeholders = List.filled(candidates.length, '?').join(',');
-            final found = await database.rawQuery(
-              'SELECT id FROM songs WHERE id IN ($placeholders)',
-              candidates,
-            );
-            final existingIds =
-                found.map((r) => r['id']).whereType<int>().toSet();
+            // Only link songs that still exist in the library. Chunked so a
+            // large backup stays below SQLITE_MAX_VARIABLE_NUMBER on older
+            // Android (SQLite before 3.32 allows 999 variables).
+            final existingIds = <int>{};
+            const chunk = 400;
+            for (var off = 0; off < candidates.length; off += chunk) {
+              final end = off + chunk > candidates.length ? candidates.length : off + chunk;
+              final slice = candidates.sublist(off, end);
+              final placeholders = List.filled(slice.length, '?').join(',');
+              final found = await database.rawQuery(
+                'SELECT id FROM songs WHERE id IN ($placeholders)',
+                slice,
+              );
+              existingIds.addAll(found.map((r) => r['id']).whereType<int>());
+            }
             final insertable =
                 candidates.where((id) => existingIds.contains(id)).toList();
             if (insertable.isNotEmpty) {
@@ -267,23 +274,12 @@ class BackupService {
     // songs are skipped.
     try {
       final database = await dbHelper.db;
-      // Preload existing triples so re-imports skip rows that are
-      // already stored (dedup on songId + timestamp + listenedMs).
-      final Set<String> existingTriples = {};
-      try {
-        final existing = await database.query('listening_entries',
-            columns: ['songId', 'timestamp', 'listenedMs']);
-        for (final r in existing) {
-          existingTriples.add(
-              '${r['songId']}|${r['timestamp']}|${r['listenedMs']}');
-        }
-      } catch (_) {
-        // When the preload fails, fall back to inserting validated rows.
-      }
-      // Validate every candidate row first (parse, clamp, dedupe), gather
-      // the song ids, then check existence with chunked IN queries instead
-      // of one query per row.
+      // Validate every candidate row (parse, clamp) first. The triple
+      // existence snapshot is taken inside the transaction below so two
+      // concurrent imports cannot both pass the dedup check and double the
+      // history.
       final parsedEntries = <Map<String, dynamic>>[];
+      final seenTriples = <String>{};
       final entrySongIds = <int>{};
       for (final item in (entriesRaw as List? ?? [])) {
         try {
@@ -300,7 +296,7 @@ class BackupService {
           // corrupt or negative values cannot skew stats.
           listenedMs = listenedMs.clamp(0, 86400000);
           final triple = '$songId|$tsRaw|$listenedMs';
-          if (existingTriples.contains(triple)) continue;
+          if (!seenTriples.add(triple)) continue;
           parsedEntries.add({
             'songId': songId,
             'timestamp': tsRaw,
@@ -325,21 +321,42 @@ class BackupService {
         );
         existingEntrySongIds.addAll(found.map((r) => r['id']).whereType<int>());
       }
-      for (final entry in parsedEntries) {
+      // The whole insert runs inside one transaction, and the dedup snapshot
+      // is taken there, so two concurrent imports cannot both pass the check
+      // and double the history. Rows are inserted with fresh ids on purpose.
+      entriesRestored += await database.transaction((txn) async {
+        final existingTriples = <String>{};
         try {
-          // Skip entries pointing at songs that no longer exist.
-          if (!existingEntrySongIds.contains(entry['songId'])) continue;
-          await database.insert('listening_entries', {
-            'songId': entry['songId'],
-            'timestamp': entry['timestamp'],
-            'listenedMs': entry['listenedMs'],
-          });
-          existingTriples.add(entry['triple'] as String);
-          entriesRestored++;
+          final existing = await txn.query(
+              'listening_entries',
+              columns: ['songId', 'timestamp', 'listenedMs']);
+          for (final r in existing) {
+            existingTriples.add(
+                '${r['songId']}|${r['timestamp']}|${r['listenedMs']}');
+          }
         } catch (_) {
-          continue;
+          // Fall back to inserting validated rows when the snapshot fails.
         }
-      }
+        var restored = 0;
+        for (final entry in parsedEntries) {
+          try {
+            // Skip entries pointing at songs that no longer exist.
+            if (!existingEntrySongIds.contains(entry['songId'])) continue;
+            final triple = entry['triple'] as String;
+            if (existingTriples.contains(triple)) continue;
+            await txn.insert('listening_entries', {
+              'songId': entry['songId'],
+              'timestamp': entry['timestamp'],
+              'listenedMs': entry['listenedMs'],
+            });
+            existingTriples.add(triple);
+            restored++;
+          } catch (_) {
+            continue;
+          }
+        }
+        return restored;
+      });
     } catch (_) {
       // Keep earlier sections even if history fails.
     }

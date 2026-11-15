@@ -1716,6 +1716,12 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get materialYouTitle => 'Material You';
+
+  @override
+  String get materialYouSubtitle => 'Ikuti warna aksen sistem (Android 12+)';
+
+  @override
   String get amoledTitle => 'Hitam AMOLED';
 
   @override

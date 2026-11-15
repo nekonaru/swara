@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quick_actions/quick_actions.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -107,6 +108,7 @@ class _WidgetBridge {
     _initialized = true;
     _channel.setMethodCallHandler(_onNativeCall);
     try {
+      await _channel.invokeMethod('notifyHandlerReady');
       // Cold start launched from a widget tap while the process was dead:
       // replay the action that started us.
       final initial = await _channel.invokeMethod<String>('getInitialAction');
@@ -148,12 +150,14 @@ class _WidgetBridge {
     }
   }
 
-  static Future<void> pushState(String title, String artist, bool playing) async {
+  static Future<void> pushState(
+      String title, String artist, bool playing, String? artPath) async {
     try {
       await _channel.invokeMethod('updateWidget', {
         'title': title,
         'artist': artist,
         'playing': playing,
+        'artPath': artPath,
       });
     } catch (e) {
       debugPrint('Widget state push failed: $e');
@@ -209,12 +213,16 @@ void _setupDynamicShortcuts() {
 }
 
 // Runs the action for a launcher shortcut type. Everything is best effort:
-// empty results are ignored and errors are only logged.
+// empty results are ignored and errors are only logged. The shortcut waits
+// for the shared boot future before acting, so a cold start launched from a
+// shortcut never races the playback restore.
 Future<void> _handleAppShortcut(String shortcutType) async {
   try {
-    // Make sure the player listeners exist (init is idempotent, so calling
-    // it again after a cold start via shortcut is safe).
-    await PlayerService.instance.init();
+    await _WidgetBridge.bootFuture;
+  } catch (_) {
+    // Boot failures are logged at the call site; act anyway.
+  }
+  try {
     if (shortcutType == 'shuffle_favorites') {
       final favs = await DBHelper.instance.getFavorites();
       if (favs.isEmpty) return;
@@ -246,6 +254,7 @@ void _startWidgetStatePush() {
   var lastTitle = '';
   var lastArtist = '';
   var lastPlaying = false;
+  var lastArt = '';
   var hasPushed = false;
 
   Future<void> push() async {
@@ -254,20 +263,24 @@ void _startWidgetStatePush() {
     final title = song?.title ?? 'Swara';
     final artist = song?.artist ?? '';
     final playing = song != null && service.player.playing;
+    final art = (song?.albumArtPath ?? '').trim();
     // Push only on real state transitions, not on every notification
     // (speed/pitch slider drags would otherwise rebind the widget 60 times
     // per second).
     if (hasPushed &&
         title == lastTitle &&
         artist == lastArtist &&
-        playing == lastPlaying) {
+        playing == lastPlaying &&
+        art == lastArt) {
       return;
     }
     lastTitle = title;
     lastArtist = artist;
     lastPlaying = playing;
+    lastArt = art;
     hasPushed = true;
-    await _WidgetBridge.pushState(title, artist, playing);
+    await _WidgetBridge.pushState(title, artist, playing,
+        art.isEmpty ? null : art);
   }
 
   PlayerService.instance.addListener(() => unawaited(push()));
@@ -300,6 +313,12 @@ Future<void> _bootApp({
             androidNotificationOngoing: true,
             androidStopForegroundOnPause: true,
           ),
+        ).timeout(
+          // An OEM hang here must not wedge the whole boot (widget taps and
+          // shortcuts wait on this future); degrade to notification-less
+          // playback instead.
+          const Duration(seconds: 6),
+          onTimeout: () => throw TimeoutException('AudioService init timed out'),
         );
       } catch (e) {
         debugPrint('AudioService failed to initialize: $e');
@@ -356,33 +375,44 @@ class MusicApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: PlayerService.instance),
       ],
       child: Consumer2<ThemeProvider, LanguageProvider>(
-        builder: (context, tp, lp, _) => MaterialApp(
-          title: 'Swara',
-          debugShowCheckedModeBanner: false,
-          locale: lp.locale,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          // Apply the user text scale on top of the system setting.
-          builder: (context, child) {
-            final media = MediaQuery.of(context);
-            return MediaQuery(
-              data: media.copyWith(
-                textScaler:
-                    TextScaler.linear(tp.textScale),
+        builder: (context, tp, lp, _) => DynamicColorBuilder(
+          builder: (lightDynamic, darkDynamic) {
+            // Material You on Android 12+ when enabled; otherwise the
+            // seeded palette. Falls back silently when the system has no
+            // dynamic scheme.
+            final dynamic = tp.dynamicColor;
+            return MaterialApp(
+              title: 'Swara',
+              debugShowCheckedModeBanner: false,
+              locale: lp.locale,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              // Apply the user text scale on top of the system setting.
+              builder: (context, child) {
+                final media = MediaQuery.of(context);
+                return MediaQuery(
+                  data: media.copyWith(
+                    textScaler:
+                        TextScaler.linear(tp.textScale),
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+              themeMode: tp.themeMode,
+              // Both themes come from the same builder (lib/theme/app_theme.dart)
+              // so light and dark share every component default: app bar, card,
+              // dialog, buttons, list rows, snackbars and the page transition.
+              theme: buildSwaraTheme(
+                seed: tp.accentColor,
+                brightness: Brightness.light,
+                dynamicScheme: dynamic ? lightDynamic : null,
               ),
-              child: child ?? const SizedBox.shrink(),
+              darkTheme: tp.buildDarkTheme(
+                dynamicScheme: dynamic ? darkDynamic : null,
+              ),
+              home: BootGate(bootFuture: bootFuture),
             );
           },
-          themeMode: tp.themeMode,
-          // Both themes come from the same builder (lib/theme/app_theme.dart)
-          // so light and dark share every component default: app bar, card,
-          // dialog, buttons, list rows, snackbars and the page transition.
-          theme: buildSwaraTheme(
-            seed: tp.accentColor,
-            brightness: Brightness.light,
-          ),
-          darkTheme: tp.buildDarkTheme(),
-          home: BootGate(bootFuture: bootFuture),
         ),
       ),
     );

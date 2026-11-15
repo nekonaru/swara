@@ -7,6 +7,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 
 class DBHelper {
+  // True when [table] already has [column]. Used by the migrations to
+  // avoid relying on try/catch for idempotency: a swallowed ALTER inside
+  // the migration transaction would commit a half-upgraded schema.
+  static Future<bool> _hasColumn(
+      DatabaseExecutor db, String table, String column) async {
+    final rows = await db.rawQuery('PRAGMA table_info($table)');
+    return rows.any((r) =>
+        (r['name'] as String?)?.toLowerCase() == column.toLowerCase());
+  }
+
   DBHelper._();
   static final DBHelper instance = DBHelper._();
   Database? _db;
@@ -122,25 +132,21 @@ class DBHelper {
         // Indexes are created in onOpen as well, see _ensureIndexes.
         if (oldVersion < 2) {
           // Add the position column for the playlist reorder feature
-          try {
+          if (!await _hasColumn(db, 'playlist_songs', 'position')) {
             await db.execute('ALTER TABLE playlist_songs ADD COLUMN position INTEGER DEFAULT 0');
-          } catch (_) {
-            // Column may already exist, ignore
           }
         }
         if (oldVersion < 3) {
           // Add the addedAt column so the "Recently added" sort truly reflects
           // insert time instead of just reversing the current list order
-          try {
+          if (!await _hasColumn(db, 'songs', 'addedAt')) {
             await db.execute('ALTER TABLE songs ADD COLUMN addedAt TEXT');
-          } catch (_) {
-            // Column may already exist, ignore
           }
         }
         if (oldVersion < 4) {
           // Explicitly mark songs whose metadata was already scanned,
           // so the "scan only songs missing metadata" feature stays accurate.
-          try {
+          if (!await _hasColumn(db, 'songs', 'metadataScanned')) {
             await db.execute('ALTER TABLE songs ADD COLUMN metadataScanned INTEGER DEFAULT 0');
             // Never mark 'Unknown' as scanned - that is a fallback
             // value, not a real fetch result. Only genuine genre/lyrics count.
@@ -148,8 +154,6 @@ class DBHelper {
             // '' the same as NULL for both genre and lyrics.
             await db.execute(
                 "UPDATE songs SET metadataScanned = 1 WHERE (NULLIF(genre, '') IS NOT NULL AND genre != 'Unknown') OR NULLIF(lyrics, '') IS NOT NULL");
-          } catch (_) {
-            // Column may already exist, ignore
           }
         }
         if (oldVersion < 5) {
@@ -183,11 +187,9 @@ class DBHelper {
         if (oldVersion < 7) {
           // Playlist folder label for the collections grouping feature.
           // Empty string means the playlist is not in any folder.
-          try {
+          if (!await _hasColumn(db, 'playlists', 'folder')) {
             await db.execute(
                 "ALTER TABLE playlists ADD COLUMN folder TEXT DEFAULT ''");
-          } catch (_) {
-            // Column may already exist, ignore
           }
         }
         if (oldVersion < 8) {

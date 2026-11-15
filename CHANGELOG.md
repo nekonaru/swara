@@ -1,5 +1,29 @@
 # Changelog
 
+## v3.7.0
+
+Big update: a native home-screen widget with album art, Material You colors, an updater that verifies what it downloads, and a deep audit that fixed every confirmed anomaly across playback, backup, database and the widget.
+
+## Improvements
+
+- **Home-screen widget with album art.** The widget now shows the current album cover next to the title and artist, decoded on a background thread without touching the main looper, with a navy placeholder when no art exists.
+- **Material You.** A new toggle in Settings → Appearance makes Swara follow the Android 12+ system accent colors; off keeps the seeded palette, and unsupported Android falls back silently.
+- **Same artwork in notification, widget and splash.** All surfaces now use the same azure wave glyph and navy tile.
+
+## Bug fixes
+
+- **Track changes no longer corrupt the queue after crossfade.** Removing, reordering or shuffling the queue while a crossfade is in flight now cancels the fade first; previously the fade could land on the wrong song.
+- **Slider and play/pause icon survive crossfades.** The three player streams are now re-keyed on the audible player instance, so they no longer freeze on the outgoing track.
+- **Update downloads are verified.** The updater checks the SHA-256 digest GitHub publishes for the APK asset and refuses to install a mismatch; truncated downloads are rejected before the installer ever sees them.
+- **Widget taps are never swallowed.** Taps before Flutter's handler is armed are buffered natively and replayed instead of dropping; shortcut and widget cold starts both wait for the playback restore.
+- **Backup restore no longer doubles history.** Listening-history dedup now happens inside the insert transaction, and the playlist-member check is chunked so large backups import fully.
+- **Half-applied database upgrades cannot commit.** Schema migrations now check column existence with `PRAGMA table_info` before `ALTER TABLE`.
+- **No more stuck progress dialog.** The download progress dialog closes and disposes even when the settings screen is gone mid-download.
+- **MediaSession queue no longer republishes on every notify.** Drag-reorder storms coalesce into one republish 200 ms after the queue settles.
+- **System effect broadcasts are deduplicated.** Wavelet-class apps no longer get repeated OPEN notifications for the same play state.
+- **Art cache eviction is incremental.** The notification art cache evicts its oldest half instead of clearing everything.
+- **Widget strings now follow the system locale.** Indonesian translators included for all widget strings.
+
 ## v3.6.3
 
 A proper intro: the splash screen now choreographs the mark, wordmark and loader, and hands off to the app with a soft fade.

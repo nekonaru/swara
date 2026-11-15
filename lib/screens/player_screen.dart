@@ -839,6 +839,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             behavior: HitTestBehavior.opaque,
             onTap: () => _setShowLyrics(true),
             child: StreamBuilder(
+              // Key on the active player: after a crossfade flip the
+              // audible player is a different instance; without a key this
+              // keeps the outgoing player's state stream forever.
+              key: ValueKey('art_state_${_player.player.hashCode}_${song.id}'),
               stream: _player.player.playerStateStream,
               builder: (context, snapshot) {
                 final playing = snapshot.data?.playing ?? false;
@@ -913,6 +917,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
       child: Column(
         children: [
           StreamBuilder<Duration>(
+            // See above: without a key the slider keeps the outgoing
+            // player's position stream after a crossfade.
+            key: ValueKey('slider_${_player.player.hashCode}_${song.id}'),
             stream: _player.player.positionStream,
             builder: (context, snapshot) {
               final pos = snapshot.data ?? Duration.zero;
@@ -964,6 +971,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 onPressed: _onPreviousPressed,
               ),
               StreamBuilder(
+                // Same reasoning as the other two: re-subscribe after a
+                // crossfade flip instead of keeping the dead player.
+                key: ValueKey('pp_${_player.player.hashCode}_${song.id}'),
                 stream: _player.player.playerStateStream,
                 builder: (context, snapshot) {
                   final playing = snapshot.data?.playing ?? false;
@@ -977,14 +987,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         key: ValueKey(playing),
                       ),
                     ),
-                    onPressed: _player.togglePlayPause,
+                    // Futures passed as onPressed must not surface as
+                    // unhandled async errors; a locked DB or dead player
+                    // must not crash the tap path.
+                    onPressed: () =>
+                        _player.togglePlayPause().catchError((_) {}),
                   );
                 },
               ),
               IconButton(
                 icon: const Icon(Icons.skip_next),
                 tooltip: AppLocalizations.of(context)!.playerNext,
-                onPressed: _player.next,
+                onPressed: () => _player.next().catchError((_) {}),
               ),
               _buildRepeatButton(),
             ],

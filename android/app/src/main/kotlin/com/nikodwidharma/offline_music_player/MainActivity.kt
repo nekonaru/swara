@@ -16,6 +16,12 @@ class MainActivity : AudioServiceFragmentActivity() {
     // off the main looper.
     private val widgetExecutor =
         java.util.concurrent.Executors.newSingleThreadExecutor()
+    // A widget tap that lands before the Flutter handler is armed is kept
+    // here instead of being dropped; getInitialAction replays it.
+    private var pendingWidgetAction: String? = null
+    // Set by Flutter once its method-call handler is armed; widget taps
+    // only forward directly after that (before it, they are stashed).
+    private var flutterHandlerReady = false
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         // Android 12+ native splash (navy tile, brand glyph); a no-op on
@@ -44,17 +50,34 @@ class MainActivity : AudioServiceFragmentActivity() {
                         val title = args?.get("title") as? String ?: "Swara"
                         val artist = args?.get("artist") as? String ?: ""
                         val playing = args?.get("playing") as? Boolean ?: false
+                        val artPath = args?.get("artPath") as? String
                         widgetExecutor.execute {
-                            SwaraWidgetProvider.updateAll(this@MainActivity, title, artist, playing)
+                            SwaraWidgetProvider.updateAll(
+                                this@MainActivity,
+                                title,
+                                artist,
+                                playing,
+                                artPath,
+                            )
                         }
                         result.success(null)
                     }
                     "getInitialAction" -> {
                         // Replay the widget tap that cold-started the app;
                         // consume it so a restart never double-fires it.
-                        val action = intent?.getStringExtra("swara_widget_action")
+                        // Also drains a tap that arrived before Flutter's
+                        // handler was armed.
+                        val action = pendingWidgetAction
+                            ?: intent?.getStringExtra("swara_widget_action")
+                        pendingWidgetAction = null
                         intent?.removeExtra("swara_widget_action")
                         result.success(action)
+                    }
+                    "notifyHandlerReady" -> {
+                        // Flutter arms its Dart-side handler only at a
+                        // post-frame callback; forward taps only after this.
+                        flutterHandlerReady = true
+                        result.success(null)
                     }
                     else -> result.notImplemented()
                 }
@@ -62,12 +85,9 @@ class MainActivity : AudioServiceFragmentActivity() {
         }
         // If the app was launched from a widget tap while the process was
         // dead, the extra still exists; Flutter's getInitialAction replay
-        // picks it up during engine startup. Nothing to forward here.
-        // Live bridge so a widget tap with the app already running reaches
-        // Flutter without restarting anything.
-        SwaraWidgetBridge.handler = { action ->
-            widgetChannel?.invokeMethod("onWidgetAction", action)
-        }
+        // picks it up during engine startup. Taps that land while the engine
+        // is running go through onNewIntent; Flutter arms forwarding via
+        // notifyHandlerReady, and taps that arrive before it are stashed.
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -77,12 +97,17 @@ class MainActivity : AudioServiceFragmentActivity() {
         val action = intent.getStringExtra("swara_widget_action")
         if (action != null) {
             intent.removeExtra("swara_widget_action")
-            widgetChannel?.invokeMethod("onWidgetAction", action)
+            if (flutterHandlerReady) {
+                widgetChannel?.invokeMethod("onWidgetAction", action)
+            } else {
+                // Flutter's handler is not armed yet (engine
+                // still booting); keep the action instead of dropping it.
+                pendingWidgetAction = action
+            }
         }
     }
 
     override fun onDestroy() {
-        SwaraWidgetBridge.handler = null
         widgetExecutor.shutdown()
         super.onDestroy()
     }

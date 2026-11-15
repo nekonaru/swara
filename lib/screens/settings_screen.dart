@@ -95,14 +95,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     if (go != true || !mounted) return;
-    await _downloadAndInstall(result.downloadUrl!);
+    await _downloadAndInstall(result.downloadUrl!,
+        digest: result.downloadDigest);
   }
 
   // Download the release APK behind a progress dialog, then hand it to the
   // system installer. Installing with the same signature upgrades in place.
-  Future<void> _downloadAndInstall(String downloadUrl) async {
+  Future<void> _downloadAndInstall(String downloadUrl, {String? digest}) async {
     final l10n = AppLocalizations.of(context)!;
     final progress = ValueNotifier<double>(-1);
+    // Capture the root navigator before the download so the dialog can be
+    // closed even after this screen is gone.
+    final navigator = Navigator.of(context, rootNavigator: true);
     // Non-dismissible while the download runs.
     unawaited(showDialog<void>(
       context: context,
@@ -124,12 +128,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ));
     final path = await UpdateService.instance.downloadApk(
       downloadUrl,
+      digest: digest,
       onProgress: (p) => progress.value = p,
     );
-    if (!mounted) return;
-    // Close the progress dialog regardless of the outcome.
-    Navigator.of(context, rootNavigator: true).pop();
+    // Close the progress dialog and release the notifier no matter what;
+    // a non-dismissible dialog left open would pin the app forever.
+    navigator.pop();
     progress.dispose();
+    if (!mounted) return;
     if (path == null) {
       _showSnack(l10n.settingsUpdateFailed);
       return;
@@ -675,6 +681,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 SwitchListTile(
+                  title: Text(AppLocalizations.of(context)!.materialYouTitle),
+                  subtitle: Text(
+                      AppLocalizations.of(context)!.materialYouSubtitle),
+                  secondary: const Icon(Icons.palette_outlined),
+                  value: themeProvider.dynamicColor,
+                  onChanged: _savingPrefs
+                      ? null
+                      : (v) =>
+                          _savePrefs(() => themeProvider.setDynamicColor(v)),
+                ),
+    SwitchListTile(
                   title: Text(AppLocalizations.of(context)!.amoledTitle),
                   subtitle: Text(
                       AppLocalizations.of(context)!.amoledSubtitle),

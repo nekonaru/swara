@@ -1859,6 +1859,14 @@
                                                           }
                                           }
                      },
+    "materialYouTitle":  "Material You",
+    "@materialYouTitle":  {
+                             "description":  "Judul opsi Material You"
+                         },
+    "materialYouSubtitle":  "Ikuti warna aksen sistem (Android 12+)",
+    "@materialYouSubtitle":  {
+                                "description":  "Subjudul opsi Material You"
+                            },
     "amoledTitle":  "Hitam AMOLED",
     "@amoledTitle":  {
                           "description":  "Judul opsi AMOLED"

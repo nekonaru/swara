@@ -11,6 +11,9 @@ import 'player_service.dart';
 /// (using the state aware drawables committed under android/app/src/main/res)
 class SwaraAudioHandler extends BaseAudioHandler {
   Timer? _positionTicker;
+  // Debounce timer for re-publishing the full MediaSession queue after
+  // queue mutations (drag reorder storms).
+  Timer? _queueRepublishTimer;
   // Last values seen by _syncState, used by the ticker to decide
   // between a cheap position update and a full state sync.
   int? _lastSongId;
@@ -107,6 +110,8 @@ class SwaraAudioHandler extends BaseAudioHandler {
     _disposed = true;
     _positionTicker?.cancel();
     _positionTicker = null;
+    _queueRepublishTimer?.cancel();
+    _queueRepublishTimer = null;
     try {
       PlayerService.instance.removeListener(_syncState);
     } catch (_) {}
@@ -131,9 +136,42 @@ class SwaraAudioHandler extends BaseAudioHandler {
     } catch (_) {
       result = null;
     }
-    if (_artUriCache.length >= 256) _artUriCache.clear();
+    // Evict the oldest half of the art cache instead of clearing it all:
+    // a full clear re-checks every file on disk at once.
+    if (_artUriCache.length >= 256) {
+      final keep = _artUriCache.entries
+          .toList()
+          .sublist(_artUriCache.length ~/ 2)
+          .map((e) => e.key)
+          .toSet();
+      _artUriCache.removeWhere((key, _) => !keep.contains(key));
+    }
     _artUriCache[path] = result;
     return result;
+  }
+
+  // Build and publish the MediaSession queue in playback order. Called from
+  // the debounced timer, never directly from the notify path.
+  void _publishQueue(PlayerService ps) {
+    final slotIds = ps.queueSlotIds;
+    final q = ps.queue;
+    final items = <MediaItem>[
+      for (var i = 0; i < q.length; i++)
+        MediaItem(
+          id: 'queue_${slotIds.length > i ? slotIds[i] : i}_${q[i].filePath}',
+          title: q[i].title,
+          artist: q[i].artist,
+          album: q[i].album,
+          duration: Duration(milliseconds: q[i].durationMs),
+          artUri: _safeArtUri(q[i].albumArtPath),
+        ),
+    ];
+    queue.add(items);
+    try {
+      queueTitle.add('Swara Queue');
+    } catch (_) {
+      // queueTitle is optional on some audio_service versions.
+    }
   }
 
   void _syncState() {
@@ -146,30 +184,15 @@ class SwaraAudioHandler extends BaseAudioHandler {
     // crossfade steps). queueVersion bumps on every queue mutation and
     // reorder, so it alone is a sufficient invalidation token; building the
     // slot id list here would allocate an O(queue) list per notify.
+    // A full republish is debounced: a drag-reorder storm emits many bumps,
+    // but the MediaSession only needs a settled queue, not every step.
     final fingerprint = '$queueVersion';
     if (fingerprint != _lastQueueFingerprint) {
       _lastQueueFingerprint = fingerprint;
-      final slotIds = ps.queueSlotIds;
-      // Build MediaSession queue in playback order with one stable id
-      // per queue entry so repeated songs stay distinct.
-      final q = ps.queue;
-      final items = <MediaItem>[
-        for (var i = 0; i < q.length; i++)
-          MediaItem(
-            id: 'queue_${slotIds.length > i ? slotIds[i] : i}_${q[i].filePath}',
-            title: q[i].title,
-            artist: q[i].artist,
-            album: q[i].album,
-            duration: Duration(milliseconds: q[i].durationMs),
-            artUri: _safeArtUri(q[i].albumArtPath),
-          ),
-      ];
-      queue.add(items);
-      try {
-        queueTitle.add('Swara Queue');
-      } catch (_) {
-        // queueTitle is optional on some audio_service versions.
-      }
+      _queueRepublishTimer?.cancel();
+      _queueRepublishTimer = Timer(const Duration(milliseconds: 200), () {
+        _publishQueue(ps);
+      });
     }
     final currentIndex = ps.currentIndex;
     // The media item id is built with queueSlotIdAt, an O(1) lookup; the

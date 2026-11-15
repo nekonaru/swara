@@ -19,22 +19,28 @@ class UpdateCheckResult {
     required this.outcome,
     this.tagName,
     this.downloadUrl,
+    this.downloadDigest,
     this.currentVersion,
   });
 
   final UpdateOutcome outcome;
   final String? tagName;
   final String? downloadUrl;
+  // SHA-256 hex digest of the chosen asset as published by GitHub
+  // ("sha256:…" stripped), when the API provides one.
+  final String? downloadDigest;
   final String? currentVersion;
 
   const UpdateCheckResult.available({
     required String tagName,
     required String downloadUrl,
+    String? downloadDigest,
     required String currentVersion,
   }) : this._(
           outcome: UpdateOutcome.updateAvailable,
           tagName: tagName,
           downloadUrl: downloadUrl,
+          downloadDigest: downloadDigest,
           currentVersion: currentVersion,
         );
 
@@ -72,15 +78,16 @@ class UpdateService {
 
       final abis = await AudioEffectsService.instance.deviceAbi();
       final assets = (body['assets'] as List?) ?? const [];
-      final downloadUrl = _pickApkAsset(assets, abis);
-      if (downloadUrl == null) return const UpdateCheckResult.error();
+      final picked = _pickApkAsset(assets, abis);
+      if (picked == null) return const UpdateCheckResult.error();
 
       final current = (await PackageInfo.fromPlatform()).version;
       final newer = compareVersions(tagName, current) > 0;
       if (!newer) return const UpdateCheckResult.upToDate();
       return UpdateCheckResult.available(
         tagName: tagName,
-        downloadUrl: downloadUrl,
+        downloadUrl: picked.$1,
+        downloadDigest: _normalizeDigest(picked.$2),
         currentVersion: current,
       );
     } catch (e) {
@@ -89,11 +96,22 @@ class UpdateService {
     }
   }
 
+  /// Strip the "sha256:" prefix GitHub prepends to asset digests. Returns
+  /// null when the digest is missing or malformed.
+  static String? _normalizeDigest(String? digest) {
+    if (digest == null) return null;
+    final match = RegExp(r'^sha256:([0-9a-fA-F]{64})$').firstMatch(digest.trim());
+    return match?.group(1)?.toLowerCase();
+  }
+
   /// Download the update APK into the app cache under `updates/`, returning
   /// the file path on success or null on any failure. [onProgress] reports
-  /// 0.0..1.0 when the total size is known, or -1 when it is not.
+  /// 0.0..1.0 when the total size is known, or -1 when it is not. When
+  /// [digest] (SHA-256 hex) is provided the file is verified against it on
+  /// Android; a mismatch discards the download.
   Future<String?> downloadApk(
     String url, {
+    String? digest,
     void Function(double progress)? onProgress,
   }) async {
     try {
@@ -125,6 +143,24 @@ class UpdateService {
           await sink.close();
         }
         if (!await file.exists() || await file.length() == 0) return null;
+        // A truncated (but nonzero) download is worse than no download: the
+        // installer would fail with a parse error and no feedback. When the
+        // server told us the size, insist on an exact match.
+        if (total > 0 && await file.length() != total) {
+          debugPrint('Update download truncated: got ${await file.length()} of $total bytes');
+          await file.delete();
+          return null;
+        }
+        // Verify the APK against the SHA-256 digest published on the GitHub
+        // asset before letting the installer open it.
+        if (digest != null) {
+          final hex = await AudioEffectsService.instance.sha256(file.path);
+          if (hex != digest) {
+            debugPrint('Update APK digest mismatch: expected $digest, got $hex');
+            await file.delete();
+            return null;
+          }
+        }
         return file.path;
       } finally {
         client.close();
@@ -135,8 +171,10 @@ class UpdateService {
     }
   }
 
-  /// Pick the APK asset to install, matching the device's ABI.
-  String? _pickApkAsset(List assets, List<String> abis) {
+  /// Pick the APK asset to install, matching the device's ABI. Returns the
+  /// asset URL and the GitHub-published SHA-256 digest ("sha256:…" stripped)
+  /// when available.
+  (String, String?)? _pickApkAsset(List assets, List<String> abis) {
     final lower = abis.map((a) => a.toLowerCase()).toSet();
     final wantsArm64 = lower.contains('arm64-v8a');
     final wantsArmv7 = lower.contains('armeabi-v7a') &&
@@ -145,27 +183,29 @@ class UpdateService {
 
     // Preference order per device class. x86_64 builds ship from v1.8.1 only;
     // everywhere else falls back to the newest available compatible APK.
-    String? arm64Url;
-    String? armv7Url;
-    String? x86_64Url;
-    String? anyUrl;
+    (String, String?)? arm64Pick;
+    (String, String?)? armv7Pick;
+    (String, String?)? x86_64Pick;
+    (String, String?)? anyPick;
 
     for (final raw in assets) {
       if (raw is! Map) continue;
       final name = (raw['name'] as String?)?.toLowerCase() ?? '';
       final url = raw['browser_download_url'] as String?;
+      final digest = raw['digest'] as String?;
       if (url == null || !name.endsWith('.apk')) continue;
-      anyUrl ??= url;
-      if (name == 'app-arm64-v8a-release.apk') arm64Url = url;
-      if (name == 'app-armeabi-v7a-release.apk') armv7Url = url;
-      if (name == 'app-x86_64-release.apk') x86_64Url = url;
+      final pick = (url, digest);
+      anyPick ??= pick;
+      if (name == 'app-arm64-v8a-release.apk') arm64Pick = pick;
+      if (name == 'app-armeabi-v7a-release.apk') armv7Pick = pick;
+      if (name == 'app-x86_64-release.apk') x86_64Pick = pick;
     }
-    if (lower.contains('x86_64')) return x86_64Url ?? arm64Url ?? armv7Url ?? anyUrl;
-    if (wantsArm64) return arm64Url ?? armv7Url ?? x86_64Url ?? anyUrl;
-    if (wantsArmv7) return armv7Url ?? arm64Url ?? x86_64Url ?? anyUrl;
-    if (arm64Url != null) return arm64Url;
-    if (armv7Url != null) return armv7Url;
-    return anyUrl;
+    if (lower.contains('x86_64')) return x86_64Pick ?? arm64Pick ?? armv7Pick ?? anyPick;
+    if (wantsArm64) return arm64Pick ?? armv7Pick ?? x86_64Pick ?? anyPick;
+    if (wantsArmv7) return armv7Pick ?? arm64Pick ?? x86_64Pick ?? anyPick;
+    if (arm64Pick != null) return arm64Pick;
+    if (armv7Pick != null) return armv7Pick;
+    return anyPick;
   }
 
   /// Compare two semver-ish version strings like `v3.10.0` and `3.4.0`.

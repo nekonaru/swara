@@ -23,12 +23,20 @@ ThemeData buildSwaraTheme({
   required Color seed,
   required Brightness brightness,
   bool amoledBlack = false,
+  ColorScheme? dynamicScheme,
 }) {
-  final key = '${seed.toARGB32()}|$brightness|$amoledBlack';
+  // The cache key mixes in whether a dynamic scheme is in play (the scheme
+  // itself is deterministic per device, so the flag is enough).
+  final useDynamic = dynamicScheme != null;
+  final key = '${useDynamic ? 'dyn' : seed.toARGB32()}|$brightness|$amoledBlack';
   final cached = _swaraThemeCache[key];
   if (cached != null) return cached;
-  final theme =
-      _buildSwaraTheme(seed: seed, brightness: brightness, amoledBlack: amoledBlack);
+  final theme = _buildSwaraTheme(
+    seed: seed,
+    brightness: brightness,
+    amoledBlack: amoledBlack,
+    dynamicScheme: dynamicScheme,
+  );
   // A user with a dozen accent colors could shuffle through several themes;
   // keep the cache tiny, there are only a handful of distinct combinations.
   if (_swaraThemeCache.length >= 8) _swaraThemeCache.clear();
@@ -40,6 +48,7 @@ ThemeData _buildSwaraTheme({
   required Color seed,
   required Brightness brightness,
   bool amoledBlack = false,
+  ColorScheme? dynamicScheme,
 }) {
   final bool isDark = brightness == Brightness.dark;
   // The AMOLED option promises a pitch black background, so the surface
@@ -47,12 +56,14 @@ ThemeData _buildSwaraTheme({
   // stays visible on top of it.
   final bool black = isDark && amoledBlack;
 
-  final ColorScheme scheme = ColorScheme.fromSeed(
-    seedColor: seed,
-    brightness: brightness,
-  ).copyWith(
+  final ColorScheme scheme = (dynamicScheme ??
+          ColorScheme.fromSeed(
+            seedColor: seed,
+            brightness: brightness,
+          ))
+      .copyWith(
     // copyWith ignores nulls, so this only replaces the surface when the
-    // AMOLED option is on and keeps the seeded value otherwise.
+    // AMOLED option is on and keeps the seeded/dynamic value otherwise.
     surface: black ? Colors.black : null,
   );
   final Color background = black ? Colors.black : scheme.surface;

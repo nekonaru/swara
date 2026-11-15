@@ -1715,6 +1715,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get materialYouTitle => 'Material You';
+
+  @override
+  String get materialYouSubtitle =>
+      'Follow the system accent colors (Android 12+)';
+
+  @override
   String get amoledTitle => 'AMOLED black';
 
   @override

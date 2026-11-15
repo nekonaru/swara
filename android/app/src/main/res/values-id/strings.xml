@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Swara</string>
+    <string name="widget_title_placeholder">Swara</string>
+    <string name="widget_prev">Lagu sebelumnya</string>
+    <string name="widget_play">Putar atau jeda</string>
+    <string name="widget_next">Lagu berikutnya</string>
+    <string name="widget_description">Kelola pemutaran dari layar utama</string>
+    <string name="widget_art">Sampul album</string>
+</resources>
