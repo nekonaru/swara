@@ -4,6 +4,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.RejectedExecutionException
 
 // AudioServiceFragmentActivity is the stable variant of the audio_service
 // activity: the plain AudioServiceActivity crashed right after the
