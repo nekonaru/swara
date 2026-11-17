@@ -17,7 +17,7 @@
 **English** | [Bahasa Indonesia](README.id.md)
 
 > [!NOTE]
-> Swara plays music straight from your phone storage. Internet is only used when you start a metadata or lyrics scan yourself. A scan never starts on its own and can be stopped at any time.
+> Swara plays music straight from your phone storage. Core playback and library work fully offline. The network is only touched when you start a metadata or lyrics scan, when you tap "Check for updates", or when you open the Google lyrics search link. None of those happen on their own.
 
 ---
 
@@ -43,7 +43,7 @@
 
 ## About
 
-**Swara** is a lightweight Flutter app that plays music straight from your phone storage - no account, no ads, no internet needed. It scans your collection once, then completes titles, artists, album art, genres and even lyrics over the internet whenever you start a scan yourself. A scan never starts on its own and can be stopped at any time. Your listening activity is summarized in an analytics dashboard, and everything works fully offline afterwards.
+**Swara** is a lightweight Flutter app that plays music straight from your phone storage - no account, no ads, no internet needed for anything the player does day to day. It scans your collection once, then completes titles, artists, album art, genres and even lyrics over the internet whenever you start a scan yourself. A scan never starts on its own and can be stopped at any time. Your listening activity is summarized in an analytics dashboard, and everything works fully offline afterwards; the only other network calls are checking for app updates and opening the Google lyrics search link, both only when you ask.
 
 > _"Your music collection, played in peace, even without internet."_
 
@@ -59,9 +59,9 @@
 | **Resume playback** | Picks up the last song at the same minute:second when the app opens again |
 | **Headset unplug** | Playback pauses automatically when the headset is unplugged or the Bluetooth route is lost |
 | **Background playback** | Real Android foreground service with MediaSession: notification and lockscreen controls (play/pause/next/previous) |
-| **Home screen widget** | Current song with prev/play/next controls right on the home screen |
+| **Home screen widget** | Album art, play/pause/prev/next controls, and a self-ticking elapsed-time chronometer right on the home screen |
 | **Shuffle and repeat** | Shuffle, repeat off / all / one, plus sleep timer by duration or song count |
-| **Mini player** | Always visible on every page; playback speed control from 0.5x to 2x |
+| **Mini player** | Always visible on every page with a live progress line; playback speed and pitch control on the player screen |
 | **Smart shuffle** | Biases playback toward rarely played and long unplayed songs |
 | **A-B repeat** | Loop any song segment for practice |
 
@@ -148,7 +148,7 @@
 | Feature | Description |
 |---------|-------------|
 | **English and Indonesian UI** | English by default; switch to Bahasa Indonesia in Settings |
-| **Themes** | Light, dark, or follow system, plus 10 accent colors, all styled from one shared theme |
+| **Themes** | Light, dark, or follow system, Material You (Android 12+), plus 10 accent colors, all styled from one shared theme |
 | **Smooth motion** | One calm page transition everywhere, plus the mini player artwork flying into the player |
 | **AMOLED black** | Pure-black dark theme option |
 
@@ -165,7 +165,7 @@
 
 | Feature | Description |
 |---------|-------------|
-| **In-app update check** | Tap the version in About to check the latest GitHub release and install the APK in place, no uninstall needed |
+| **In-app update check** | Tap the version in About to check the latest GitHub release; the APK is verified against its published SHA-256 digest, and installing an unverified build asks for confirmation first |
 | **Support links** | The About page offers donation links: GitHub Sponsors, Saweria, SociaBuzz, and BagiBagi |
 
 ---
@@ -200,7 +200,7 @@
 ### Option A: Download the APK (easiest)
 
 1. Open the [Releases](https://github.com/nekonaru/swara/releases) page
-2. Download the APK matching your device (`app-arm64-v8a-release.apk` for most modern phones, `app-armeabi-v7a-release.apk` for older 32-bit ones)
+2. Download the APK matching your device (`app-arm64-v8a-release.apk` for most modern phones, `app-armeabi-v7a-release.apk` for older 32-bit phones, `app-x86_64-release.apk` for emulators and Chromebooks)
 3. Open it on your phone, allow installs from unknown sources if asked
 4. Allow audio access when the app first opens
 
@@ -288,13 +288,14 @@ The app UI (menus, buttons, messages, and settings) is available in **English** 
 
 ## Data Sources
 
-Swara only goes online when you start a scan yourself. The public services it uses are:
+Swara goes online only when you start a scan, an update check, or open a Google search link yourself. The public services it uses are:
 
 | Purpose | Source |
 |---------|--------|
 | Titles, artists, album art, genres | iTunes Search API |
 | Lyrics | lrclib, with lyrics.ovh as fallback |
 | Lyrics last resort | Google search fallback |
+| App update check and APK download | GitHub Releases |
 
 > [!NOTE]
 > These are public databases, so local or indie songs are often missing there. Use Edit Metadata / Edit Lyrics on the song to fix it manually.

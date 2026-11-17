@@ -1216,6 +1216,19 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get dataImportFailedNoMatch =>
+      'Backup tidak berisi entri yang cocok dengan pustaka ini (lagu dihapus atau backup dari perangkat lain).';
+
+  @override
+  String get dataImportFailedCheckJson =>
+      'Import gagal. File backup tidak bisa dibaca atau rusak.';
+
+  @override
+  String dataImportSkipped(int skipped) {
+    return '$skipped baris riwayat dilewati karena lagunya sudah tidak ada di pustaka.';
+  }
+
+  @override
   String get dataClearConfirmTitle => 'Bersihkan cache cover?';
 
   @override
@@ -1954,6 +1967,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get settingsUpdateUnverifiedInstall => 'Tetap pasang';
+
+  @override
+  String get settingsUpdateDigestMismatch =>
+      'Pembaruan yang diunduh tidak cocok dengan build resmi dan sudah dihapus. Coba lagi.';
 
   @override
   String get settingsLater => 'Nanti';

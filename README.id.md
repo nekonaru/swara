@@ -17,7 +17,7 @@
 [English](README.md) | **Bahasa Indonesia**
 
 > [!NOTE]
-> Swara memutar musik langsung dari penyimpanan ponselmu. Internet hanya dipakai saat kamu sendiri memulai pemindaian metadata atau lirik. Pemindaian tidak pernah mulai sendiri dan bisa dihentikan kapan saja.
+> Swara memutar musik langsung dari penyimpanan ponselmu. Pemutaran inti dan pustaka bekerja sepenuhnya offline. Internet hanya disentuh saat kamu sendiri memulai pemindaian metadata atau lirik, saat kamu mengetuk cek pembaruan, atau saat kamu membuka tautan pencarian lirik Google. Tidak ada yang terjadi sendiri.
 
 ---
 
@@ -43,7 +43,7 @@
 
 ## Tentang
 
-**Swara** adalah aplikasi Flutter ringan yang memutar musik langsung dari penyimpanan ponselmu, tanpa akun, tanpa iklan, tanpa internet. Aplikasi memindai koleksimu sekali, lalu melengkapi judul, artis, sampul album, genre, bahkan lirik lewat internet setiap kali kamu memulai pemindaian sendiri. Pemindaian tidak pernah mulai sendiri dan bisa dihentikan kapan saja. Aktivitas mendengarkanmu dirangkum dalam dashboard analitik, dan semuanya bisa dipakai sepenuhnya offline setelahnya.
+**Swara** adalah aplikasi Flutter ringan yang memutar musik langsung dari penyimpanan ponselmu, tanpa akun, tanpa iklan, tanpa internet untuk pemutaran sehari-hari. Aplikasi memindai koleksimu sekali, lalu melengkapi judul, artis, sampul album, genre, bahkan lirik lewat internet setiap kali kamu memulai pemindaian sendiri. Pemindaian tidak pernah mulai sendiri dan bisa dihentikan kapan saja. Aktivitas mendengarkanmu dirangkum dalam dashboard analitik, dan semuanya bisa dipakai sepenuhnya offline setelahnya; satu-satunya panggilan jaringan lain adalah cek pembaruan aplikasi dan membuka tautan pencarian lirik Google, dan keduanya hanya saat kamu memintanya sendiri.
 
 > _"Koleksi musikmu, diputar dengan tenang, bahkan tanpa internet."_
 
@@ -59,9 +59,9 @@
 | **Resume pemutaran** | Melanjutkan lagu terakhir pada menit:detik yang sama saat aplikasi dibuka kembali |
 | **Cabut headset** | Pemutaran jeda otomatis saat headset dicabut atau rute Bluetooth terputus |
 | **Pemutaran di latar belakang** | Foreground service Android asli dengan MediaSession: kontrol notifikasi dan layar kunci (putar/jeda/berikutnya/sebelumnya) |
-| **Widget layar home** | Lagu yang sedang diputar dengan kontrol sebelumnya/putar/berikutnya langsung di layar home |
+| **Widget layar home** | Sampul album, kontrol sebelumnya/putar/berikutnya, dan chronometer waktu berjalan langsung di layar home |
 | **Acak dan ulangi** | Acak, ulangi mati / semua / satu lagu, plus sleep timer berdasarkan durasi atau jumlah lagu |
-| **Mini player** | Selalu terlihat di setiap halaman; kontrol kecepatan putar dari 0.5x sampai 2x |
+| **Mini player** | Selalu terlihat di setiap halaman dengan garis progres langsung; pengatur kecepatan dan pitch ada di layar pemutar |
 | **Acak pintar** | Mengutamakan lagu yang jarang diputar dan lama tidak diputar |
 | **Ulangi A-B** | Ulangi bagian lagu mana pun untuk latihan |
 
@@ -148,7 +148,7 @@
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Antarmuka Inggris dan Indonesia** | Bahasa Inggris secara default; ganti ke Bahasa Indonesia di Pengaturan |
-| **Tema** | Terang, gelap, atau ikuti sistem, plus 10 warna aksen, semuanya distyling dari satu tema bersama |
+| **Tema** | Terang, gelap, atau ikuti sistem, Material You (Android 12+), plus 10 warna aksen, semuanya distyling dari satu tema bersama |
 | **Animasi halus** | Satu transisi halus di semua layar, plus sampul mini player yang melayang ke player |
 | **AMOLED hitam** | Opsi tema gelap hitam pekat |
 
@@ -165,7 +165,7 @@
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| **Cek pembaruan dalam aplikasi** | Ketuk versi di About untuk memeriksa rilis GitHub terbaru dan memasang APK di tempat, tanpa uninstall |
+| **Cek pembaruan dalam aplikasi** | Ketuk versi di About untuk memeriksa rilis GitHub terbaru; APK diverifikasi terhadap digest SHA-256 yang dipublikasikan, dan pemasangan build tidak terverifikasi meminta konfirmasi dulu |
 | **Tautan dukungan** | Halaman About menyediakan tautan donasi: GitHub Sponsors, Saweria, SociaBuzz, dan BagiBagi |
 
 ---
@@ -200,7 +200,7 @@
 ### Opsi A: Unduh APK (paling mudah)
 
 1. Buka halaman [Releases](https://github.com/nekonaru/swara/releases)
-2. Unduh APK yang sesuai dengan perangkatmu (`app-arm64-v8a-release.apk` untuk kebanyakan ponsel modern, `app-armeabi-v7a-release.apk` untuk ponsel 32-bit yang lebih lama)
+2. Unduh APK yang sesuai dengan perangkatmu (`app-arm64-v8a-release.apk` untuk kebanyakan ponsel modern, `app-armeabi-v7a-release.apk` untuk ponsel 32-bit yang lebih lama, `app-x86_64-release.apk` untuk emulator dan Chromebook)
 3. Buka di ponselmu, izinkan instalasi dari sumber tidak dikenal jika diminta
 4. Izinkan akses audio saat aplikasi pertama kali dibuka
 
@@ -288,13 +288,14 @@ Antarmuka aplikasi (menu, tombol, pesan, dan pengaturan) tersedia dalam **Bahasa
 
 ## Sumber Data
 
-Swara hanya terhubung ke internet saat kamu memulai pemindaian sendiri. Layanan publik yang dipakai:
+Swara hanya terhubung ke internet saat kamu memulai pemindaian, cek pembaruan, atau membuka tautan pencarian Google sendiri. Layanan publik yang dipakai:
 
 | Tujuan | Sumber |
 |--------|--------|
 | Judul, artis, sampul album, genre | iTunes Search API |
 | Lirik | lrclib, dengan lyrics.ovh sebagai cadangan |
 | Lirik pilihan terakhir | Cadangan pencarian Google |
+| Cek pembaruan aplikasi dan unduh APK | GitHub Releases |
 
 > [!NOTE]
 > Ini adalah database publik, jadi lagu lokal atau indie sering tidak ada di sana. Gunakan Edit Metadata / Edit Lyrics pada lagu untuk memperbaikinya secara manual.

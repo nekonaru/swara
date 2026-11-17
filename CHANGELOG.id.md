@@ -1,5 +1,26 @@
 # Changelog
 
+## v3.9.0
+
+Rilis pengerasan audit mendalam dan penyempurnaan di atas v3.8.0.
+
+## Peningkatan
+
+- **Widget home menampilkan waktu berjalan.** Widget menampilkan posisi dan, saat diputar, berdetak sendiri setiap detik tanpa aplikasi mendorong pembaruan; sesudah cold restore ia menampilkan posisi tersimpan, bukan 0:00.
+- **Updater tangguh dan terverifikasi.** Updater memeriksa digest SHA-256 yang dipublikasikan GitHub untuk APK, memasang diam-diam saat cocok, dan meminta konfirmasi eksplisit selain itu; unduhan yang tidak terverifikasi atau tidak cocok dibuang sebelum installer terbuka. v3.9.0 juga menambah build x86_64 untuk emulator dan Chromebook.
+- **Backup lengkap dan informatif.** Ekspor kini membawa folder playlist pulang-pergi (round trip), riwayat yang dipulihkan melaporkan berapa baris dilewati karena lagunya sudah tidak ada, dan UI restore memakai pesan khusus, bukan teks error mentah.
+
+## Perbaikan bug
+
+- **Waktu widget meleset sesudah seek.** Posisi widget kini didorong ulang setiap kali stream posisi melompat diskontinu (loop A-B, geser slider, restore), jadi chronometer tidak meleset dari playhead setelah seek.
+- **Format Chronometer ditolak.** `%m:%s` bukan format Chronometer Android yang sah; widget kini memakai bentuk `%s` yang terdokumentasi dan terkompilasi.
+- **Import bisa diam-diam menghilangkan baris riwayat tanpa peringatan.** Baris yang dilewati kini dihitung dan ditampilkan di samping pesan sukses (termasuk pemulihan folder playlist).
+- **Ketidakcocokan digest dilaporkan sebagai kegagalan biasa.** Updater kini menampilkan pesan khusus saat APK yang diunduh tidak cocok dengan build penerbit, dan teks error mentah tidak lagi ditampilkan ke pengguna.
+
+## CI
+
+- **Setiap push menjalankan analyze dan test sebelum APK dibangun**; matriks 3 ABI (`arm`, `arm64`, `x86_64`) menjadi inti `build.yml` dan `build-apk.yml`.
+
 ## v3.8.0
 
 Rilis penyempurnaan di atas v3.7.0: widget home yang mengukur sendiri waktunya, updater yang terverifikasi sepenuhnya, dan sisa perbaikan dari audit mendalam.

@@ -2216,6 +2216,24 @@ abstract class AppLocalizations {
   /// **'Import failed: {error}'**
   String dataImportFailed(String error);
 
+  /// Import found nothing in the backup matching the current library
+  ///
+  /// In en, this message translates to:
+  /// **'The backup contains no entries that match this library (songs were deleted or the backup comes from another device).'**
+  String get dataImportFailedNoMatch;
+
+  /// Import failed on a damaged or unreadable backup file
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed. The backup file could not be read or was corrupted.'**
+  String get dataImportFailedCheckJson;
+
+  /// Summary of history rows skipped because their source songs are missing
+  ///
+  /// In en, this message translates to:
+  /// **'{skipped} history rows were skipped because their songs are no longer in the library.'**
+  String dataImportSkipped(int skipped);
+
   /// Clear cache confirmation title
   ///
   /// In en, this message translates to:
@@ -3440,6 +3458,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Install anyway'**
   String get settingsUpdateUnverifiedInstall;
+
+  /// Shown when the SHA-256 digest of the downloaded update APK does not match the publisher digest
+  ///
+  /// In en, this message translates to:
+  /// **'The downloaded update did not match the official build and was deleted. Try again.'**
+  String get settingsUpdateDigestMismatch;
 
   /// Dismiss the update dialog button
   ///

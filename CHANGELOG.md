@@ -1,5 +1,26 @@
 # Changelog
 
+## v3.9.0
+
+A deep-audit hardening pass and polish release on top of v3.8.0.
+
+## Improvements
+
+- **Home widget shows the elapsed time.** The widget displays the position and, while playing, ticks by itself every second without the app pushing updates; after a cold restore it shows the saved position instead of 0:00.
+- **A verified, resilient updater.** The updater checks the SHA-256 digest GitHub publishes for the APK, installs silently on match, and asks for explicit consent otherwise; unverified or mismatched downloads are discarded before the installer opens. v3.9.0 also adds an x86_64 build for emulators and Chromebooks.
+- **Backup is complete and self-describing.** The export now round-trips playlist folders, restored history reports how many rows were skipped because their songs are gone, and the restore UI uses dedicated messages instead of raw error text.
+
+## Bug fixes
+
+- **Widget elapsed time drifted after seeking.** The widget position now re-pushes whenever the position stream jumps discontinuously (A-B loops, slider seeks, restores), so the chronometer does not drift far from the playhead after a seek.
+- **Chronometer format was rejected.** `%m:%s` is not a legal Android Chronometer format; the widget now uses the documented `%s` value form, which compiles.
+- **Import could silently lose history without a word.** Skipped rows are now counted and surfaced next to the success message (playlist folder restoration included).
+- **Digest mismatch reported as a generic failure.** The updater now shows a distinct message when the downloaded APK does not match the publisher build, and the raw error text is no longer shown to users.
+
+## CI
+
+- **Every push runs analyze and tests before the APK builds**; the 3-ABI matrix (`arm`, `arm64`, `x86_64`) is the centerpiece of `build.yml` and `build-apk.yml`.
+
 ## v3.8.0
 
 Polish release on top of v3.7.0: a self-measuring home widget, a fully verified updater, and the rest of the deep-audit fixes.

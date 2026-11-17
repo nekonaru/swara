@@ -1026,9 +1026,26 @@
                                                     "error":  {
                                                                   "type":  "String"
                                                               }
-                                                }
+                                                 }
                            },
-    "dataClearConfirmTitle":  "Clear art cache?",
+    "dataImportFailedNoMatch":  "The backup contains no entries that match this library (songs were deleted or the backup comes from another device).",
+    "@dataImportFailedNoMatch":  {
+                                      "description":  "Import found nothing in the backup matching the current library"
+                                  },
+    "dataImportFailedCheckJson":  "Import failed. The backup file could not be read or was corrupted.",
+    "@dataImportFailedCheckJson":  {
+                                        "description":  "Import failed on a damaged or unreadable backup file"
+                                    },
+    "dataImportSkipped":  "{skipped} history rows were skipped because their songs are no longer in the library.",
+    "@dataImportSkipped":  {
+                                 "placeholders":  {
+                                     "skipped":  {
+                                         "type":  "int"
+                                     }
+                                 },
+                                 "description":  "Summary of history rows skipped because their source songs are missing"
+                             },
+"dataClearConfirmTitle":  "Clear art cache?",
     "@dataClearConfirmTitle":  {
                                     "description":  "Clear cache confirmation title"
                                 },
@@ -2209,6 +2226,10 @@
     "@settingsUpdateUnverifiedInstall":  {
                                            "description":  "Confirm installing an unverified update"
                                        },
+    "settingsUpdateDigestMismatch":  "The downloaded update did not match the official build and was deleted. Try again.",
+    "@settingsUpdateDigestMismatch":  {
+                                         "description":  "Shown when the SHA-256 digest of the downloaded update APK does not match the publisher digest"
+                                     },
     "settingsLater":  "Not now",
     "@settingsLater":  {
                           "description":  "Dismiss the update dialog button"

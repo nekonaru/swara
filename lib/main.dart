@@ -257,8 +257,14 @@ void _startWidgetStatePush() {
   var lastPlaying = false;
   var lastArt = '';
   var hasPushed = false;
+  var lastSeenPositionMs = 0;
+  // The position stream advances smoothly at ~1 Hz; a jump larger than the
+  // threshold means a seek happened, and the widget chronometer's base must
+  // be re-pushed. (A-B repeat seeks, slider seeks, restore seeks all move
+  // the playhead discontinuously.)
+  const jumpThresholdMs = 1500;
 
-  Future<void> push() async {
+  Future<void> push({bool force = false}) async {
     final service = PlayerService.instance;
     final song = service.currentSong;
     final title = song?.title ?? 'Swara';
@@ -269,10 +275,8 @@ void _startWidgetStatePush() {
     // keeps counting from the base on its own afterwards. Use the
     // cold-restore-aware getter so a post-restore push is never 0:00.
     final positionMs = song != null ? service.positionForWidget : 0;
-    // Push only on real state transitions, not on every notification
-    // (speed/pitch slider drags would otherwise rebind the widget 60 times
-    // per second).
-    if (hasPushed &&
+    if (!force &&
+        hasPushed &&
         title == lastTitle &&
         artist == lastArtist &&
         playing == lastPlaying &&
@@ -283,12 +287,39 @@ void _startWidgetStatePush() {
     lastArtist = artist;
     lastPlaying = playing;
     lastArt = art;
+    lastSeenPositionMs = positionMs;
     hasPushed = true;
     await _WidgetBridge.pushState(
         title, artist, playing, art.isEmpty ? null : art, positionMs);
   }
 
-  PlayerService.instance.addListener(() => unawaited(push()));
+  // Republish the widget whenever the position stream shows a discontinuity
+  // (a seek), so the widget clock does not drift after seeking.
+  String? lastSubscribedPlayerId;
+  StreamSubscription<Duration>? positionSub;
+
+  void resubscribe() {
+    positionSub?.cancel();
+    final player = PlayerService.instance.player;
+    lastSubscribedPlayerId = player.hashCode.toString();
+    positionSub = player.positionStream.listen((_) {
+      final positionMs = PlayerService.instance.positionForWidget;
+      if ((positionMs - lastSeenPositionMs).abs() > jumpThresholdMs) {
+        unawaited(push(force: true));
+      }
+    });
+  }
+
+  PlayerService.instance.addListener(() {
+    unawaited(push());
+    final player = PlayerService.instance.player;
+    final id = player.hashCode.toString();
+    // The audible player instance changes on crossfade; resubscribe then.
+    if (id != lastSubscribedPlayerId) {
+      resubscribe();
+    }
+  });
+  resubscribe();
   unawaited(push());
 }
 

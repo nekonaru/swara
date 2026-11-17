@@ -40,9 +40,12 @@ class MiniPlayer extends StatelessWidget {
                 context,
                 SlideUpRoute(page: const PlayerScreen()),
               ),
-              child: SizedBox(
-                height: 64,
-            child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    height: 62,
+                    child: Row(
               children: [
                 const SizedBox(width: 8),
                 // Same tag as the cover on the player screen, so opening the
@@ -110,9 +113,35 @@ class MiniPlayer extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
               ],
+            ),        // Row
+                  ),  // SizedBox
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: StreamBuilder<Duration>(
+                      // Key on the audible player instance so the
+                      // subscription survives a crossfade flip.
+                      key: ValueKey(
+                          'mp_progress_${player.player.hashCode}_${song.id}'),
+                      stream: player.player.positionStream,
+                      builder: (context, snapshot) {
+                        final pos = snapshot.data ?? Duration.zero;
+                        final dur = player.player.duration ?? Duration.zero;
+                        final frac = dur.inMilliseconds > 0
+                            ? (pos.inMilliseconds / dur.inMilliseconds)
+                                .clamp(0.0, 1.0)
+                            : 0.0;
+                        return LinearProgressIndicator(
+                          value: frac,
+                          minHeight: 2,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.outlineVariant,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),        // Column
             ),
-          ),
-          ),
           ),
         );
         },

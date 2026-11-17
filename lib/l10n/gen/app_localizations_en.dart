@@ -1215,6 +1215,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get dataImportFailedNoMatch =>
+      'The backup contains no entries that match this library (songs were deleted or the backup comes from another device).';
+
+  @override
+  String get dataImportFailedCheckJson =>
+      'Import failed. The backup file could not be read or was corrupted.';
+
+  @override
+  String dataImportSkipped(int skipped) {
+    return '$skipped history rows were skipped because their songs are no longer in the library.';
+  }
+
+  @override
   String get dataClearConfirmTitle => 'Clear art cache?';
 
   @override
@@ -1954,6 +1967,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsUpdateUnverifiedInstall => 'Install anyway';
+
+  @override
+  String get settingsUpdateDigestMismatch =>
+      'The downloaded update did not match the official build and was deleted. Try again.';
 
   @override
   String get settingsLater => 'Not now';

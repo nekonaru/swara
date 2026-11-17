@@ -305,7 +305,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> _searchLyricsOnGoogle(Song song) async {
-    final query = Uri.encodeComponent('${song.artist} ${song.title} lirik lyrics');
+    final query = Uri.encodeComponent('${song.artist} ${song.title} lyrics lirik');
     final url = Uri.parse('https://www.google.com/search?q=$query');
     // No canLaunchUrl gate here: on Android 11+ the http/https check is always
     // false without a <queries> manifest entry, which blocked the browser

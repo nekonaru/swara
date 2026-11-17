@@ -105,12 +105,12 @@ class UpdateService {
   }
 
   /// Download the update APK into the app cache under `updates/`, returning
-  /// the file path and whether the download could be verified against the
-  /// publisher digest. Returns (null, false) on any failure. [onProgress]
-  /// reports 0.0..1.0 when the total size is known, or -1 when it is not.
-  /// When [digest] (SHA-256 hex) is provided the file is verified against it
-  /// on Android; a mismatch discards the download.
-  Future<(String?, bool)> downloadApk(
+  /// (path, verified, mismatch). (null, false, true) on digest mismatch,
+  /// (null, false, false) on any other failure. [onProgress] reports
+  /// 0.0..1.0 when the total size is known, or -1 when it is not. When
+  /// [digest] (SHA-256 hex) is provided the file is verified against it on
+  /// Android; a mismatch discards the download.
+  Future<(String?, bool, bool)> downloadApk(
     String url, {
     String? digest,
     void Function(double progress)? onProgress,
@@ -129,7 +129,7 @@ class UpdateService {
         final req = http.Request('GET', Uri.parse(url))
           ..headers['User-Agent'] = 'Swara-update-check';
         final res = await client.send(req).timeout(const Duration(seconds: 20));
-        if (res.statusCode != 200) return (null, false);
+        if (res.statusCode != 200) return (null, false, false);
 
         final total = res.contentLength ?? 0;
         var received = 0;
@@ -143,14 +143,14 @@ class UpdateService {
         } finally {
           await sink.close();
         }
-        if (!await file.exists() || await file.length() == 0) return (null, false);
+        if (!await file.exists() || await file.length() == 0) return (null, false, false);
         // A truncated (but nonzero) download is worse than no download: the
         // installer would fail with a parse error and no feedback. When the
         // server told us the size, insist on an exact match.
         if (total > 0 && await file.length() != total) {
           debugPrint('Update download truncated: got ${await file.length()} of $total bytes');
           await file.delete();
-          return (null, false);
+          return (null, false, false);
         }
         // Verify the APK against the SHA-256 digest published on the GitHub
         // asset before letting the installer open it.
@@ -160,17 +160,17 @@ class UpdateService {
           if (hex != digest) {
             debugPrint('Update APK digest mismatch: expected $digest, got $hex');
             await file.delete();
-            return (null, false);
+            return (null, false, true);
           }
           verified = true;
         }
-        return (file.path, verified);
+        return (file.path, verified, false);
       } finally {
         client.close();
       }
     } catch (e) {
       debugPrint('Update download failed: $e');
-      return (null, false);
+      return (null, false, false);
     }
   }
 
@@ -184,8 +184,8 @@ class UpdateService {
         !lower.contains('arm64-v8a') &&
         !lower.contains('x86_64');
 
-    // Preference order per device class. x86_64 builds ship from v1.8.1 only;
-    // everywhere else falls back to the newest available compatible APK.
+    // Preference order per device class. x86_64 desktop-class environments
+    // fall back to arm64, mirroring what CI builds and publishes.
     (String, String?)? arm64Pick;
     (String, String?)? armv7Pick;
     (String, String?)? x86_64Pick;

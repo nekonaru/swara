@@ -30,12 +30,15 @@ class BackupImportResult {
   final int playlistMembersAdded;
   final int favoritesRestored;
   final int listeningEntriesRestored;
+  // Rows in the backup whose source songs do not exist in this library.
+  final int listeningEntriesSkipped;
 
   const BackupImportResult({
     this.playlistsCreated = 0,
     this.playlistMembersAdded = 0,
     this.favoritesRestored = 0,
     this.listeningEntriesRestored = 0,
+    this.listeningEntriesSkipped = 0,
   });
 }
 
@@ -156,6 +159,7 @@ class BackupService {
     int membersAdded = 0;
     int favoritesRestored = 0;
     int entriesRestored = 0;
+    int entriesSkipped = 0;
 
     final dbHelper = DBHelper.instance;
 
@@ -354,7 +358,7 @@ class BackupService {
       // The whole insert runs inside one transaction, and the dedup snapshot
       // is taken there, so two concurrent imports cannot both pass the check
       // and double the history. Rows are inserted with fresh ids on purpose.
-      entriesRestored += await database.transaction((txn) async {
+      final transactionResult = await database.transaction((txn) async {
         final existingTriples = <String>{};
         try {
           final existing = await txn.query(
@@ -368,10 +372,14 @@ class BackupService {
           // Fall back to inserting validated rows when the snapshot fails.
         }
         var restored = 0;
+        var skipped = 0;
         for (final entry in parsedEntries) {
           try {
             // Skip entries pointing at songs that no longer exist.
-            if (!existingEntrySongIds.contains(entry['songId'])) continue;
+            if (!existingEntrySongIds.contains(entry['songId'])) {
+              skipped++;
+              continue;
+            }
             final triple = entry['triple'] as String;
             if (existingTriples.contains(triple)) continue;
             await txn.insert('listening_entries', {
@@ -382,11 +390,14 @@ class BackupService {
             existingTriples.add(triple);
             restored++;
           } catch (_) {
+            skipped++;
             continue;
           }
         }
-        return restored;
+        return (restored, skipped);
       });
+      entriesRestored += transactionResult.$1;
+      entriesSkipped += transactionResult.$2;
     } catch (_) {
       // Keep earlier sections even if history fails.
     }
@@ -411,6 +422,7 @@ class BackupService {
       playlistMembersAdded: membersAdded,
       favoritesRestored: favoritesRestored,
       listeningEntriesRestored: entriesRestored,
+      listeningEntriesSkipped: entriesSkipped,
     );
   }
 

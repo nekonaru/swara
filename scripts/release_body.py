@@ -39,7 +39,7 @@ def main() -> None:
 
 ## Install / Update
 
-Download the APK matching your device from Assets below (`app-arm64-v8a-release.apk` for most modern phones, `app-armeabi-v7a-release.apk` for older 32-bit ones), open it and follow the prompts. Requires Android 8.0 (API 26).
+Download the APK matching your device from Assets below (`app-arm64-v8a-release.apk` for most modern phones, `app-armeabi-v7a-release.apk` for older 32-bit ones, `app-x86_64-release.apk` for emulators and Chromebooks), open it and follow the prompts. Requires Android 8.0 (API 26).
 """
 
     indonesian = f"""# Bahasa Indonesia
@@ -48,7 +48,7 @@ Download the APK matching your device from Assets below (`app-arm64-v8a-release.
 
 ## Instalasi / Update
 
-Download APK sesuai HPmu dari Assets di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama), buka, lalu ikuti petunjuknya. Membutuhkan Android 8.0 (API 26).
+Download APK sesuai HPmu dari Assets di bawah (`app-arm64-v8a-release.apk` untuk kebanyakan HP modern, `app-armeabi-v7a-release.apk` untuk yang 32-bit lama, `app-x86_64-release.apk` untuk emulator dan Chromebook), buka, lalu ikuti petunjuknya. Membutuhkan Android 8.0 (API 26).
 """
 
     body = english + "\n<br>\n\n---\n\n<br>\n\n" + indonesian

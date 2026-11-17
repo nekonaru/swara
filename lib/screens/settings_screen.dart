@@ -138,8 +138,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     final path = result.$1;
     final verified = result.$2;
+    final mismatch = result.$3;
     if (path == null) {
-      _showSnack(l10n.settingsUpdateFailed);
+      _showSnack(mismatch
+          ? l10n.settingsUpdateDigestMismatch
+          : l10n.settingsUpdateFailed);
       return;
     }
     // The download could not be verified against the publisher. Ask for an
@@ -363,11 +366,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           result.playlistMembersAdded,
           result.favoritesRestored,
           result.listeningEntriesRestored));
+      if (result.listeningEntriesSkipped > 0 && mounted) {
+        _showSnack(AppLocalizations.of(context)!
+            .dataImportSkipped(result.listeningEntriesSkipped));
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _busyData = false);
-      _showSnack(
-          AppLocalizations.of(context)!.dataImportFailed(e.toString()));
+      debugPrint('Backup import failed: $e');
+      // Map known failure so the snackbar does not render a raw exception.
+      _showSnack(e is FormatException
+          ? AppLocalizations.of(context)!.dataImportFailedNoMatch
+          : AppLocalizations.of(context)!.dataImportFailedCheckJson);
     }
   }
 

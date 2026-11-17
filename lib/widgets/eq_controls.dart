@@ -16,19 +16,9 @@ const List<String> kEqualizerPresets = [
   'Custom',
 ];
 
-// Per-preset band reference for the visualizer (relative gains, dB).
-const Map<String, List<double>> kPresetBands = {
-  'Flat': [0, 0, 0, 0, 0],
-  'Pop': [1, 2, 2, 1, 0],
-  'Rock': [3, 1, -1, 1, 3],
-  'Classical': [2, 0, 0, 0, 2],
-  'Jazz': [2, 1, 0, 1, 2],
-  'Electronic': [3, 1, 0, 2, 3],
-  'Hip-Hop': [3, 2, 0, 0, 1],
-  'Bass Boost': [4, 3, 0, 0, 0],
-  'Vocal': [-1, 0, 2, 2, 0],
-  'Custom': [0, 0, 0, 0, 0],
-};
+// Per-preset band reference for the visualizer lives in the equalizer
+// service; referencing the same constant keeps the DSP and the UI in sync.
+const Map<String, List<double>> kPresetBands = kEqCurves;
 
 const List<String> kBandLabels = ['60Hz', '250Hz', '1kHz', '4kHz', '16kHz'];
 
@@ -189,7 +179,9 @@ class EqVisualizer extends StatelessWidget {
     final bands = preset == 'Custom'
         ? customGains
         : (kPresetBands[preset] ?? const [0.0, 0.0, 0.0, 0.0, 0.0]);
-    final max = bands.map((b) => b.abs()).reduce((a, b) => a > b ? a : b);
+    final max = bands.isEmpty
+        ? 0.0
+        : bands.map((b) => b.abs()).reduce((a, b) => a > b ? a : b);
     final normalizer = max < 1 ? 1.0 : max;
     final color = Theme.of(context).colorScheme.primary;
 

@@ -75,7 +75,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
   }
 
   Future<void> _searchOnWeb() async {
-    final query = Uri.encodeComponent('${widget.song.artist} ${widget.song.title} lirik lyrics');
+    final query = Uri.encodeComponent('${widget.song.artist} ${widget.song.title} lyrics lirik');
     final url = Uri.parse('https://www.google.com/search?q=$query');
     // No canLaunchUrl gate: on Android 11+ the http/https check always returns
     // false without a <queries> manifest entry, which blocked the browser.

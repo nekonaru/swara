@@ -1026,9 +1026,26 @@
                                                     "error":  {
                                                                   "type":  "String"
                                                               }
-                                                }
+                                                 }
                            },
-    "dataClearConfirmTitle":  "Bersihkan cache cover?",
+    "dataImportFailedNoMatch":  "Backup tidak berisi entri yang cocok dengan pustaka ini (lagu dihapus atau backup dari perangkat lain).",
+    "@dataImportFailedNoMatch":  {
+                                      "description":  "Import tidak menemukan entri backup yang cocok dengan pustaka ini"
+                                  },
+    "dataImportFailedCheckJson":  "Import gagal. File backup tidak bisa dibaca atau rusak.",
+    "@dataImportFailedCheckJson":  {
+                                        "description":  "Import gagal karena file backup rusak atau tidak bisa dibaca"
+                                    },
+    "dataImportSkipped":  "{skipped} baris riwayat dilewati karena lagunya sudah tidak ada di pustaka.",
+    "@dataImportSkipped":  {
+                                 "placeholders":  {
+                                     "skipped":  {
+                                         "type":  "int"
+                                     }
+                                 },
+                                 "description":  "Ringkasan baris riwayat yang dilewati karena lagunya hilang"
+                             },
+"dataClearConfirmTitle":  "Bersihkan cache cover?",
     "@dataClearConfirmTitle":  {
                                     "description":  "Judul konfirmasi bersihkan cache"
                                 },
@@ -2209,6 +2226,10 @@
     "@settingsUpdateUnverifiedInstall":  {
                                            "description":  "Konfirmasi memasang pembaruan tidak terverifikasi"
                                        },
+    "settingsUpdateDigestMismatch":  "Pembaruan yang diunduh tidak cocok dengan build resmi dan sudah dihapus. Coba lagi.",
+    "@settingsUpdateDigestMismatch":  {
+                                         "description":  "Ditampilkan saat SHA-256 pembaruan APK tidak cocok dengan digest penerbit"
+                                     },
     "settingsLater":  "Nanti",
     "@settingsLater":  {
                           "description":  "Tombol untuk menunda dialog pembaruan"

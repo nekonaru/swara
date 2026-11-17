@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-// Guards for the deep-audit fixes (v3.7.0 audit and later). The bugs they
-// pin down (queue mutations during a crossfade landing on the wrong song,
-// downloads being installed unverified, update checks on the main looper)
-// look reasonable and are easy to reintroduce in refactors.
+// Guards for the deep-audit fixes (v3.7.0 onward, refreshed at each audit
+// round). The bugs they pin down (queue mutations during a crossfade landing
+// on the wrong song, downloads being installed unverified, update checks on
+// the main looper) look reasonable and are easy to reintroduce in refactors.
 void main() {
   String read(String path) =>
       File(path).readAsStringSync().replaceAll('\r\n', '\n');
@@ -76,7 +76,7 @@ void main() {
     // Match the listening-entries section specifically, not the export
     // transaction, so the import-side guard cannot silently weaken.
     expect(
-      backup.contains('entriesRestored += await database.transaction'),
+      backup.contains('final transactionResult = await database.transaction'),
       isTrue,
       reason: 'listening history inserts must run in one transaction',
     );
