@@ -2197,6 +2197,18 @@
     "@settingsUpdateInstallFailed":  {
                                        "description":  "Shown when the package installer cannot start"
                                    },
+    "settingsUpdateUnverifiedTitle":  "Update not verified",
+    "@settingsUpdateUnverifiedTitle":  {
+                                          "description":  "Shown before installing an update that cannot be verified against the publisher digest"
+                                      },
+    "settingsUpdateUnverifiedBody":  "Swara could not confirm this download. The update may not have come from the official source. Install anyway?",
+    "@settingsUpdateUnverifiedBody":  {
+                                        "description":  "Body of the unverified install confirmation dialog"
+                                    },
+    "settingsUpdateUnverifiedInstall":  "Install anyway",
+    "@settingsUpdateUnverifiedInstall":  {
+                                           "description":  "Confirm installing an unverified update"
+                                       },
     "settingsLater":  "Not now",
     "@settingsLater":  {
                           "description":  "Dismiss the update dialog button"

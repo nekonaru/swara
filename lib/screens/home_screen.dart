@@ -30,11 +30,11 @@ class _TabDef {
 const _kTabConfigKey = 'library_tab_config_v2';
 
 final _defaultTabDefs = <_TabDef>[
-  _TabDef(id: 'songs', label: 'Lagu'),
-  _TabDef(id: 'albums', label: 'Album'),
-  _TabDef(id: 'artists', label: 'Artis'),
-  _TabDef(id: 'folders', label: 'Folder'),
-  _TabDef(id: 'genres', label: 'Genre'),
+  _TabDef(id: 'songs', label: 'Songs'),
+  _TabDef(id: 'albums', label: 'Albums'),
+  _TabDef(id: 'artists', label: 'Artists'),
+  _TabDef(id: 'folders', label: 'Folders'),
+  _TabDef(id: 'genres', label: 'Genres'),
 ];
 
 // Build a widget from a tab id

@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.8.0
+
+Rilis penyempurnaan di atas v3.7.0: widget home yang mengukur sendiri waktunya, updater yang terverifikasi sepenuhnya, dan sisa perbaikan dari audit mendalam.
+
+## Peningkatan
+
+- **Widget home menampilkan waktu berjalan.** Widget menampilkan posisi lagu dan, saat diputar, berdetak sendiri setiap detik tanpa aplikasi meng-update-nya; sesudah cold restore ia menampilkan posisi tersimpan, bukan 0:00.
+- **Memasang pembaruan yang tidak terverifikasi kini bertanya dulu.** Updater hanya memasang APK secara diam-diam saat digest penerbit cocok; jika tidak, aplikasi meminta konfirmasi eksplisit sebelum installer terbuka.
+- **Folder playlist bertahan melewati backup.** Export sekarang membawa folder tiap playlist, dan import memulihkannya, jadi export-import backup tidak lagi menghilangkan organisasi folder playlistmu.
+- **Sisa temuan audit.** Receiver noisy sekarang memakai cakupan broadcast terbatas di Android 13+, cache art notifikasi dibuang bertahap, dan status widget didorong ulang seketika sesudah art cache dihapus.
+
+## Perbaikan bug
+
+- **Widget sesudah cold restore menampilkan 0:00.** Widget kini memakai posisi tersimpan sebelum player mengeluarkan event posisi, jadi tampilan waktu benar begitu aplikasi terbuka.
+- **Verifikasi update memblokir aplikasi.** Hashing APK untuk SHA-256 berjalan di background thread, bukan di main thread; cache tema Material You mengikuti perubahan palet warna, bukan hanya warna wallpaper awal.
+- **Decode art widget dan onUpdate berjalan di main thread.** Keduanya kini berjalan di executor background, dan ketukan widget yang datang saat aplikasi keluar tidak lagi dilempar.
+
 ## v3.7.0
 
 Pembaruan besar: widget home dengan sampul album, warna Material You, updater yang memverifikasi unduhan, dan audit mendalam yang memperbaiki semua anomali terkonfirmasi di pemutaran, backup, database, dan widget.

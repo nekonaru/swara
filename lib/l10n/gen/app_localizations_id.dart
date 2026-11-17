@@ -1946,6 +1946,16 @@ class AppLocalizationsId extends AppLocalizations {
       'Tidak bisa membuka pemasang. Izinkan instalasi dari sumber tidak dikenal untuk Swara.';
 
   @override
+  String get settingsUpdateUnverifiedTitle => 'Pembaruan tidak terverifikasi';
+
+  @override
+  String get settingsUpdateUnverifiedBody =>
+      'Swara tidak dapat memverifikasi unduhan ini. Pembaruan ini mungkin bukan dari sumber resmi. Tetap pasang?';
+
+  @override
+  String get settingsUpdateUnverifiedInstall => 'Tetap pasang';
+
+  @override
   String get settingsLater => 'Nanti';
 
   @override

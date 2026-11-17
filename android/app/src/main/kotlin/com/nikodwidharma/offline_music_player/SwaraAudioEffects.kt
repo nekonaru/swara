@@ -28,6 +28,10 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var equalizer: Equalizer? = null
     private var equalizerSessionId: Int = -1
     private var noisyReceiver: BroadcastReceiver? = null
+    // Streaming a large update APK through SHA-256 must not run on the
+    // platform main looper; keep it on a small background pool.
+    private val digestExecutor =
+        java.util.concurrent.Executors.newSingleThreadExecutor()
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
@@ -39,6 +43,7 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
         channel.setMethodCallHandler(null)
         releaseEqualizer()
         unregisterNoisy()
+        digestExecutor.shutdown()
         appContext = null
     }
 
@@ -154,10 +159,17 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
             // SHA-256 of a local file, streamed. Used to verify an update
             // APK against the digest GitHub publishes for the asset before
-            // handing it to the installer.
+            // handing it to the installer. Runs on the background digest
+            // executor; the result answers asynchronously.
             "sha256" -> {
                 val path = call.argument<String>("path")
-                result.success(sha256(path))
+                digestExecutor.execute {
+                    try {
+                        result.success(sha256(path))
+                    } catch (_: Exception) {
+                        result.success(null)
+                    }
+                }
             }
             // Hand the downloaded update APK to the system package installer.
             // Installing an APK signed with the same key over the current
@@ -266,7 +278,18 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
                 }
             }
         }
-        context.registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+        if (Build.VERSION.SDK_INT >= 33) {
+            // Android 13+ requires receivers to declare their export scope;
+            // this one only hears ACTION_AUDIO_BECOMING_NOISY, so restrict it
+            // to system broadcasts.
+            context.registerReceiver(
+                receiver,
+                IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+                Context.RECEIVER_NOT_EXPORTED,
+            )
+        } else {
+            context.registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+        }
         noisyReceiver = receiver
     }
 

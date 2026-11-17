@@ -81,6 +81,10 @@ class PlayerService extends ChangeNotifier {
   // Set during a cold-start resume so a saved position near the end of a
   // song never starts the next song on its own while the app is paused.
   bool _suspendAutoActions = false;
+  // Offset (millis) the cold-start restore seeked to; null once playback
+  // starts. Used so the home widget can show the restored position even
+  // before the platform re-emits a position event.
+  int? _restoredPositionMs;
   Timer? _resumeSaveTimer;
   static const Duration _resumeSaveInterval = Duration(seconds: 5);
   double _speed = 1.0;
@@ -300,6 +304,9 @@ class PlayerService extends ChangeNotifier {
               ? Duration.zero
               : Duration(milliseconds: savedMs);
       await _player.seek(position);
+      // Expose the restored offset so the widget can display it before the
+      // platform re-emits a position event; cleared on the first real play.
+      _restoredPositionMs = position.inMilliseconds;
       // The restored song must not trigger anything on its own while paused,
       // and its half-finished position must not be handed to the crossfade
       // trigger on the next position event.
@@ -913,6 +920,7 @@ class PlayerService extends ChangeNotifier {
     // resume cannot self-advance. A load is an explicit user action, so the
     // guard must lift now or the watchdog and crossfade stay dead forever.
     _suspendAutoActions = false;
+    _restoredPositionMs = null;
     _completionHandled = false; // fresh load: completion may fire again
     try {
       await _player.play();
@@ -1194,6 +1202,20 @@ class PlayerService extends ChangeNotifier {
 
   /// Length of the active play order without materializing a list.
   int get queueOrderLength => _playOrder.length;
+
+  /// Force listeners to re-evaluate against the current in-memory state.
+  /// Needed by flows that change underlying data outside a player action,
+  /// e.g. clearing the art cache under a deleted file.
+  void rebroadcastState() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
+  /// Restored cold-start offset when the platform has not re-emitted a
+  /// position yet, otherwise the live position. Used by the home widget so
+  /// the elapsed-time display is never a misleading zero after a restore.
+  int get positionForWidget =>
+      _restoredPositionMs ?? _activePlayer.position.inMilliseconds;
 
   /// Slot id at a play order position, or null when out of range.
   int? queueSlotIdAt(int orderIndex) {

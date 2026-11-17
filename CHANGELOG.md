@@ -1,5 +1,22 @@
 # Changelog
 
+## v3.8.0
+
+Polish release on top of v3.7.0: a self-measuring home widget, a fully verified updater, and the rest of the deep-audit fixes.
+
+## Improvements
+
+- **Home-screen widget shows the elapsed time.** The widget displays the position and, while playing, ticks by itself every second without the app updating it; after a cold restore it shows the saved position instead of 0:00.
+- **Installing an unverified update now asks.** The updater only installs the APK silently when the publisher digest matches; otherwise the app asks for explicit confirmation before the installer opens.
+- **Playlist folders survive a backup.** Export now carries each playlist's folder, and import restores it, so exporting and importing a backup no longer flattens your playlist organization.
+- **Anything left from the audit.** The noisy receiver now opts into scoped broadcasting on Android 13+, media session art is evicted in halves, and the widget state is re-pushed immediately after the art cache is cleared.
+
+## Bug fixes
+
+- **Cold-restore widget showed 0:00.** The widget now uses the restored position before the player re-emits a position event, so the elapsed-time display is correct right after launch.
+- **Update verification loop blocked the app.** Hashing the APK for SHA-256 ran on the main thread; it now runs on a background thread, and the Material You theme cache follows palette changes instead of freezing to the initial wallpaper colors.
+- **Widget art and on-update decodes ran on the main thread.** Both now run on a background executor, and a widget tap arriving while the app exits no longer throws.
+
 ## v3.7.0
 
 Big update: a native home-screen widget with album art, Material You colors, an updater that verifies what it downloads, and a deep audit that fixed every confirmed anomaly across playback, backup, database and the widget.

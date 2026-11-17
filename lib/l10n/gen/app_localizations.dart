@@ -3423,6 +3423,24 @@ abstract class AppLocalizations {
   /// **'Could not open the installer. Allow installing from unknown sources for Swara.'**
   String get settingsUpdateInstallFailed;
 
+  /// Shown before installing an update that cannot be verified against the publisher digest
+  ///
+  /// In en, this message translates to:
+  /// **'Update not verified'**
+  String get settingsUpdateUnverifiedTitle;
+
+  /// Body of the unverified install confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Swara could not confirm this download. The update may not have come from the official source. Install anyway?'**
+  String get settingsUpdateUnverifiedBody;
+
+  /// Confirm installing an unverified update
+  ///
+  /// In en, this message translates to:
+  /// **'Install anyway'**
+  String get settingsUpdateUnverifiedInstall;
+
   /// Dismiss the update dialog button
   ///
   /// In en, this message translates to:

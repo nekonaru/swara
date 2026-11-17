@@ -41,6 +41,15 @@
                 android:maxLines="1"
                 android:ellipsize="end" />
 
+            <Chronometer
+                android:id="@+id/widget_elapsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:format="%m:%s"
+                android:textColor="#80FFFFFF"
+                android:textSize="10sp" />
+
             <TextView
                 android:id="@+id/widget_artist"
                 android:layout_width="match_parent"

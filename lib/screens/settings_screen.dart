@@ -126,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     ));
-    final path = await UpdateService.instance.downloadApk(
+    final result = await UpdateService.instance.downloadApk(
       downloadUrl,
       digest: digest,
       onProgress: (p) => progress.value = p,
@@ -136,9 +136,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     navigator.pop();
     progress.dispose();
     if (!mounted) return;
+    final path = result.$1;
+    final verified = result.$2;
     if (path == null) {
       _showSnack(l10n.settingsUpdateFailed);
       return;
+    }
+    // The download could not be verified against the publisher. Ask for an
+    // explicit consent instead of pushing an unverified APK at the installer.
+    if (!verified) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.settingsUpdateUnverifiedTitle),
+          content: Text(l10n.settingsUpdateUnverifiedBody),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel)),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.settingsUpdateUnverifiedInstall)),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
     }
     final status = await AudioEffectsService.instance.installApk(path);
     if (!mounted) return;
@@ -691,7 +713,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : (v) =>
                           _savePrefs(() => themeProvider.setDynamicColor(v)),
                 ),
-    SwitchListTile(
+                SwitchListTile(
                   title: Text(AppLocalizations.of(context)!.amoledTitle),
                   subtitle: Text(
                       AppLocalizations.of(context)!.amoledSubtitle),

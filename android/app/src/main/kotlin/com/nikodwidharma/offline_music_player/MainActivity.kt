@@ -51,14 +51,24 @@ class MainActivity : AudioServiceFragmentActivity() {
                         val artist = args?.get("artist") as? String ?: ""
                         val playing = args?.get("playing") as? Boolean ?: false
                         val artPath = args?.get("artPath") as? String
-                        widgetExecutor.execute {
-                            SwaraWidgetProvider.updateAll(
-                                this@MainActivity,
-                                title,
-                                artist,
-                                playing,
-                                artPath,
-                            )
+                        val positionMs = (args?.get("positionMs") as? Number)?.toLong() ?: 0L
+                        // Caching and rebinds run on a background thread; a
+                        // tap that lands after onDestroy must not crash the
+                        // app, it is simply dropped (the widget will refresh
+                        // on the next onUpdate).
+                        try {
+                            widgetExecutor.execute {
+                                SwaraWidgetProvider.updateAll(
+                                    applicationContext,
+                                    title,
+                                    artist,
+                                    playing,
+                                    artPath,
+                                    positionMs,
+                                )
+                            }
+                        } catch (_: RejectedExecutionException) {
+                            // Executor is shut down (activity is finishing).
                         }
                         result.success(null)
                     }
@@ -102,7 +112,11 @@ class MainActivity : AudioServiceFragmentActivity() {
             } else {
                 // Flutter's handler is not armed yet (engine
                 // still booting); keep the action instead of dropping it.
-                pendingWidgetAction = action
+                // The first pre-ready tap wins; a second tap overwriting it
+                // would silently discard the user's first intent.
+                if (pendingWidgetAction == null) {
+                    pendingWidgetAction = action
+                }
             }
         }
     }

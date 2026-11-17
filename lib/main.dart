@@ -150,14 +150,15 @@ class _WidgetBridge {
     }
   }
 
-  static Future<void> pushState(
-      String title, String artist, bool playing, String? artPath) async {
+  static Future<void> pushState(String title, String artist, bool playing,
+      String? artPath, int positionMs) async {
     try {
       await _channel.invokeMethod('updateWidget', {
         'title': title,
         'artist': artist,
         'playing': playing,
         'artPath': artPath,
+        'positionMs': positionMs,
       });
     } catch (e) {
       debugPrint('Widget state push failed: $e');
@@ -264,6 +265,10 @@ void _startWidgetStatePush() {
     final artist = song?.artist ?? '';
     final playing = song != null && service.player.playing;
     final art = (song?.albumArtPath ?? '').trim();
+    // Snapshot the position at push time; the widget chronometer
+    // keeps counting from the base on its own afterwards. Use the
+    // cold-restore-aware getter so a post-restore push is never 0:00.
+    final positionMs = song != null ? service.positionForWidget : 0;
     // Push only on real state transitions, not on every notification
     // (speed/pitch slider drags would otherwise rebind the widget 60 times
     // per second).
@@ -279,8 +284,8 @@ void _startWidgetStatePush() {
     lastPlaying = playing;
     lastArt = art;
     hasPushed = true;
-    await _WidgetBridge.pushState(title, artist, playing,
-        art.isEmpty ? null : art);
+    await _WidgetBridge.pushState(
+        title, artist, playing, art.isEmpty ? null : art, positionMs);
   }
 
   PlayerService.instance.addListener(() => unawaited(push()));

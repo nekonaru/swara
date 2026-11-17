@@ -2197,6 +2197,18 @@
     "@settingsUpdateInstallFailed":  {
                                        "description":  "Ditampilkan saat pemasang tidak bisa dibuka"
                                    },
+    "settingsUpdateUnverifiedTitle":  "Pembaruan tidak terverifikasi",
+    "@settingsUpdateUnverifiedTitle":  {
+                                          "description":  "Ditampilkan sebelum memasang pembaruan yang tidak bisa diverifikasi terhadap digest penerbit"
+                                      },
+    "settingsUpdateUnverifiedBody":  "Swara tidak dapat memverifikasi unduhan ini. Pembaruan ini mungkin bukan dari sumber resmi. Tetap pasang?",
+    "@settingsUpdateUnverifiedBody":  {
+                                        "description":  "Isi dialog konfirmasi pasang tidak terverifikasi"
+                                    },
+    "settingsUpdateUnverifiedInstall":  "Tetap pasang",
+    "@settingsUpdateUnverifiedInstall":  {
+                                           "description":  "Konfirmasi memasang pembaruan tidak terverifikasi"
+                                       },
     "settingsLater":  "Nanti",
     "@settingsLater":  {
                           "description":  "Tombol untuk menunda dialog pembaruan"

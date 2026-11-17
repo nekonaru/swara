@@ -21,8 +21,13 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
-        for (id in appWidgetIds) {
-            appWidgetManager.updateAppWidget(id, buildViews(context))
+        // The launcher calls this on the main thread; decode artwork and
+        // rebinding on the background executor instead.
+        val appContext = context.applicationContext
+        widgetExecutor.execute {
+            for (id in appWidgetIds) {
+                appWidgetManager.updateAppWidget(id, buildViews(appContext))
+            }
         }
     }
 
@@ -35,6 +40,11 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         const val KEY_ARTIST = "artist"
         const val KEY_PLAYING = "playing"
         const val KEY_ART = "art"
+        const val KEY_POSITION = "position_ms"
+
+        // Decodes artwork and rebinding on a single background thread so the
+        // launcher's process is never blocked during onUpdate rebinds.
+        private val widgetExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
         private fun prefs(context: Context) =
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -47,12 +57,14 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             artist: String,
             playing: Boolean,
             artPath: String?,
+            positionMs: Long,
         ) {
             prefs(context).edit()
                 .putString(KEY_TITLE, title)
                 .putString(KEY_ARTIST, artist)
                 .putBoolean(KEY_PLAYING, playing)
                 .putString(KEY_ART, artPath ?: "")
+                .putLong(KEY_POSITION, positionMs)
                 .apply()
             val manager = AppWidgetManager.getInstance(context)
             val component = android.content.ComponentName(
@@ -81,6 +93,12 @@ class SwaraWidgetProvider : AppWidgetProvider() {
                 views.setImageViewResource(R.id.widget_art, R.drawable.ic_widget_art)
             }
             val playing = state.getBoolean(KEY_PLAYING, false)
+            // The chronometer counts up from a fixed base, so the elapsed
+            // time keeps ticking while the app runs without pushing any
+            // further state; paused stops the clock at the stored offset.
+            val positionMs = state.getLong(KEY_POSITION, 0L).coerceAtLeast(0L)
+            val base = android.os.SystemClock.elapsedRealtime() - positionMs
+            views.setChronometer(R.id.widget_elapsed, base, null, playing)
             views.setImageViewResource(
                 R.id.widget_play,
                 if (playing) R.drawable.ic_widget_pause else R.drawable.ic_widget_play,

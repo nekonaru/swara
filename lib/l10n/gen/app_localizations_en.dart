@@ -1946,6 +1946,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not open the installer. Allow installing from unknown sources for Swara.';
 
   @override
+  String get settingsUpdateUnverifiedTitle => 'Update not verified';
+
+  @override
+  String get settingsUpdateUnverifiedBody =>
+      'Swara could not confirm this download. The update may not have come from the official source. Install anyway?';
+
+  @override
+  String get settingsUpdateUnverifiedInstall => 'Install anyway';
+
+  @override
   String get settingsLater => 'Not now';
 
   @override

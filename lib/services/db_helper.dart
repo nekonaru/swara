@@ -35,7 +35,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 10,
+      version: 11,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -253,6 +253,25 @@ class DBHelper {
                 "UPDATE songs SET region = 'Unknown' WHERE region = 'Tidak diketahui'");
           } catch (e) {
             debugPrint('DBHelper: v10 Unknown migration failed: $e');
+          }
+        }
+        if (oldVersion < 11) {
+          // v11 localizes the region labels to English (English is the
+          // source), matching what metadata_service stores from now on.
+          const renames = <List<String>>[
+            ['Amerika Serikat', 'United States'],
+            ['Inggris', 'United Kingdom'],
+            ['Korea Selatan', 'South Korea'],
+            ['Jepang', 'Japan'],
+            ['Kanada', 'Canada'],
+          ];
+          for (final pair in renames) {
+            try {
+              await db.execute('UPDATE songs SET region = ? WHERE region = ?',
+                  [pair[1], pair[0]]);
+            } catch (e) {
+              debugPrint('DBHelper: v11 region rename failed for ${pair[0]}: $e');
+            }
           }
         }
         // No automatic prune of listening_entries here. Besides deleting

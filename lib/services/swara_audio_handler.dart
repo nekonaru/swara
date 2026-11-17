@@ -153,6 +153,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
   // Build and publish the MediaSession queue in playback order. Called from
   // the debounced timer, never directly from the notify path.
   void _publishQueue(PlayerService ps) {
+    if (_disposed) return;
     final slotIds = ps.queueSlotIds;
     final q = ps.queue;
     final items = <MediaItem>[
@@ -166,11 +167,11 @@ class SwaraAudioHandler extends BaseAudioHandler {
           artUri: _safeArtUri(q[i].albumArtPath),
         ),
     ];
-    queue.add(items);
     try {
+      queue.add(items);
       queueTitle.add('Swara Queue');
     } catch (_) {
-      // queueTitle is optional on some audio_service versions.
+      // A dead session must never crash a timer callback.
     }
   }
 

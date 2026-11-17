@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../services/embedded_art_service.dart';
 
 import '../services/db_helper.dart';
+import 'player_service.dart';
 
 // Backup format version. Bump when the JSON schema changes.
 const int kBackupFormatVersion = 1;
@@ -55,53 +56,72 @@ class BackupService {
 
   // Collect playlists with members, favorite ids, and listening
   // entries into a single JSON string.
+  // The reads run inside one transaction so the exported snapshot is
+  // consistent: writes cannot interleave between the favorites read and
+  // the history read.
   static Future<String> exportLibrary() async {
     final dbHelper = DBHelper.instance;
-
-    // Playlists plus their member song ids.
-    final playlistRows = await dbHelper.getPlaylists();
-    final List<Map<String, dynamic>> playlistsJson = [];
-    for (final row in playlistRows) {
-      final id = row['id'] as int?;
-      final name = (row['name'] ?? '').toString();
-      if (id == null || name.isEmpty) continue;
-      List<int> memberIds = [];
-      try {
-        final members = await dbHelper.getSongsInPlaylist(id);
-        memberIds = members.map((s) => s.id).toList();
-      } catch (_) {
-        // Keep the playlist shell even when member read fails.
-        memberIds = [];
+    final database = await dbHelper.db;
+    final snapshot = await database.transaction((txn) async {
+      // Playlists plus their member song ids.
+      final playlistRows =
+          await txn.query('playlists', orderBy: 'createdAt DESC');
+      final List<Map<String, dynamic>> playlistsJson = [];
+      for (final row in playlistRows) {
+        final id = row['id'] as int?;
+        final name = (row['name'] ?? '').toString();
+        if (id == null || name.isEmpty) continue;
+        List<int> memberIds = [];
+        try {
+          final memberRows = await txn.rawQuery(
+            'SELECT ps.songId FROM playlist_songs ps '
+            'WHERE ps.playlistId = ? '
+            'ORDER BY ps.position ASC, ps.addedAt ASC',
+            [id],
+          );
+          memberIds = memberRows.map((r) => r['songId'] as int).toList();
+        } catch (_) {
+          // Keep the playlist shell even when member read fails.
+          memberIds = [];
+        }
+        playlistsJson.add({
+          'name': name,
+          'songIds': memberIds,
+          'folder': (row['folder'] ?? '').toString(),
+        });
       }
-      playlistsJson.add({'name': name, 'songIds': memberIds});
-    }
 
-    // Favorite song ids.
-    List<int> favoriteIds = [];
-    try {
-      final favs = await dbHelper.getFavorites();
-      favoriteIds = favs.map((s) => s.id).toList();
-    } catch (_) {
-      favoriteIds = [];
-    }
+      // Favorite song ids.
+      List<int> favoriteIds = [];
+      try {
+        final favRows = await txn.query('songs',
+            columns: ['id'], where: 'isFavorite = 1', orderBy: 'title ASC');
+        favoriteIds = favRows.map((r) => r['id'] as int).toList();
+      } catch (_) {
+        favoriteIds = [];
+      }
 
-    // Listening history rows via the existing db getter.
-    List<Map<String, dynamic>> entriesJson = [];
-    try {
-      final database = await dbHelper.db;
-      final rows = await database.rawQuery(
-        'SELECT songId, timestamp, listenedMs FROM listening_entries ORDER BY timestamp ASC',
-      );
-      entriesJson = rows
-          .map((r) => {
-                'songId': r['songId'],
-                'timestamp': r['timestamp'],
-                'listenedMs': r['listenedMs'],
-              })
-          .toList();
-    } catch (_) {
-      entriesJson = [];
-    }
+      // Listening history rows.
+      List<Map<String, dynamic>> entriesJson = [];
+      try {
+        final rows = await txn.rawQuery('SELECT songId, timestamp, listenedMs '
+            'FROM listening_entries ORDER BY timestamp ASC');
+        entriesJson = rows
+            .map((r) => {
+                  'songId': r['songId'],
+                  'timestamp': r['timestamp'],
+                  'listenedMs': r['listenedMs'],
+                })
+            .toList();
+      } catch (_) {
+        entriesJson = [];
+      }
+
+      return (playlistsJson, favoriteIds, entriesJson);
+    });
+    final playlistsJson = snapshot.$1;
+    final favoriteIds = snapshot.$2;
+    final entriesJson = snapshot.$3;
 
     final payload = {
       'version': kBackupFormatVersion,
@@ -165,6 +185,16 @@ class BackupService {
             playlistId = await dbHelper.createPlaylist(name);
             idByName[name] = playlistId;
             playlistsCreated++;
+          }
+          // Restore the folder label when the backup carries one; backups
+          // written before folder export simply leave it untouched.
+          try {
+            final folder = (item['folder'] ?? '').toString().trim();
+            if (folder.isNotEmpty) {
+              await dbHelper.setPlaylistFolder(playlistId, folder);
+            }
+          } catch (_) {
+            // Folder label is optional metadata; never block a restore.
           }
           final current = await dbHelper.getSongsInPlaylist(playlistId);
           final currentIds = current.map((s) => s.id).toSet();
@@ -445,6 +475,9 @@ class BackupService {
       }
       // Also drop the extracted embedded covers, from disk and from memory.
       deleted += await EmbeddedArtService.clearCache();
+      // Nudge every listener so the in-memory queue snapshots and the home
+      // widget both forget the deleted art immediately.
+      PlayerService.instance.rebroadcastState();
     } catch (_) {
       // Report partial progress instead of throwing.
     }

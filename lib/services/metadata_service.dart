@@ -677,11 +677,11 @@ class MetadataService {
     if (countryCode == null || countryCode.isEmpty) return 'Unknown';
     const map = {
       'IDN': 'Indonesia',
-      'USA': 'Amerika Serikat',
-      'GBR': 'Inggris',
-      'KOR': 'Korea Selatan',
-      'JPN': 'Jepang',
-      'CAN': 'Kanada',
+      'USA': 'United States',
+      'GBR': 'United Kingdom',
+      'KOR': 'South Korea',
+      'JPN': 'Japan',
+      'CAN': 'Canada',
       'AUS': 'Australia',
     };
     return map[countryCode] ?? countryCode;

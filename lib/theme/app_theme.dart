@@ -25,10 +25,16 @@ ThemeData buildSwaraTheme({
   bool amoledBlack = false,
   ColorScheme? dynamicScheme,
 }) {
-  // The cache key mixes in whether a dynamic scheme is in play (the scheme
-  // itself is deterministic per device, so the flag is enough).
-  final useDynamic = dynamicScheme != null;
-  final key = '${useDynamic ? 'dyn' : seed.toARGB32()}|$brightness|$amoledBlack';
+  // When a dynamic scheme is in play the key must reflect the scheme
+  // itself: two schemes from palette switches would otherwise collide and
+  // keep the app stuck on the stale palette until cache expiry.
+  final schemeKey = dynamicScheme != null
+      ? 'dyn-${dynamicScheme.primary.toARGB32()}-'
+          '${dynamicScheme.secondary.toARGB32()}-'
+          '${dynamicScheme.tertiary.toARGB32()}-'
+          '${dynamicScheme.surface.toARGB32()}'
+      : '${seed.toARGB32()}';
+  final key = '$schemeKey|$brightness|$amoledBlack';
   final cached = _swaraThemeCache[key];
   if (cached != null) return cached;
   final theme = _buildSwaraTheme(
