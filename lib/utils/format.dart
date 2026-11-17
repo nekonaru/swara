@@ -52,12 +52,19 @@ String formatDuration(int ms) {
   return '${two(minutes)}:${two(seconds)}';
 }
 
-/// Format a total duration as a compact text such as "2 jam 15 menit" or "45 menit".
-String formatDurationLong(int ms) {
+/// Format a total duration as a compact text such as "2h 15m" or "45m".
+/// Units follow [indonesian]; default is English. (This used to always
+/// print jam/menit regardless of locale.)
+String formatDurationLong(int ms, {bool indonesian = false}) {
   final totalMinutes = (ms / 60000).round();
   final hours = totalMinutes ~/ 60;
   final minutes = totalMinutes % 60;
-  if (hours > 0 && minutes > 0) return '$hours jam $minutes menit';
-  if (hours > 0) return '$hours jam';
-  return '$minutes menit';
+  if (indonesian) {
+    if (hours > 0 && minutes > 0) return '$hours jam $minutes menit';
+    if (hours > 0) return '$hours jam';
+    return '$minutes menit';
+  }
+  if (hours > 0 && minutes > 0) return '${hours}h ${minutes}m';
+  if (hours > 0) return '${hours}h';
+  return '${minutes}m';
 }

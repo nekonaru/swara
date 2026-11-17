@@ -966,6 +966,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 onPressed: _player.toggleShuffle,
               ),
               IconButton(
+                icon: const Icon(Icons.replay_10),
+                tooltip: AppLocalizations.of(context)!.playerSeekBack,
+                onPressed: () => _player.player
+                    .seek(Duration(
+                        milliseconds: (_player.player.position.inMilliseconds - 10000).clamp(0, 1 << 30)))
+                    .catchError((_) {}),
+              ),
+              IconButton(
                 icon: const Icon(Icons.skip_previous),
                 tooltip: AppLocalizations.of(context)!.playerPrevious,
                 onPressed: _onPreviousPressed,
@@ -999,6 +1007,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 icon: const Icon(Icons.skip_next),
                 tooltip: AppLocalizations.of(context)!.playerNext,
                 onPressed: () => _player.next().catchError((_) {}),
+              ),
+              IconButton(
+                icon: const Icon(Icons.forward_10),
+                tooltip: AppLocalizations.of(context)!.playerSeekForward,
+                onPressed: () => _player.player
+                    .seek(Duration(
+                        milliseconds: _player.player.position.inMilliseconds + 10000))
+                    .catchError((_) {}),
               ),
               _buildRepeatButton(),
             ],

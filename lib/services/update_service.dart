@@ -20,6 +20,7 @@ class UpdateCheckResult {
     this.tagName,
     this.downloadUrl,
     this.downloadDigest,
+    this.downloadSize,
     this.currentVersion,
   });
 
@@ -29,18 +30,23 @@ class UpdateCheckResult {
   // SHA-256 hex digest of the chosen asset as published by GitHub
   // ("sha256:…" stripped), when the API provides one.
   final String? downloadDigest;
+  // Asset size in bytes as published by GitHub, when available; used to
+  // catch truncated downloads when the server omits Content-Length.
+  final int? downloadSize;
   final String? currentVersion;
 
   const UpdateCheckResult.available({
     required String tagName,
     required String downloadUrl,
     String? downloadDigest,
+    int? downloadSize,
     required String currentVersion,
   }) : this._(
           outcome: UpdateOutcome.updateAvailable,
           tagName: tagName,
           downloadUrl: downloadUrl,
           downloadDigest: downloadDigest,
+          downloadSize: downloadSize,
           currentVersion: currentVersion,
         );
 
@@ -59,6 +65,14 @@ class UpdateService {
   static const String _latestUrl =
       'https://api.github.com/repos/nekonaru/swara/releases/latest';
   static const Duration _timeout = Duration(seconds: 10);
+
+  // Set by the progress dialog's Cancel action; checked by the streaming
+  // loop so a cancelled download aborts and deletes the partial file.
+  bool _cancelRequested = false;
+
+  /// Ask the in-flight download to abort. Safe to call even when no
+  /// download is running; takes effect on the next chunk boundary.
+  void cancelDownload() => _cancelRequested = true;
 
   /// Fetch the latest release and compare it against the installed version.
   Future<UpdateCheckResult> checkForUpdate() async {
@@ -88,6 +102,7 @@ class UpdateService {
         tagName: tagName,
         downloadUrl: picked.$1,
         downloadDigest: _normalizeDigest(picked.$2),
+        downloadSize: picked.$3,
         currentVersion: current,
       );
     } catch (e) {
@@ -109,19 +124,24 @@ class UpdateService {
   /// (null, false, false) on any other failure. [onProgress] reports
   /// 0.0..1.0 when the total size is known, or -1 when it is not. When
   /// [digest] (SHA-256 hex) is provided the file is verified against it on
-  /// Android; a mismatch discards the download.
+  /// Android; a mismatch discards the download. [expectedSize], when known
+  /// from the release manifest, is used to catch short downloads when the
+  /// server omits Content-Length.
   Future<(String?, bool, bool)> downloadApk(
     String url, {
     String? digest,
+    int? expectedSize,
     void Function(double progress)? onProgress,
   }) async {
+    _cancelRequested = false;
+    late File apkFile;
     try {
       final docs = await getTemporaryDirectory();
       final dir = Directory('${docs.path}/updates');
       await dir.create(recursive: true);
-      final file = File('${dir.path}/swara-update.apk');
-      if (await file.exists()) {
-        await file.delete();
+      apkFile = File('${dir.path}/swara-update.apk');
+      if (await apkFile.exists()) {
+        await apkFile.delete();
       }
 
       final client = http.Client();
@@ -131,11 +151,17 @@ class UpdateService {
         final res = await client.send(req).timeout(const Duration(seconds: 20));
         if (res.statusCode != 200) return (null, false, false);
 
-        final total = res.contentLength ?? 0;
+        final headerTotal = res.contentLength ?? 0;
+        final total = headerTotal > 0
+            ? headerTotal
+            : (expectedSize ?? 0).clamp(0, 1 << 30);
         var received = 0;
-        final sink = file.openWrite();
+        final sink = apkFile.openWrite();
         try {
-          await for (final chunk in res.stream) {
+          await for (final chunk in res.stream.timeout(const Duration(seconds: 30))) {
+            if (_cancelRequested) {
+              break;
+            }
             received += chunk.length;
             onProgress?.call(total > 0 ? received / total : -1);
             sink.add(chunk);
@@ -143,41 +169,60 @@ class UpdateService {
         } finally {
           await sink.close();
         }
-        if (!await file.exists() || await file.length() == 0) return (null, false, false);
+        if (_cancelRequested) {
+          try {
+            await apkFile.delete();
+          } catch (_) {
+            // A missing file is fine; the cancel path does not need it.
+          }
+          return (null, false, false);
+        }
+        if (!await apkFile.exists() || await apkFile.length() == 0) return (null, false, false);
         // A truncated (but nonzero) download is worse than no download: the
         // installer would fail with a parse error and no feedback. When the
-        // server told us the size, insist on an exact match.
-        if (total > 0 && await file.length() != total) {
-          debugPrint('Update download truncated: got ${await file.length()} of $total bytes');
-          await file.delete();
+        // size is known, insist on an exact match.
+        if (total > 0 && await apkFile.length() != total) {
+          debugPrint('Update download truncated: got ${await apkFile.length()} of $total bytes');
+          await apkFile.delete();
           return (null, false, false);
         }
         // Verify the APK against the SHA-256 digest published on the GitHub
-        // asset before letting the installer open it.
+        // asset before letting the installer open it. Anything unexpected
+        // deletes the partial apkFile: no silent uninstalls, no surprises.
         var verified = false;
         if (digest != null) {
-          final hex = await AudioEffectsService.instance.sha256(file.path);
+          final hex = await AudioEffectsService.instance.sha256(apkFile.path);
+          if (hex == null) {
+            debugPrint('Update APK digest could not be computed');
+            await apkFile.delete();
+            return (null, false, false);
+          }
           if (hex != digest) {
             debugPrint('Update APK digest mismatch: expected $digest, got $hex');
-            await file.delete();
+            await apkFile.delete();
             return (null, false, true);
           }
           verified = true;
         }
-        return (file.path, verified, false);
+        return (apkFile.path, verified, false);
       } finally {
         client.close();
       }
     } catch (e) {
+      // Delete any partial file so the next attempt starts clean and the
+      // cache never holds a half-written APK.
+      try {
+        await apkFile.delete();
+      } catch (_) {}
       debugPrint('Update download failed: $e');
       return (null, false, false);
     }
   }
 
   /// Pick the APK asset to install, matching the device's ABI. Returns the
-  /// asset URL and the GitHub-published SHA-256 digest ("sha256:…" stripped)
-  /// when available.
-  (String, String?)? _pickApkAsset(List assets, List<String> abis) {
+  /// asset URL, the GitHub-published SHA-256 digest ("sha256:…" stripped)
+  /// when available, and the asset size in bytes when available.
+  (String, String?, int?)? _pickApkAsset(List assets, List<String> abis) {
     final lower = abis.map((a) => a.toLowerCase()).toSet();
     final wantsArm64 = lower.contains('arm64-v8a');
     final wantsArmv7 = lower.contains('armeabi-v7a') &&
@@ -186,18 +231,21 @@ class UpdateService {
 
     // Preference order per device class. x86_64 desktop-class environments
     // fall back to arm64, mirroring what CI builds and publishes.
-    (String, String?)? arm64Pick;
-    (String, String?)? armv7Pick;
-    (String, String?)? x86_64Pick;
-    (String, String?)? anyPick;
+    (String, String?, int?)? arm64Pick;
+    (String, String?, int?)? armv7Pick;
+    (String, String?, int?)? x86_64Pick;
+    (String, String?, int?)? anyPick;
 
     for (final raw in assets) {
       if (raw is! Map) continue;
       final name = (raw['name'] as String?)?.toLowerCase() ?? '';
       final url = raw['browser_download_url'] as String?;
       final digest = raw['digest'] as String?;
+      // GitHub's asset object carries a `size` in bytes; use it to catch
+      // truncated downloads when the HTTP response omits Content-Length.
+      final size = raw['size'] is num ? (raw['size'] as num).toInt() : null;
       if (url == null || !name.endsWith('.apk')) continue;
-      final pick = (url, digest);
+      final pick = (url, digest, size);
       anyPick ??= pick;
       if (name == 'app-arm64-v8a-release.apk') arm64Pick = pick;
       if (name == 'app-armeabi-v7a-release.apk') armv7Pick = pick;

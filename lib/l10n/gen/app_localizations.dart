@@ -1976,6 +1976,72 @@ abstract class AppLocalizations {
   /// **'Load more ({shown} of {total})'**
   String loadMore(int shown, int total);
 
+  /// Button that seeks 15 seconds backwards
+  ///
+  /// In en, this message translates to:
+  /// **'10 seconds back'**
+  String get playerSeekBack;
+
+  /// Button that seeks 15 seconds forward
+  ///
+  /// In en, this message translates to:
+  /// **'10 seconds forward'**
+  String get playerSeekForward;
+
+  /// Song details sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Song details'**
+  String get songDetailsTitle;
+
+  /// Song genre field label
+  ///
+  /// In en, this message translates to:
+  /// **'Genre'**
+  String get songDetailsGenre;
+
+  /// Song duration field label
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get songDetailsDuration;
+
+  /// Song file size field label
+  ///
+  /// In en, this message translates to:
+  /// **'File size'**
+  String get songDetailsSize;
+
+  /// Song format field label
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get songDetailsFormat;
+
+  /// Song file path field label
+  ///
+  /// In en, this message translates to:
+  /// **'File path'**
+  String get songDetailsPath;
+
+  /// How many times the song has been played
+  ///
+  /// In en, this message translates to:
+  /// **'Played {count} times'**
+  String songDetailsPlays(int count);
+
+  /// Artist field label on the song details sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get songDetailsArtist;
+
+  /// Album field label on the song details sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Album'**
+  String get songDetailsAlbum;
+
   /// Sleep timer state while volume fades out
   ///
   /// In en, this message translates to:
@@ -2228,17 +2294,23 @@ abstract class AppLocalizations {
   /// **'Import failed. The backup file could not be read or was corrupted.'**
   String get dataImportFailedCheckJson;
 
-  /// Summary of history rows skipped because their source songs are missing
+  /// Backup rows skipped because their source songs are missing
   ///
   /// In en, this message translates to:
-  /// **'{skipped} history rows were skipped because their songs are no longer in the library.'**
-  String dataImportSkipped(int skipped);
+  /// **'{members} playlist members and {favorites} favorites skipped; {entries} history rows skipped (songs no longer in this library).'**
+  String dataImportSkipped(int members, int favorites, int entries);
 
   /// Clear cache confirmation title
   ///
   /// In en, this message translates to:
   /// **'Clear art cache?'**
   String get dataClearConfirmTitle;
+
+  /// Generic failure message used for data-management actions whose error text would be noise
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Details are in the log.'**
+  String get dataFailedGeneric;
 
   /// Clear cache confirmation message
   ///

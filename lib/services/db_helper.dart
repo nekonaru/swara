@@ -788,6 +788,16 @@ class DBHelper {
   /// [limit] defaults to 500 to match the cap used for the play counts in
   /// PlayerService.refreshSmartShuffleStats: on a large library both maps are
   /// built from the same 500 songs, so the weighting stays consistent.
+  /// Total times [songId] appears in the listening history.
+  Future<int> getPlayCountForSong(int songId) async {
+    final database = await db;
+    final result = await database.rawQuery(
+      'SELECT COUNT(*) FROM listening_entries WHERE songId = ?',
+      [songId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   Future<Map<int, DateTime>> getLastPlayedStamps({int limit = 500}) async {
     final safeLimit = limit < 1 ? 500 : limit;
     final database = await db;
@@ -951,6 +961,16 @@ class DBHelper {
     return database.insert('playlists', {
       'name': name,
       'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Create a playlist dated [createdAt] instead of now. Used by the backup
+  /// restore to keep the original ordering of playlists across devices.
+  Future<int> createPlaylistWithDate(String name, String createdAt) async {
+    final database = await db;
+    return database.insert('playlists', {
+      'name': name,
+      'createdAt': createdAt,
     });
   }
 

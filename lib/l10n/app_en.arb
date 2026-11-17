@@ -813,17 +813,66 @@
     "sleepTimerStopped":  "Sleep timer stopped",
     "loadMore":  "Load more ({shown} of {total})",
     "@loadMore":  {
-                       "description":  "Button to render the next page of a long song list",
-                       "placeholders":  {
-                                            "shown":  {
-                                                          "type":  "int"
-                                                      },
-                                            "total":  {
-                                                          "type":  "int"
-                                                      }
-                                        }
-                   },
-    "sleepFadingOut":  "Fading out...",
+                        "description":  "Button to render the next page of a long song list",
+                        "placeholders":  {
+                                             "shown":  {
+                                                           "type":  "int"
+                                                       },
+                                             "total":  {
+                                                           "type":  "int"
+                                                       }
+                                         }
+                    },
+    "playerSeekBack":  "10 seconds back",
+    "@playerSeekBack":  {
+                             "description":  "Button that seeks 15 seconds backwards"
+                         },
+    "playerSeekForward":  "10 seconds forward",
+    "@playerSeekForward":  {
+                                "description":  "Button that seeks 15 seconds forward"
+                            },
+    "songDetailsTitle":  "Song details",
+    "@songDetailsTitle":  {
+                               "description":  "Song details sheet title"
+                           },
+    "songDetailsGenre":  "Genre",
+    "@songDetailsGenre":  {
+                               "description":  "Song genre field label"
+                           },
+    "songDetailsDuration":  "Duration",
+    "@songDetailsDuration":  {
+                                 "description":  "Song duration field label"
+                             },
+    "songDetailsSize":  "File size",
+    "@songDetailsSize":  {
+                             "description":  "Song file size field label"
+                         },
+    "songDetailsFormat":  "Format",
+    "@songDetailsFormat":  {
+                                "description":  "Song format field label"
+                            },
+    "songDetailsPath":  "File path",
+    "@songDetailsPath":  {
+                             "description":  "Song file path field label"
+                         },
+    "songDetailsPlays":  "Played {count} times",
+    "@songDetailsPlays":  {
+                               "placeholders":  {
+                                   "count":  {
+                                       "type":  "int"
+                                   }
+                               },
+                               "description":  "How many times the song has been played"
+                           },
+        "songDetailsArtist":  "Artist",
+    "@songDetailsArtist":  {
+                           "description":  "Artist field label on the song details sheet"
+                       },
+    "songDetailsAlbum":  "Album",
+    "@songDetailsAlbum":  {
+                             "description":  "Album field label on the song details sheet"
+                         },
+"sleepFadingOut":  "Fading out...",
     "@sleepFadingOut":  {
                              "description":  "Sleep timer state while volume fades out"
                          },
@@ -1036,16 +1085,25 @@
     "@dataImportFailedCheckJson":  {
                                         "description":  "Import failed on a damaged or unreadable backup file"
                                     },
-    "dataImportSkipped":  "{skipped} history rows were skipped because their songs are no longer in the library.",
+    "dataImportSkipped":  "{members} playlist members and {favorites} favorites skipped; {entries} history rows skipped (songs no longer in this library).",
     "@dataImportSkipped":  {
                                  "placeholders":  {
-                                     "skipped":  {
+                                     "members":  {
+                                         "type":  "int"
+                                     },
+                                     "favorites":  {
+                                         "type":  "int"
+                                     },
+                                     "entries":  {
                                          "type":  "int"
                                      }
                                  },
-                                 "description":  "Summary of history rows skipped because their source songs are missing"
-                             },
-"dataClearConfirmTitle":  "Clear art cache?",
+                                 "description":  "Backup rows skipped because their source songs are missing"
+                             },"dataClearConfirmTitle":  "Clear art cache?",
+    "dataFailedGeneric":  "Something went wrong. Details are in the log.",
+    "@dataFailedGeneric":  {
+                              "description":  "Generic failure message used for data-management actions whose error text would be noise"
+                          },
     "@dataClearConfirmTitle":  {
                                     "description":  "Clear cache confirmation title"
                                 },

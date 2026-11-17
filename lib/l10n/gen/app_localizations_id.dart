@@ -1076,6 +1076,41 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get playerSeekBack => 'mundur 10 detik';
+
+  @override
+  String get playerSeekForward => 'maju 10 detik';
+
+  @override
+  String get songDetailsTitle => 'Detail lagu';
+
+  @override
+  String get songDetailsGenre => 'Genre';
+
+  @override
+  String get songDetailsDuration => 'Durasi';
+
+  @override
+  String get songDetailsSize => 'Ukuran file';
+
+  @override
+  String get songDetailsFormat => 'Format';
+
+  @override
+  String get songDetailsPath => 'Lokasi file';
+
+  @override
+  String songDetailsPlays(int count) {
+    return '$count kali diputar';
+  }
+
+  @override
+  String get songDetailsArtist => 'Artis';
+
+  @override
+  String get songDetailsAlbum => 'Album';
+
+  @override
   String get sleepFadingOut => 'Memudar...';
 
   @override
@@ -1224,12 +1259,15 @@ class AppLocalizationsId extends AppLocalizations {
       'Import gagal. File backup tidak bisa dibaca atau rusak.';
 
   @override
-  String dataImportSkipped(int skipped) {
-    return '$skipped baris riwayat dilewati karena lagunya sudah tidak ada di pustaka.';
+  String dataImportSkipped(int members, int favorites, int entries) {
+    return '$members anggota playlist dan $favorites favorit dilewati; $entries baris riwayat dilewati (lagunya sudah tidak ada di pustaka ini).';
   }
 
   @override
   String get dataClearConfirmTitle => 'Bersihkan cache cover?';
+
+  @override
+  String get dataFailedGeneric => 'Ada yang salah. Detailnya ada di log.';
 
   @override
   String dataClearConfirmMessage(int files) {

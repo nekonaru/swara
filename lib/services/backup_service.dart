@@ -30,8 +30,10 @@ class BackupImportResult {
   final int playlistMembersAdded;
   final int favoritesRestored;
   final int listeningEntriesRestored;
-  // Rows in the backup whose source songs do not exist in this library.
+  // Rows whose source songs do not exist in this library (unrestorable).
   final int listeningEntriesSkipped;
+  final int playlistMembersSkipped;
+  final int favoritesSkipped;
 
   const BackupImportResult({
     this.playlistsCreated = 0,
@@ -39,6 +41,8 @@ class BackupImportResult {
     this.favoritesRestored = 0,
     this.listeningEntriesRestored = 0,
     this.listeningEntriesSkipped = 0,
+    this.playlistMembersSkipped = 0,
+    this.favoritesSkipped = 0,
   });
 }
 
@@ -91,6 +95,7 @@ class BackupService {
           'name': name,
           'songIds': memberIds,
           'folder': (row['folder'] ?? '').toString(),
+          'createdAt': (row['createdAt'] ?? '').toString(),
         });
       }
 
@@ -160,6 +165,8 @@ class BackupService {
     int favoritesRestored = 0;
     int entriesRestored = 0;
     int entriesSkipped = 0;
+    int membersSkipped = 0;
+    int favoritesSkipped = 0;
 
     final dbHelper = DBHelper.instance;
 
@@ -169,10 +176,14 @@ class BackupService {
     try {
       final existingRows = await dbHelper.getPlaylists();
       final Map<String, int> idByName = {};
+      final Map<String, String> folderByName = {};
       for (final r in existingRows) {
         final name = (r['name'] ?? '').toString();
         final id = r['id'] as int?;
-        if (name.isNotEmpty && id != null) idByName[name] = id;
+        if (name.isNotEmpty && id != null) {
+          idByName[name] = id;
+          folderByName[name] = (r['folder'] ?? '').toString().trim();
+        }
       }
       final database = await dbHelper.db;
       for (final item in (playlistsRaw as List? ?? [])) {
@@ -182,20 +193,32 @@ class BackupService {
           if (name.isEmpty) continue;
           final rawIds = item['songIds'];
           if (rawIds != null && rawIds is! List) continue;
+          final itemCreatedAt = (item['createdAt'] ?? '').toString().trim();
+          final createdAt = DateTime.tryParse(itemCreatedAt)?.toIso8601String();
+          final isNew = !idByName.containsKey(name);
           int playlistId;
-          if (idByName.containsKey(name)) {
+          if (!isNew) {
             playlistId = idByName[name]!;
+          } else if (createdAt != null) {
+            // Preserve the original ordering: insert with the export's
+            // timestamp instead of "now".
+            playlistId = await dbHelper.createPlaylistWithDate(name, createdAt);
+            idByName[name] = playlistId;
+            playlistsCreated++;
           } else {
             playlistId = await dbHelper.createPlaylist(name);
             idByName[name] = playlistId;
             playlistsCreated++;
           }
-          // Restore the folder label when the backup carries one; backups
-          // written before folder export simply leave it untouched.
+          // Restore the folder label only when the playlist did not exist
+          // before (folders always come from the backup) or when the local
+          // playlist is ungrouped; an existing grouping is never stomped.
           try {
             final folder = (item['folder'] ?? '').toString().trim();
-            if (folder.isNotEmpty) {
+            final localFolder = folderByName[name] ?? '';
+            if (folder.isNotEmpty && (isNew || localFolder.isEmpty)) {
               await dbHelper.setPlaylistFolder(playlistId, folder);
+              folderByName[name] = folder;
             }
           } catch (_) {
             // Folder label is optional metadata; never block a restore.
@@ -236,6 +259,9 @@ class BackupService {
             }
             final insertable =
                 candidates.where((id) => existingIds.contains(id)).toList();
+            // Candidate ids whose songs no longer exist in this library used
+            // to vanish silently; count them now for the summary.
+            membersSkipped += candidates.toSet().difference(existingIds).length;
             if (insertable.isNotEmpty) {
               membersAdded += await dbHelper.addSongsToPlaylist(
                 playlistId,
@@ -287,6 +313,9 @@ class BackupService {
           );
           existingIds.addAll(found.map((r) => r['id']).whereType<int>());
         }
+        // Candidate favorite ids whose songs are gone; count them rather than
+        // silently dropping them.
+        favoritesSkipped = candidates.toSet().difference(existingIds).length;
         for (final songId in existingIds) {
           try {
             await dbHelper.setFavorite(songId, true);
@@ -405,8 +434,11 @@ class BackupService {
     if (playlistsCreated == 0 &&
         membersAdded == 0 &&
         favoritesRestored == 0 &&
-        entriesRestored == 0) {
-      // Still a valid file shape, but nothing could be restored.
+        entriesRestored == 0 &&
+        membersSkipped == 0 &&
+        favoritesSkipped == 0 &&
+        entriesSkipped == 0) {
+      // Still a valid file shape, but nothing could be restored either.
       // Throw so the UI can tell empty/incompatible apart from success.
       final hasAnyData = ((playlistsRaw as List? ?? []).isNotEmpty) ||
           ((favoritesRaw as List? ?? []).isNotEmpty) ||
@@ -423,6 +455,8 @@ class BackupService {
       favoritesRestored: favoritesRestored,
       listeningEntriesRestored: entriesRestored,
       listeningEntriesSkipped: entriesSkipped,
+      playlistMembersSkipped: membersSkipped,
+      favoritesSkipped: favoritesSkipped,
     );
   }
 

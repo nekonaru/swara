@@ -11,6 +11,7 @@ import '../services/metadata_service.dart';
 import '../services/db_helper.dart';
 import '../utils/song_options.dart';
 import '../utils/format.dart';
+import '../providers/language_provider.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/entrance_fade.dart';
 import '../widgets/song_art_image.dart';
@@ -277,7 +278,9 @@ Widget buildCollectionHeader({
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
         child: Text(
           AppLocalizations.of(context)!
-              .librarySongCountDuration(songCount, formatDurationLong(totalMs)),
+              .librarySongCountDuration(songCount, formatDurationLong(totalMs,
+                            indonesian:
+                                LanguageProvider.instance.isIndonesian)),
           style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ),
@@ -646,7 +649,9 @@ class _FoldersScreenState extends State<FoldersScreen> {
                     subtitle: Text(
                         AppLocalizations.of(context)!
                             .librarySongCountDuration(songsInFolder.length,
-                                formatDurationLong(totalMs)),
+                                formatDurationLong(totalMs,
+                            indonesian:
+                                LanguageProvider.instance.isIndonesian)),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     trailing: IconButton(
                       constraints:
@@ -1749,7 +1754,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   const Spacer(),
                   Text(AppLocalizations.of(context)!
                       .librarySongCountDuration(
-                          favs.length, formatDurationLong(totalMs)),
+                          favs.length, formatDurationLong(totalMs,
+                            indonesian:
+                                LanguageProvider.instance.isIndonesian)),
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),

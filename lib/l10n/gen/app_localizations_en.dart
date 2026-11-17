@@ -1075,6 +1075,41 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get playerSeekBack => '10 seconds back';
+
+  @override
+  String get playerSeekForward => '10 seconds forward';
+
+  @override
+  String get songDetailsTitle => 'Song details';
+
+  @override
+  String get songDetailsGenre => 'Genre';
+
+  @override
+  String get songDetailsDuration => 'Duration';
+
+  @override
+  String get songDetailsSize => 'File size';
+
+  @override
+  String get songDetailsFormat => 'Format';
+
+  @override
+  String get songDetailsPath => 'File path';
+
+  @override
+  String songDetailsPlays(int count) {
+    return 'Played $count times';
+  }
+
+  @override
+  String get songDetailsArtist => 'Artist';
+
+  @override
+  String get songDetailsAlbum => 'Album';
+
+  @override
   String get sleepFadingOut => 'Fading out...';
 
   @override
@@ -1223,12 +1258,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Import failed. The backup file could not be read or was corrupted.';
 
   @override
-  String dataImportSkipped(int skipped) {
-    return '$skipped history rows were skipped because their songs are no longer in the library.';
+  String dataImportSkipped(int members, int favorites, int entries) {
+    return '$members playlist members and $favorites favorites skipped; $entries history rows skipped (songs no longer in this library).';
   }
 
   @override
   String get dataClearConfirmTitle => 'Clear art cache?';
+
+  @override
+  String get dataFailedGeneric =>
+      'Something went wrong. Details are in the log.';
 
   @override
   String dataClearConfirmMessage(int files) {

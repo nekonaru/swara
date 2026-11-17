@@ -813,17 +813,66 @@
     "sleepTimerStopped":  "Timer tidur dihentikan",
     "loadMore":  "Muat lagi ({shown} dari {total})",
     "@loadMore":  {
-                       "description":  "Tombol untuk menampilkan halaman berikutnya dari daftar lagu panjang",
-                       "placeholders":  {
-                                            "shown":  {
-                                                          "type":  "int"
-                                                      },
-                                            "total":  {
-                                                          "type":  "int"
-                                                      }
-                                        }
-                   },
-    "sleepFadingOut":  "Memudar...",
+                        "description":  "Tombol untuk menampilkan halaman berikutnya dari daftar lagu panjang",
+                        "placeholders":  {
+                                             "shown":  {
+                                                           "type":  "int"
+                                                       },
+                                             "total":  {
+                                                           "type":  "int"
+                                                       }
+                                         }
+                    },
+    "playerSeekBack":  "mundur 10 detik",
+    "@playerSeekBack":  {
+                            "description":  "Tombol untuk mundur 15 detik"
+                        },
+    "playerSeekForward":  "maju 10 detik",
+    "@playerSeekForward":  {
+                               "description":  "Tombol untuk maju 15 detik"
+                           },
+    "songDetailsTitle":  "Detail lagu",
+    "@songDetailsTitle":  {
+                              "description":  "Judul sheet detail lagu"
+                          },
+    "songDetailsGenre":  "Genre",
+    "@songDetailsGenre":  {
+                              "description":  "Label genre lagu"
+                          },
+    "songDetailsDuration":  "Durasi",
+    "@songDetailsDuration":  {
+                                 "description":  "Label durasi lagu"
+                             },
+    "songDetailsSize":  "Ukuran file",
+    "@songDetailsSize":  {
+                             "description":  "Label ukuran file"
+                         },
+    "songDetailsFormat":  "Format",
+    "@songDetailsFormat":  {
+                               "description":  "Label format lagu"
+                           },
+    "songDetailsPath":  "Lokasi file",
+    "@songDetailsPath":  {
+                             "description":  "Label lokasi file"
+                         },
+    "songDetailsPlays":  "{count} kali diputar",
+    "@songDetailsPlays":  {
+                              "placeholders":  {
+                                  "count":  {
+                                      "type":  "int"
+                                  }
+                              },
+                              "description":  "Berapa kali lagu diputar"
+                          },
+        "songDetailsArtist":  "Artis",
+    "@songDetailsArtist":  {
+                              "description":  "Label artis pada sheet detail lagu"
+                          },
+    "songDetailsAlbum":  "Album",
+    "@songDetailsAlbum":  {
+                             "description":  "Label album pada sheet detail lagu"
+                         },
+"sleepFadingOut":  "Memudar...",
     "@sleepFadingOut":  {
                              "description":  "Status timer tidur saat volume memudar"
                          },
@@ -1036,15 +1085,25 @@
     "@dataImportFailedCheckJson":  {
                                         "description":  "Import gagal karena file backup rusak atau tidak bisa dibaca"
                                     },
-    "dataImportSkipped":  "{skipped} baris riwayat dilewati karena lagunya sudah tidak ada di pustaka.",
+    "dataImportSkipped":  "{members} anggota playlist dan {favorites} favorit dilewati; {entries} baris riwayat dilewati (lagunya sudah tidak ada di pustaka ini).",
     "@dataImportSkipped":  {
                                  "placeholders":  {
-                                     "skipped":  {
+                                     "members":  {
+                                         "type":  "int"
+                                     },
+                                     "favorites":  {
+                                         "type":  "int"
+                                     },
+                                     "entries":  {
                                          "type":  "int"
                                      }
                                  },
-                                 "description":  "Ringkasan baris riwayat yang dilewati karena lagunya hilang"
+                                 "description":  "Ringkasan baris backup yang dilewati karena lagunya tidak ada"
                              },
+    "dataFailedGeneric":  "Ada yang salah. Detailnya ada di log.",
+    "@dataFailedGeneric":  {
+                              "description":  "Pesan gagal generik untuk aksi pengelolaan data yang error-nya hanya berisik"
+                          },
 "dataClearConfirmTitle":  "Bersihkan cache cover?",
     "@dataClearConfirmTitle":  {
                                     "description":  "Judul konfirmasi bersihkan cache"

@@ -142,30 +142,39 @@ void main() {
   });
 
   group('formatDurationLong', () {
-    test('formats zero as 0 menit', () {
-      expect(formatDurationLong(0), '0 menit');
+    test('formats zero as 45m', () {
+      expect(formatDurationLong(0), '0m');
     });
 
-    test('rounds sub minute durations to 1 menit', () {
+    test('rounds sub minute durations to 1m', () {
       // 45 seconds rounds to 1 minute.
-      expect(formatDurationLong(45000), '1 menit');
+      expect(formatDurationLong(45000), '1m');
     });
 
     test('formats minutes only', () {
-      expect(formatDurationLong(2700000), '45 menit');
+      expect(formatDurationLong(2700000), '45m');
     });
 
     test('formats exact hour without leftover minutes', () {
-      expect(formatDurationLong(3600000), '1 jam');
+      expect(formatDurationLong(3600000), '1h');
     });
 
     test('formats hour plus minutes', () {
-      expect(formatDurationLong(5400000), '1 jam 30 menit');
+      expect(formatDurationLong(5400000), '1h 30m');
     });
 
     test('formats multiple hours plus minutes', () {
       // 8100000 ms is 135 minutes, which is 2 hours 15 minutes.
-      expect(formatDurationLong(8100000), '2 jam 15 menit');
+      expect(formatDurationLong(8100000), '2h 15m');
+    });
+
+    test('indonesian renders jam/menit', () {
+      expect(formatDurationLong(0, indonesian: true), '0 menit');
+      expect(formatDurationLong(45000, indonesian: true), '1 menit');
+      expect(formatDurationLong(2700000, indonesian: true), '45 menit');
+      expect(formatDurationLong(3600000, indonesian: true), '1 jam');
+      expect(formatDurationLong(5400000, indonesian: true), '1 jam 30 menit');
+      expect(formatDurationLong(8100000, indonesian: true), '2 jam 15 menit');
     });
   });
 }

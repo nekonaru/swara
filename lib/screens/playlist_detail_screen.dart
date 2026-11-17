@@ -10,6 +10,7 @@ import '../services/m3u_service.dart';
 import '../services/player_service.dart';
 import '../services/playlist_art_service.dart';
 import '../utils/format.dart';
+import '../providers/language_provider.dart';
 import '../utils/song_options.dart';
 import '../widgets/az_scrollbar.dart';
 import '../widgets/entrance_fade.dart';
@@ -428,7 +429,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      l.playlistSummary(_songs.length, formatDurationLong(totalMs)),
+                      l.playlistSummary(
+                          _songs.length,
+                          formatDurationLong(totalMs,
+                              indonesian: LanguageProvider.instance.isIndonesian)),
                       style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),

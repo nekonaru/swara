@@ -1,5 +1,27 @@
 # Changelog
 
+## v3.10.0
+
+Ronde audit mendalam berikutnya plus fitur baru: sheet detail lagu, tombol skip ±10 detik, batalkan pembaruan yang terverifikasi, dan laporan kelengkapan backup.
+
+## Fitur baru
+
+- **Sheet detail lagu.** Tahan lama lagu mana pun > Detail untuk melihat artis, album, genre, format, durasi, ukuran file, path, dan jumlah diputar. Path-nya teks yang bisa diseleksi sehingga bisa disalin untuk tiket dukungan.
+- **Skip 10 detik di layar Now Playing.** Dua tombol baru mengapit tombol previous/next dan melompat 10 detik ke depan atau belakang.
+
+## Peningkatan
+
+- **Backup memberi tahu apa yang tidak bisa dipulihkan.** Lagu yang sudah tidak ada tidak lagi hilang diam-diam: anggota playlist, favorit, dan baris riwayat yang dilewati kini dihitung dan ditampilkan di samping pesan sukses.
+- **Backup kini dipulihkan dengan benar ke instalasi baru.** Urutan playlist dipertahankan memakai createdAt dari export, dan folder yang sudah ada tidak pernah ditimpa (hanya yang kosong yang diisi).
+- **Pemroses yang aman bisa dihentikan.** Dialog pembaruan kini memiliki tombol Batal untuk menghentikan unduhan kapan saja; stream unduhan juga memiliki timeout 30 detik per chunk.
+- **Snackbar pengelolaan data memakai pesan generik yang dilokalkan**, bukan teks exception mentah.
+
+## Perbaikan bug
+
+- **Widget tidak menampilkan posisi tersimpan.** Push cold-restore kini memakai posisi tersimpan agar widget tidak pernah menampilkan 0:00.
+- **Seek melewatkan re-push widget.** Diskontinuitas posisi me-re-push basis widget; chronometer tetap jujur sesudah seek slider dan loop A-B.
+- **Urutan playlist terbalik sesudah restore.** Sekarang createdAt dari export dihargai saat restore.
+
 ## v3.9.0
 
 Rilis pengerasan audit mendalam dan penyempurnaan di atas v3.8.0.

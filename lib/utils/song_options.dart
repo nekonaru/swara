@@ -154,6 +154,14 @@ Future<void> showSongOptions(
               await _shareSong(context, song);
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: Text(l.songDetailsTitle),
+            onTap: () async {
+              Navigator.pop(ctx);
+              await _showSongDetails(context, song);
+            },
+          ),
           if (playlistId != null)
             ListTile(
               leading: const Icon(Icons.playlist_remove, color: Colors.red),
@@ -212,6 +220,80 @@ Future<void> showSongOptions(
       ),
     ),
   );
+}
+
+// Details sheet: artist, album, genre, format, size, path and play count.
+Future<void> _showSongDetails(BuildContext context, Song song) async {
+  final l = AppLocalizations.of(context)!;
+  final file = File(song.filePath);
+  final int? sizeBytes = await file.exists() ? await file.length() : null;
+  final ext = song.filePath.split('.').last.toUpperCase();
+  final played = await DBHelper.instance.getPlayCountForSong(song.id);
+  if (!context.mounted) return;
+
+  String formatBytes(int? bytes) {
+    if (bytes == null) return '?';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  final List<MapEntry<String, String>> rows = [
+    MapEntry(l.songDetailsArtist, song.artist),
+    MapEntry(l.songDetailsAlbum, song.album),
+    MapEntry(l.songDetailsGenre, song.genre ?? l.unknown),
+    MapEntry('Format', ext),
+    MapEntry(l.songDetailsDuration, _fmtMs(song.durationMs)),
+    MapEntry(l.songDetailsSize, formatBytes(sizeBytes)),
+    MapEntry(l.songDetailsPath, song.filePath),
+    MapEntry('Plays', l.songDetailsPlays(played)),
+  ];
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(ctx).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: rows
+                  .map((row) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 84,
+                              child: Text(
+                                row.key,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            Expanded(child: SelectableText(row.value)),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+String _fmtMs(int ms) {
+  final secs = ms ~/ 1000;
+  final minutes = secs ~/ 60;
+  final seconds = secs % 60;
+  return '$minutes:${seconds.toString().padLeft(2, "0")}';
 }
 
 Future<void> _shareSong(BuildContext context, Song song) async {

@@ -1,5 +1,27 @@
 # Changelog
 
+## v3.10.0
+
+Another deep-audit round plus new features: song detail sheet, skip ±10 s buttons, verified-update cancel, backup completeness report.
+
+## New features
+
+- **Song details sheet.** Long-press any song > Details to see artist, album, genre, format, duration, file size, file path and play count. The sheet's path is selectable text so it can be copied for support tickets.
+- **Skip 10 seconds on the Now Playing screen.** Two new buttons flank the skip-previous/skip-next controls and seek 10 s in either direction.
+
+## Improvements
+
+- **Backup tells you what it couldn't restore.** Songs missing from this library no longer vanish silently: playlist members, favorites and history rows skipped because their source songs are gone are counted and shown next to the success message.
+- **Backup restores correctly into a fresh install.** Playlist ordering is preserved via the export's createdAt, and an existing folder assignment is never overwritten (only a missing one is filled).
+- **Verified updater stops a stalled download.** The update dialog now has a Cancel button that aborts the download anytime; the download stream also has a 30-second timeout per chunk.
+- **Data-management snackbars use a generic localized message** instead of raw exception text.
+
+## Bug fixes
+
+- **Widget elapsed card did not show the restored position.** The cold-restore push now uses the saved position so the widget never shows 0:00.
+- **Seek skipped the widget re-push.** Position discontinuities re-push the widget base; the chronometer stays honest after slider seeks and A-B loops.
+- **Freshly restored playlists were reordered.** Now the export's createdAt is honored on import.
+
 ## v3.9.0
 
 A deep-audit hardening pass and polish release on top of v3.8.0.

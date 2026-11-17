@@ -13,6 +13,7 @@ import '../widgets/song_art_image.dart';
 import '../widgets/sort_chip.dart';
 import '../utils/song_options.dart';
 import '../utils/format.dart';
+import '../providers/language_provider.dart';
 import '../utils/scan_controls.dart';
 import 'missing_art_screen.dart';
 import 'missing_lyrics_screen.dart';
@@ -570,7 +571,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
               const Spacer(),
               Text(
                 l.librarySongCountDuration(
-                    lib.totalCount, formatDurationLong(lib.totalDurationMs)),
+                    lib.totalCount,
+                    formatDurationLong(lib.totalDurationMs,
+                        indonesian:
+                            LanguageProvider.instance.isIndonesian)),
                 style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               // While a metadata scan runs the refresh icon turns into a stop

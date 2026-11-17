@@ -95,24 +95,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     if (go != true || !mounted) return;
-    await _downloadAndInstall(result.downloadUrl!,
-        digest: result.downloadDigest);
+    await _downloadAndInstall(
+      result.downloadUrl!,
+      digest: result.downloadDigest,
+      expectedSize: result.downloadSize,
+    );
   }
 
   // Download the release APK behind a progress dialog, then hand it to the
   // system installer. Installing with the same signature upgrades in place.
-  Future<void> _downloadAndInstall(String downloadUrl, {String? digest}) async {
+  Future<void> _downloadAndInstall(String downloadUrl,
+      {String? digest, int? expectedSize}) async {
     final l10n = AppLocalizations.of(context)!;
     final progress = ValueNotifier<double>(-1);
     // Capture the root navigator before the download so the dialog can be
     // closed even after this screen is gone.
     final navigator = Navigator.of(context, rootNavigator: true);
-    // Non-dismissible while the download runs.
+    // Non-dismissible while the download runs; the Cancel button aborts.
     unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         title: Text(l10n.settingsUpdateDownloading),
+        actions: [
+          TextButton(
+              onPressed: () => UpdateService.instance.cancelDownload(),
+              child: Text(l10n.cancel)),
+        ],
         content: ValueListenableBuilder<double>(
           valueListenable: progress,
           builder: (_, value, __) => Column(
@@ -129,6 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await UpdateService.instance.downloadApk(
       downloadUrl,
       digest: digest,
+      expectedSize: expectedSize,
       onProgress: (p) => progress.value = p,
     );
     // Close the progress dialog and release the notifier no matter what;
@@ -226,7 +236,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() => _artUsage = usage);
     } catch (e) {
-      _showSnack(AppLocalizations.of(context)!.dataMeasureFailed(e.toString()));
+      debugPrint('Backup measure failed: $e');
+      _showSnack(AppLocalizations.of(context)!.dataFailedGeneric);
     } finally {
       if (mounted) setState(() => _loadingArt = false);
     }
@@ -265,9 +276,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Backup export failed: $e');
       setState(() => _busyData = false);
-      _showSnack(AppLocalizations.of(context)!
-          .dataExportFailed(e.toString()));
+      _showSnack(AppLocalizations.of(context)!.dataFailedGeneric);
     }
   }
 
@@ -366,9 +377,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           result.playlistMembersAdded,
           result.favoritesRestored,
           result.listeningEntriesRestored));
-      if (result.listeningEntriesSkipped > 0 && mounted) {
-        _showSnack(AppLocalizations.of(context)!
-            .dataImportSkipped(result.listeningEntriesSkipped));
+      if ((result.playlistMembersSkipped +
+              result.favoritesSkipped +
+              result.listeningEntriesSkipped) >
+          0) {
+        _showSnack(AppLocalizations.of(context)!.dataImportSkipped(
+            result.playlistMembersSkipped,
+            result.favoritesSkipped,
+            result.listeningEntriesSkipped));
       }
     } catch (e) {
       if (!mounted) return;
@@ -417,10 +433,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _busyData = false);
       _showSnack(AppLocalizations.of(context)!.dataArtCleared(deleted));
     } catch (e) {
+      debugPrint('Clear art cache failed: $e');
       if (!mounted) return;
       setState(() => _busyData = false);
-      _showSnack(
-          AppLocalizations.of(context)!.dataClearFailed(e.toString()));
+      _showSnack(AppLocalizations.of(context)!.dataFailedGeneric);
     }
   }
 
@@ -454,10 +470,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _busyHistory = false);
       _showSnack(AppLocalizations.of(context)!.historyCleanupDone(deleted));
     } catch (e) {
+      debugPrint('History cleanup failed: $e');
       if (!mounted) return;
       setState(() => _busyHistory = false);
-      _showSnack(AppLocalizations.of(context)!
-          .historyCleanupFailed(e.toString()));
+      _showSnack(AppLocalizations.of(context)!.dataFailedGeneric);
     }
   }
 
