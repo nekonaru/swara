@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.11.0
+
+Rebrand release: Swara is the bamboo panpipe mark everywhere, from the launcher to the splash screen.
+
+## Improvements
+
+- **New app icon.** Dark bamboo-panel tile with gradient yellow-to-green panpipes, shown on the launcher (round and square), in the notification shade, on the home-screen widget, and in the splash screen. All icon densities regenerated, and `ic_stat_swara.xml` is a mono silhouette for notifications.
+- **Identity-consistent native splash and widget.** The Android 12+ splash screen, the home-screen widget art, and the launcher foreground all now use the same panpipe glyph and navy panel, so cold start and widget art match the app icon.
+
 ## v3.10.0
 
 Another deep-audit round plus new features: song detail sheet, skip ±10 s buttons, verified-update cancel, backup completeness report.
