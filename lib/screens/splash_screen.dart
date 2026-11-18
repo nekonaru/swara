@@ -3,12 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// Brand palette for the launch moment: deep navy tile with the azure wave,
-// matching the launcher icon and the native splash screen so the cold start
-// has no seam.
-const Color _kNavy = Color(0xFF0A1830);
-const Color _kAzure = Color(0xFF2E6BFF);
-const Color _kOffWhite = Color(0xFFF5F3EE);
+// Brand palette for the launch moment: dark bamboo-panel tile with the
+// yellow-to-green flute glyph, matching the launcher icon and the native
+// splash screen so the cold start has no seam.
+const Color _kNavy = Color(0xFF0F1A14);
+const Color _kAzure = Color(0xFFE4F57F);
+const Color _kOffWhite = Color(0xFFF6E7B8);
 
 // Strong ease-out for entrance motion (cubic-bezier(0.23, 1, 0.32, 1)).
 const Cubic _kSplashEaseOut = Cubic(0.23, 1.0, 0.32, 1.0);
