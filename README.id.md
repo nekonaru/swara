@@ -62,6 +62,8 @@
 | **Widget layar home** | Sampul album, kontrol sebelumnya/putar/berikutnya, dan chronometer waktu berjalan langsung di layar home |
 | **Acak dan ulangi** | Acak, ulangi mati / semua / satu lagu, plus sleep timer berdasarkan durasi atau jumlah lagu |
 | **Mini player** | Selalu terlihat di setiap halaman dengan garis progres langsung; pengatur kecepatan dan pitch ada di layar pemutar |
+| **Lewati 10 detik** | Tombol seek maju dan mundur yang didedikasikan di layar Now Playing |
+| **Detail lagu** | Tahan lama lagu mana pun untuk artis, album, genre, format, durasi, ukuran, path file, dan jumlah diputar |
 | **Acak pintar** | Mengutamakan lagu yang jarang diputar dan lama tidak diputar |
 | **Ulangi A-B** | Ulangi bagian lagu mana pun untuk latihan |
 

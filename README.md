@@ -62,6 +62,8 @@
 | **Home screen widget** | Album art, play/pause/prev/next controls, and a self-ticking elapsed-time chronometer right on the home screen |
 | **Shuffle and repeat** | Shuffle, repeat off / all / one, plus sleep timer by duration or song count |
 | **Mini player** | Always visible on every page with a live progress line; playback speed and pitch control on the player screen |
+| **Skip 10 seconds** | Dedicated seek-back and seek-forward buttons on the Now Playing screen |
+| **Song details** | Long-press any song for artist, album, genre, format, duration, size, file path and play count |
 | **Smart shuffle** | Biases playback toward rarely played and long unplayed songs |
 | **A-B repeat** | Loop any song segment for practice |
 
