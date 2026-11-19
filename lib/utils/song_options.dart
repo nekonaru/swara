@@ -241,11 +241,11 @@ Future<void> _showSongDetails(BuildContext context, Song song) async {
     MapEntry(l.songDetailsArtist, song.artist),
     MapEntry(l.songDetailsAlbum, song.album),
     MapEntry(l.songDetailsGenre, song.genre ?? l.unknown),
-    MapEntry('Format', ext),
+    MapEntry(l.songDetailsFormat, ext),
     MapEntry(l.songDetailsDuration, _fmtMs(song.durationMs)),
     MapEntry(l.songDetailsSize, formatBytes(sizeBytes)),
     MapEntry(l.songDetailsPath, song.filePath),
-    MapEntry('Plays', l.songDetailsPlays(played)),
+    MapEntry(l.songDetailsPlayCount, l.songDetailsPlays(played)),
   ];
 
   await showModalBottomSheet(

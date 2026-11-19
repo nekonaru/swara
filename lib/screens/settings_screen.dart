@@ -982,13 +982,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SectionHeader(l10n.settingsAbout),
           ListTile(
             leading: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               child: Image.asset(
                 'assets/swara-mark.png',
                 width: 40,
                 height: 40,
-                // The source is much larger than the 40px render; decode at
-                // display size instead of the full resolution.
                 cacheWidth: 80,
                 errorBuilder: (_, __, ___) =>
                     const Icon(Icons.music_note_outlined),

@@ -7,7 +7,7 @@ Rilis rebrand: Swara pakai logo panpipe bambu di mana-mana, dari launcher sampai
 ## Peningkatan
 
 - **Ikon aplikasi baru.** Tile gelap dengan panpipe gradien kuning ke hijau, tampil di launcher (round dan square), di notifikasi, di widget layar home, dan di splash screen. Semua kerapatan ikon diperbarui, dan `ic_stat_swara.xml` jadi siluet mono untuk notifikasi.
-- **Identitas yang konsisten antara splash dan widget.** Splash screen Android 12+, art widget home, dan foreground launcher kini memakai glyph panpipe dan panel navy yang sama, jadi cold start dan art widget cocok dengan ikon aplikasi.
+- **Identitas yang konsisten antara splash dan widget.** Splash screen Android 12+, art widget home, dan foreground launcher kini berbagi glyph panpipe dan panel bambu gelap, jadi cold start dan art widget cocok dengan ikon aplikasi.
 
 ## v3.10.0
 

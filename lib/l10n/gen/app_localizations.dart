@@ -2018,6 +2018,12 @@ abstract class AppLocalizations {
   /// **'Format'**
   String get songDetailsFormat;
 
+  /// Number of times the song has been played
+  ///
+  /// In en, this message translates to:
+  /// **'Plays'**
+  String get songDetailsPlayCount;
+
   /// Song file path field label
   ///
   /// In en, this message translates to:

@@ -1097,6 +1097,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get songDetailsFormat => 'Format';
 
   @override
+  String get songDetailsPlayCount => 'Diputar';
+
+  @override
   String get songDetailsPath => 'Lokasi file';
 
   @override

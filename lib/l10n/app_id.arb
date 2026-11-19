@@ -851,6 +851,10 @@
     "@songDetailsFormat":  {
                                "description":  "Label format lagu"
                            },
+    "songDetailsPlayCount":  "Diputar",
+    "@songDetailsPlayCount":  {
+                                  "description":  "Jumlah pemutaran lagu"
+                              },
     "songDetailsPath":  "Lokasi file",
     "@songDetailsPath":  {
                              "description":  "Label lokasi file"

@@ -1,5 +1,5 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
-    <!-- Swara mono silhouette: panpipe sound-wave glyph, for media notifications. -->
-    <path android:fillColor="#FFFFFFFF" android:pathData="M95,420 h34 v-120 h-34 z M143,420 h34 v-190 h-34 z M191,420 h34 v-270 h-34 z M239,420 h34 v-330 h-34 z M287,420 h34 v-230 h-34 z M335,420 h34 v-160 h-34 z M383,420 h34 v-100 h-34 z M81,364.2 h350 v21.8 h-350 z" />
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <!-- Swara mono silhouette: panpipe sound-wave glyph for notifications. -->
+    <path android:fillColor="#FFFFFFFF" android:pathData="M1.6,20 h3.6 v-4.5 h-3.6 z M7.2,20 h3.6 v-8 h-3.6 z M12.8,20 h3.6 v-10.5 h-3.6 z M18.4,20 h3.6 v-6 h-3.6 z M1.4,13.2 h21.2 v2 h-21.2 z" />
 </vector>

@@ -7,7 +7,9 @@ import 'package:flutter/services.dart';
 // yellow-to-green flute glyph, matching the launcher icon and the native
 // splash screen so the cold start has no seam.
 const Color _kNavy = Color(0xFF0F1A14);
-const Color _kAzure = Color(0xFFE4F57F);
+// Brand accent: the pale green tip of the panpipe glyph gradient, used for the
+// loader bars and the fallback icon tile.
+const Color _kAccent = Color(0xFFE4F57F);
 const Color _kOffWhite = Color(0xFFF6E7B8);
 
 // Strong ease-out for entrance motion (cubic-bezier(0.23, 1, 0.32, 1)).
@@ -87,79 +89,106 @@ class _SplashScreenState extends State<SplashScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: _kNavy,
-        body: Center(
-          key: const ValueKey('splash_content'),
-          child: AnimatedBuilder(
-            animation: _entrance,
-            builder: (context, _) {
-              final markFade = _markFade.value;
-              final wordFade = _wordFade.value;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Opacity(
-                    opacity: markFade,
-                    child: Transform.scale(
-                      scale: reduceMotion ? 1.0 : _markScale.value,
-                      child: Image.asset(
-                        'assets/swara-mark.png',
-                        width: 112,
-                        height: 112,
-                        // Decode at display size instead of the full resolution.
-                        cacheWidth: 224,
-                        errorBuilder: (context, _, __) => Container(
-                          width: 96,
-                          height: 96,
-                          decoration: BoxDecoration(
-                            color: _kAzure.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          child: const Icon(
-                            Icons.music_note,
-                            size: 52,
-                            color: _kAzure,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Opacity(
-                    opacity: wordFade,
-                    child: Transform.translate(
-                      offset: reduceMotion
-                          ? Offset.zero
-                          : Offset(0, _wordRise.value),
-                      child: const Text(
-                        'Swara',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: _kOffWhite,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Opacity(
-                    opacity: _loaderFade.value,
-                    child: reduceMotion
-                        ? Container(
-                            key: const ValueKey('splash_loader_static'),
-                            width: 72,
-                            height: 3,
-                            decoration: BoxDecoration(
-                              color: _kAzure,
-                              borderRadius: BorderRadius.circular(2),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // The native Splash icon is dead-centre on the screen; the
+            // Flutter splash shows the same mark in the same spot so the
+            // hand-off reads as one surface.
+            final mid = constraints.maxHeight / 2;
+            const markSide = 112.0;
+            final markTop = mid - markSide / 2;
+            final wordTop = mid + markSide / 2 + 20;
+            final loaderTop = wordTop + 38 + 30;
+            return AnimatedBuilder(
+              animation: _entrance,
+              builder: (context, _) {
+                final markFade = _markFade.value;
+                final wordFade = _wordFade.value;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Positioned(
+                      top: markTop,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Opacity(
+                          opacity: markFade,
+                          child: Transform.scale(
+                            scale: reduceMotion ? 1.0 : _markScale.value,
+                            child: Image.asset(
+                              'assets/swara-mark.png',
+                              width: markSide,
+                              height: markSide,
+                              cacheWidth: 224,
+                              errorBuilder: (context, _, __) => Container(
+                                width: 96,
+                                height: 96,
+                                decoration: BoxDecoration(
+                                  color: _kAccent.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
+                                child: const Icon(
+                                  Icons.music_note,
+                                  size: 52,
+                                  color: _kAccent,
+                                ),
+                              ),
                             ),
-                          )
-                        : const _EqualizerLoader(),
-                  ),
-                ],
-              );
-            },
-          ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: wordTop,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Opacity(
+                          opacity: wordFade,
+                          child: Transform.translate(
+                            offset: reduceMotion
+                                ? Offset.zero
+                                : Offset(0, _wordRise.value),
+                            child: const Text(
+                              'Swara',
+                              style: TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold,
+                                color: _kOffWhite,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: loaderTop,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Opacity(
+                          opacity: _loaderFade.value,
+                          child: reduceMotion
+                              ? Container(
+                                  key: const ValueKey('splash_loader_static'),
+                                  width: 72,
+                                  height: 3,
+                                  decoration: BoxDecoration(
+                                    color: _kAccent,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                )
+                              : const _EqualizerLoader(),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         ),
       ),
     );
@@ -217,7 +246,7 @@ class _EqualizerLoaderState extends State<_EqualizerLoader>
                   width: 5,
                   height: height,
                   decoration: BoxDecoration(
-                    color: _kAzure,
+                    color: _kAccent,
                     borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),

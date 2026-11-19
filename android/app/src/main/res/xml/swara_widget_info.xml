@@ -4,7 +4,7 @@
     android:minWidth="160dp"
     android:minHeight="110dp"
     android:resizeMode="horizontal|vertical"
-    android:previewImage="@drawable/ic_stat_swara"
+    android:previewImage="@drawable/ic_widget_art"
     android:description="@string/widget_description"
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="0" />

@@ -1096,6 +1096,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get songDetailsFormat => 'Format';
 
   @override
+  String get songDetailsPlayCount => 'Plays';
+
+  @override
   String get songDetailsPath => 'File path';
 
   @override

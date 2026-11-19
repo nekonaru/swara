@@ -851,6 +851,10 @@
     "@songDetailsFormat":  {
                                 "description":  "Song format field label"
                             },
+    "songDetailsPlayCount":  "Plays",
+    "@songDetailsPlayCount":  {
+                                  "description":  "Number of times the song has been played"
+                              },
     "songDetailsPath":  "File path",
     "@songDetailsPath":  {
                              "description":  "Song file path field label"

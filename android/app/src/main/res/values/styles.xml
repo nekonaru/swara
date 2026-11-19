@@ -8,9 +8,9 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_icon</item>
         <item name="postSplashScreenTheme">@style/LaunchTheme</item>
     </style>
-    <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off.
-         AudioServiceFragmentActivity extends FlutterFragmentActivity and requires a Theme.AppCompat descendant. -->
-    <style name="LaunchTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <!-- Theme applied to the Android Window while the process is starting.
+         Dark text colors match the navy launch background. -->
+    <style name="LaunchTheme" parent="Theme.AppCompat.NoActionBar">
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>

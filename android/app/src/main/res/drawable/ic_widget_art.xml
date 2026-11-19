@@ -1,8 +1,8 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="64dp" android:height="64dp" android:viewportWidth="64" android:viewportHeight="64">
-    <!-- Placeholder art for the home screen widget: panpipe on dark bamboo panel. -->
+    <!-- Home screen widget art: panpipe on rounded dark bamboo panel. -->
     <path android:fillColor="#FF0F1A14"
-        android:pathData="M0,0 h64 v64 h-64 z" />
+        android:pathData="M12,0 h40 a12,12 0 0 1 12,12 v40 a12,12 0 0 1 -12,12 h-40 a12,12 0 0 1 -12,-12 v-40 a12,12 0 0 1 12,-12 z" />
     <path android:fillColor="#F6E7B8"
         android:pathData="M12,44 h8 v-16 h-8 z M22,44 h8 v-26 h-8 z M32,44 h8 v-36 h-8 z M42,44 h8 v-22 h-8 z" />
     <path android:fillColor="#F6E7B8"
