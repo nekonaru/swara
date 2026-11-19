@@ -8,6 +8,7 @@ Rebrand release: Swara is the bamboo panpipe mark everywhere, from the launcher 
 
 - **New app icon.** Dark bamboo-panel tile with gradient yellow-to-green panpipes, shown on the launcher (round and square), in the notification shade, on the home-screen widget, and in the splash screen. All icon densities regenerated, and `ic_stat_swara.xml` is a mono silhouette for notifications.
 - **Identity-consistent native splash and widget.** The Android 12+ splash screen, the home-screen widget art, and the launcher foreground now share the panpipe glyph and the dark bamboo panel, so cold start and widget art match the app icon in spirit.
+- **Themed and round icons.** The adaptive icon now carries a monochrome layer for Android 13+ themed icons, and the round icon variant is registered in the manifest. The widget picker preview shows the widget art, and the in-app splash positions the mark exactly where the native splash shows it.
 
 ## v3.10.0
 
