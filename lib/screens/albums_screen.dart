@@ -34,6 +34,10 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
   Map<String, List<Song>> _grouped = const <String, List<Song>>{};
   List<String> _albums = const <String>[];
   List<Song> _queue = const <Song>[];
+  // One cover song per album, resolved once per library change. Doing the
+  // firstWhere + embedded-art probe in itemBuilder repeated it for every
+  // visible card on every rebuild.
+  Map<String, Song> _albumCovers = const <String, Song>{};
   int _groupedVersion = -1;
   _AlbumSortOption? _groupedSort;
 
@@ -50,6 +54,20 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
     _grouped = grouped;
     _albums = _sortedAlbums(grouped.keys.toList(), grouped);
     _queue = buildGroupQueue(_albums, grouped);
+    // Resolve covers once: local art first, then a remote URL, else any
+    // member. Keeps the scroll path free of repeated lookups.
+    _albumCovers = {
+      for (final entry in grouped.entries)
+        entry.key: entry.value.firstWhere(
+          (s) =>
+              (s.albumArtPath ?? '').trim().isNotEmpty ||
+              EmbeddedArtService.instance.peekSync(s.id) != null,
+          orElse: () => entry.value.firstWhere(
+            (s) => s.albumArtUrl != null,
+            orElse: () => entry.value.first,
+          ),
+        ),
+    };
   }
 
   // Short label shown inside the sort chip.
@@ -204,15 +222,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
               itemBuilder: (context, i) {
                 final album = albums[i];
                 final songs = grouped[album]!;
-                // Prefer a member with a usable cover: first an already
-                // known local (embedded) file, then a remote URL, else any.
-                final cover = songs.firstWhere(
-                    (s) =>
-                        (s.albumArtPath ?? '').trim().isNotEmpty ||
-                        EmbeddedArtService.instance.peekSync(s.id) != null,
-                    orElse: () => songs.firstWhere(
-                        (s) => s.albumArtUrl != null,
-                        orElse: () => songs.first));
+                final cover = _albumCovers[album] ?? songs.first;
                 return EntranceFade(
                   index: i,
                   key: ValueKey('album_$album'),
@@ -254,17 +264,10 @@ class _AlbumCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () => Navigator.push(
           context,
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 280),
-            pageBuilder: (_, anim, __) =>
-                _AlbumSongsScreen(album: album, songs: songs),
-            transitionsBuilder: (_, anim, __, child) => SlideTransition(
-              position: Tween<Offset>(
-                      begin: const Offset(1, 0), end: Offset.zero)
-                  .animate(CurvedAnimation(
-                      parent: anim, curve: Curves.easeOutCubic)),
-              child: child,
-            ),
+          // Standard Material route: on Android this uses the theme's
+          // FadeUpwards transition, matching the rest of the system.
+          MaterialPageRoute(
+            builder: (_) => _AlbumSongsScreen(album: album, songs: songs),
           ),
         ),
         child: Column(

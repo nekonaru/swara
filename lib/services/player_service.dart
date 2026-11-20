@@ -904,6 +904,20 @@ class PlayerService extends ChangeNotifier {
         await _playCurrent();
         return;
       }
+      // Paused: load the new source without playing it, otherwise pressing
+      // play would resume the deleted file while the UI shows the new song.
+      _usingCrossfadePlayer = false;
+      final next = currentSong;
+      if (next != null) {
+        try {
+          await _player.setFilePath(next.filePath);
+          await _syncSpeedPitch(_player);
+          await _player.seek(Duration.zero);
+          _completionHandled = true;
+        } catch (e) {
+          debugPrint('Deleted-song source reload failed: $e');
+        }
+      }
     } else if (currentId != null) {
       final idx =
           nextOrder.indexWhere((slot) => nextQueue[slot].id == currentId);
@@ -1448,6 +1462,25 @@ class PlayerService extends ChangeNotifier {
     }
     _queue = newQueue;
     _playOrder = _playOrder.map((old) => remap[old]!).toList();
+  }
+
+  /// Remove every play-order slot after [keepThroughSlot] in one pass.
+  /// "Clear Up Next" used to call [removeFromQueue] in a loop, which
+  /// re-materialized the queue and compacted it on every iteration (O(n^2)).
+  /// The current song and, when a crossfade is loading it, the pending
+  /// standby song are kept, so playback is never interrupted.
+  Future<int> removeQueueTail(int keepThroughSlot) async {
+    if (_disposed) return 0;
+    final keep = keepThroughSlot.clamp(-1, _playOrder.length - 1);
+    final removed = _playOrder.length - keep - 1;
+    if (removed <= 0) return 0;
+    if (isCrossfadeActive) _abortCrossfadeForQueueEdit();
+    _playOrder = List<int>.of(_playOrder.sublist(0, keep + 1));
+    _compactQueue();
+    queueVersion++;
+    notifyListeners();
+    unawaited(_saveResumeState());
+    return removed;
   }
 
   /// Remove from the queue by (stable) slot ID instead of a plain positional

@@ -528,6 +528,30 @@ class DBHelper {
     await database.insert('songs', map, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  /// Lightweight song rows for screens that only need identity, folder and
+  /// a count. Skips the lyrics column entirely, so no isolate round trip is
+  /// paid to decompress lyrics that will never be displayed.
+  Future<List<Song>> getSongSummaries() async {
+    final database = await db;
+    final rows = await database.query('songs',
+        columns: ['id', 'filePath', 'title', 'artist', 'durationMs']);
+    final out = <Song>[];
+    for (final r in rows) {
+      final id = (r['id'] as num?)?.toInt() ?? 0;
+      final path = r['filePath'] is String ? r['filePath'] as String : '';
+      if (id <= 0 || path.isEmpty) continue;
+      out.add(Song(
+        id: id,
+        filePath: path,
+        album: '',
+        title: r['title'] is String ? r['title'] as String : '',
+        artist: r['artist'] is String ? r['artist'] as String : '',
+        durationMs: (r['durationMs'] as num?)?.toInt() ?? 0,
+      ));
+    }
+    return out;
+  }
+
   Future<List<Song>> getAllSongs() async {
     final database = await db;
     final rows = await database.query('songs', orderBy: 'title ASC');

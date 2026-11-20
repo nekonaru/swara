@@ -89,6 +89,22 @@ int countDuplicateGroups(List<Song> songs) {
   return findDuplicateGroups(songs).length;
 }
 
+/// Count duplicate groups from compact rows, so the isolate never receives
+/// full Song objects with gzipped lyrics and artwork paths attached.
+int countDuplicateGroupsFromRows(List<Map<String, dynamic>> rows) {
+  final songs = rows
+      .map((r) => Song(
+            id: (r['id'] as num?)?.toInt() ?? 0,
+            filePath: '',
+            title: r['title'] as String? ?? '',
+            artist: r['artist'] as String? ?? '',
+            album: r['album'] as String? ?? '',
+            durationMs: (r['duration'] as num?)?.toInt() ?? 0,
+          ))
+      .toList();
+  return findDuplicateGroups(songs).length;
+}
+
 // Screen listing duplicate songs grouped by normalized "title | artist".
 class DuplicatesScreen extends StatefulWidget {
   const DuplicatesScreen({super.key});

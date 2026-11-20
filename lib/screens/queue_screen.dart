@@ -104,6 +104,15 @@ class _QueueScreenState extends State<QueueScreen> {
     if (name == null || name.isEmpty) return;
 
     final prov = context.read<PlaylistProvider>();
+    // QueueScreen does not load playlists on init, so refresh before the
+    // name-collision check; otherwise an existing name throws UNIQUE.
+    try {
+      await prov.load();
+    } catch (_) {
+      // Keep the cached list if the reload failed; creation still reports
+      // a clear error through the snackbar below.
+    }
+    if (!mounted) return;
     // Resolve a unique name up front by checking existing playlist names,
     // same "(2)" suffix pattern as collections. This never depends on
     // parsing a database error string.
@@ -151,17 +160,12 @@ class _QueueScreenState extends State<QueueScreen> {
     }
     final playlistId = found['id'] as int;
     try {
-      // Add every queued song in order. Per-song failures (for example
-      // duplicates) are skipped so the rest of the queue still saves.
-      var added = 0;
-      for (final song in queue) {
-        try {
-          await prov.addSong(playlistId, song.id);
-          added++;
-        } catch (_) {
-          // Skip this song and continue with the rest.
-        }
-      }
+      // One batched insert: the per-song path re-read the whole playlist
+      // and decompressed its lyrics for every single song (O(n^2)).
+      final added = await prov.addSongs(
+        playlistId,
+        queue.map((s) => s.id).toList(),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -191,7 +195,10 @@ class _QueueScreenState extends State<QueueScreen> {
     final keepThrough = pending != null && pending > _player.currentIndex
         ? pending
         : _player.currentIndex;
-    final count = _player.queue.length - keepThrough - 1;
+    // Materialize the queue once. The getter rebuilds it from the play
+    // order on every call, which was O(n^2) when clearing a large tail.
+    final queueLength = _player.queue.length;
+    final count = queueLength - keepThrough - 1;
     if (count <= 0) return;
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -218,12 +225,7 @@ class _QueueScreenState extends State<QueueScreen> {
     final last = pendingNow != null && pendingNow > _player.currentIndex
         ? pendingNow
         : _player.currentIndex;
-    var removed = 0;
-    for (var i = _player.queue.length - 1; i > last; i--) {
-      final before = _player.queue.length;
-      _player.removeFromQueue(i);
-      if (_player.queue.length < before) removed++;
-    }
+    final removed = await _player.removeQueueTail(last);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

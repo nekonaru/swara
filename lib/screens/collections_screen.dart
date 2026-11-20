@@ -11,7 +11,6 @@ import '../services/m3u_service.dart';
 import '../services/playlist_art_service.dart';
 import 'extra_screens.dart';
 import 'duplicates_screen.dart';
-import '../models/song.dart';
 import 'history_screen.dart';
 import 'playlist_detail_screen.dart';
 import '../widgets/mini_player.dart';
@@ -26,10 +25,10 @@ const _cardColors = [
   Color(0xFF1A5C30), // Most played - green
 ];
 
-// Off-isolate duplicate scan: grouping 2600 songs with regexes is O(n log n)
-// and must not run on the first frame.
-int _countDuplicateGroupsInIsolate(List<Song> songs) =>
-    countDuplicateGroups(songs);
+// Off-isolate duplicate count: grouping 2600 songs with regexes is O(n log n)
+// and must not run on the first frame. Only compact rows cross the boundary.
+int _countDuplicateGroupsInIsolate(List<Map<String, dynamic>> rows) =>
+    countDuplicateGroupsFromRows(rows);
 
 class CollectionsScreen extends StatefulWidget {
   const CollectionsScreen({super.key});
@@ -68,7 +67,17 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     if (_dupCountVersion != lib.songsVersion && !_dupCountLoading) {
       _dupCountLoading = true;
       final version = lib.songsVersion;
-      compute(_countDuplicateGroupsInIsolate, lib.songs).then((n) {
+      final rows = <Map<String, dynamic>>[
+        for (final s in lib.songs)
+          {
+            'id': s.id,
+            'title': s.title,
+            'artist': s.artist,
+            'album': s.album,
+            'duration': s.durationMs,
+          },
+      ];
+      compute(_countDuplicateGroupsInIsolate, rows).then((n) {
         if (!mounted) return;
         setState(() {
           _dupCountCache = n;
@@ -844,16 +853,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   void _openPage(BuildContext context, Widget page) {
     Navigator.push(
       context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 280),
-        pageBuilder: (_, anim, __) => page,
-        transitionsBuilder: (_, anim, __, child) => SlideTransition(
-          position: Tween<Offset>(
-                  begin: const Offset(1, 0), end: Offset.zero)
-              .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
-          child: child,
-        ),
-      ),
+      // Standard Material route: on Android the theme's FadeUpwards
+      // transition applies, so every page opens the same native way.
+      MaterialPageRoute(builder: (_) => page),
     );
   }
 

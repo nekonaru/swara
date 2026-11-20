@@ -150,14 +150,26 @@ class SwaraAudioHandler extends BaseAudioHandler {
     return result;
   }
 
-  // Build and publish the MediaSession queue in playback order. Called from
-  // the debounced timer, never directly from the notify path.
+  // Number of songs published to the MediaSession around the current one.
+  // A 10k library must not be serialized over the platform channel on every
+  // track change; the window still covers the next several songs.
+  static const int _queueWindowBefore = 5;
+  static const int _queueWindowTotal = 40;
+  int _queueWindowStart = 0;
+
+  // Build and publish a bounded MediaSession queue window in playback order.
+  // Called from the debounced timer, never directly from the notify path.
   void _publishQueue(PlayerService ps) {
     if (_disposed) return;
     final slotIds = ps.queueSlotIds;
     final q = ps.queue;
+    final current = ps.currentIndex;
+    final start = (current - _queueWindowBefore)
+        .clamp(0, q.isEmpty ? 0 : q.length - 1);
+    final end = (start + _queueWindowTotal).clamp(0, q.length);
+    _queueWindowStart = start;
     final items = <MediaItem>[
-      for (var i = 0; i < q.length; i++)
+      for (var i = start; i < end; i++)
         MediaItem(
           id: 'queue_${slotIds.length > i ? slotIds[i] : i}_${q[i].filePath}',
           title: q[i].title,
@@ -245,7 +257,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
         speed: ps.player.speed,
         queueIndex:
             (currentIndex >= 0 && currentIndex < ps.queueOrderLength)
-                ? currentIndex
+                ? currentIndex - _queueWindowStart
                 : null,
       ),
     );
@@ -294,9 +306,12 @@ class SwaraAudioHandler extends BaseAudioHandler {
     // because the queue may have changed since the last sync.
     try {
       if (index == null) return;
+      // MediaSession indexes the published window; map back to the full
+      // playback order before addressing the real queue.
+      final actual = _queueWindowStart + index;
       final liveLength = PlayerService.instance.queue.length;
-      if (index < 0 || index >= liveLength) return;
-      await PlayerService.instance.playAtQueueIndex(index);
+      if (actual < 0 || actual >= liveLength) return;
+      await PlayerService.instance.playAtQueueIndex(actual);
     } catch (e) {
       debugPrint('skipToQueueItem failed: $e');
     }

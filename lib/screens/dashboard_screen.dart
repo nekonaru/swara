@@ -152,7 +152,7 @@ class DashboardScreenState extends State<DashboardScreen> {
           DBHelper.instance.getTopSongIds(limit: 5),
           DBHelper.instance.getTopArtists(limit: 5),
           DBHelper.instance.getGenreDistribution(),
-          DBHelper.instance.getAllSongs(),
+          DBHelper.instance.getSongSummaries(),
           DBHelper.instance.getNeverPlayedSongs(),
           DBHelper.instance.getTopSongIdsSince(yearStart, limit: 5),
           DBHelper.instance.getTopArtistsSince(yearStart, limit: 3),
@@ -212,6 +212,12 @@ class DashboardScreenState extends State<DashboardScreen> {
       final yearTopSongs = hiddenIds.isEmpty
           ? rawYearTopSongs
           : rawYearTopSongs.where((e) => !hiddenIds.contains(e.key)).toList();
+      // Only the handful of songs shown in the rank tiles need full rows.
+      final lookupIds = <int>{
+        ...topSongs.map((e) => e.key),
+        ...yearTopSongs.map((e) => e.key),
+      }.toList();
+      final lookupSongs = await DBHelper.instance.getSongsByIds(lookupIds);
       // Named offsets into the conditional summary block.
       final summaryStart = detailFutures.length;
       final totalMsIndex = summaryStart;
@@ -252,7 +258,7 @@ class DashboardScreenState extends State<DashboardScreen> {
         _topSongIds = topSongs;
         _topArtists = topArtists;
         _genreDist = genreDist;
-        _songLookup = {for (final s in allSongs) s.id: s};
+        _songLookup = {for (final s in lookupSongs) s.id: s};
         _totalSongs = allSongs.length;
         _totalListeningMs = totalMs;
         _thisMonthMs = monthMs;
