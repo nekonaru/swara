@@ -11,13 +11,14 @@ import 'settings_screen.dart';
 import 'search_screen.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../providers/library_provider.dart';
+import '../services/player_service.dart';
 import '../widgets/mini_player.dart';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 // Library tab definitions (id, label, visible, order)
 // The label below is the stored fallback; the displayed label is
 // resolved via _tabLabel() so it follows the active locale.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 
 class _TabDef {
   final String id;
@@ -49,9 +50,9 @@ Widget _tabWidget(String id) {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 // HomeScreen
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -62,6 +63,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _groupIndex = 0;
   DateTime? _lastBackPress;
+  // Last playback error already shown as a snackbar, so one failure does
+  // not print repeatedly on every notify.
+  String? _lastPlayerErrorShown;
+
+  void _playbackErrorListener() {
+    final err = PlayerService.instance.lastError;
+    if (err == null || err == _lastPlayerErrorShown) return;
+    _lastPlayerErrorShown = err;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+        content: Text(err),
+      ),
+    );
+  }
 
   // Tab definitions for the Library
   late List<_TabDef> _allTabDefs;
@@ -80,6 +99,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _libTabController = TabController(
         length: _allTabDefs.where((t) => t.visible).length, vsync: this);
     _loadTabConfig();
+    _lastPlayerErrorShown = PlayerService.instance.lastError;
+    PlayerService.instance.addListener(_playbackErrorListener);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initLibrary());
   }
 
@@ -159,6 +180,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    PlayerService.instance.removeListener(_playbackErrorListener);
     _libTabController.dispose();
     super.dispose();
   }
@@ -384,9 +406,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 // Tab Settings Sheet (drag reorder + toggle visibility)
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 
 class _TabSettingsSheet extends StatefulWidget {
   final List<_TabDef> initialDefs;

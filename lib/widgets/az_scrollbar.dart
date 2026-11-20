@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:swara/l10n/gen/app_localizations.dart';
 
 const List<String> kAllLetters = [
   '#', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
@@ -36,6 +37,22 @@ class _AzScrollbarState extends State<AzScrollbar>
   late final Animation<double> _fadeAnim;
   OverlayEntry? _overlayEntry;
   DateTime _lastHaptic = DateTime.fromMillisecondsSinceEpoch(0);
+  String? _lastSemanticLetter;
+
+  // TalkBack cannot drag the thin rail, so expose stepping through the
+  // available letters as increase/decrease actions.
+  void _stepLetter(int delta) {
+    final letters =
+        kAllLetters.where(widget.availableLetters.contains).toList();
+    if (letters.isEmpty) return;
+    final current = _lastSemanticLetter == null
+        ? (delta > 0 ? -1 : letters.length)
+        : letters.indexOf(_lastSemanticLetter!);
+    final next = (current + delta).clamp(0, letters.length - 1);
+    _lastSemanticLetter = letters[next];
+    HapticFeedback.selectionClick();
+    widget.onLetterSelected(letters[next]);
+  }
 
   @override
   void initState() {
@@ -192,7 +209,11 @@ class _AzScrollbarState extends State<AzScrollbar>
       key: _scrollbarKey,
       width: 20,
       child: LayoutBuilder(builder: (context, constraints) {
-        return GestureDetector(
+        return Semantics(
+          label: AppLocalizations.of(context)!.aZIndex,
+          onIncrease: () => _stepLetter(1),
+          onDecrease: () => _stepLetter(-1),
+          child: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onVerticalDragStart: (d) =>
               _onTouch(d.localPosition, constraints.maxHeight),
@@ -213,6 +234,7 @@ class _AzScrollbarState extends State<AzScrollbar>
               ),
             ),
           ),
+        ),
         );
       }),
     );

@@ -13,6 +13,7 @@ import '../providers/library_provider.dart';
 /// batch finished instead of while it is still winding down.
 Future<void> stopBulkMetadataScan(BuildContext context) async {
   final lib = context.read<LibraryProvider>();
+  if (!lib.isBulkScanningMetadata) return;
   await lib.cancelBulkScan();
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(

@@ -49,6 +49,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // Reset to 0 whenever the song changes, because a correction that fits
   // one song never fits the next one.
   int _lrcManualOffsetMs = 0;
+  // Re-point the lyric follower when the audible player changes (repeat-one
+  // crossfades keep the same song id but swap the AudioPlayer instance).
+  int _lrcFlipCount = -1;
+  bool _lyricsSyncScheduled = false;
+  DateTime? _lastSeekCommit;
 
   /// Fixed height of a single synced lyric row. The list uses this as its
   /// itemExtent, so the scroll estimate below is always exact.
@@ -58,7 +63,50 @@ class _PlayerScreenState extends State<PlayerScreen> {
   static const int _kLrcOffsetStepMs = 100;
 
   @override
+  void initState() {
+    super.initState();
+    _player.addListener(_onPlayerForLyrics);
+  }
+
+  void _onPlayerForLyrics() {
+    final song = _player.currentSong;
+    if (song == null) return;
+    if (song.id != _lrcSongId ||
+        _lrcFlipCount != _player.playbackFlipCount ||
+        (_showLyrics && _lrcPositionSub == null)) {
+      _lrcFlipCount = _player.playbackFlipCount;
+      _scheduleLyricsSync(song);
+    }
+  }
+
+  void _scheduleLyricsSync(Song song) {
+    if (_lyricsSyncScheduled) return;
+    _lyricsSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _lyricsSyncScheduled = false;
+      if (!mounted) return;
+      unawaited(_maybeLoadSyncedLyrics(song));
+      if (_lrcLines.isNotEmpty && _syncedMode && _showLyrics) {
+        _startLrcFollow();
+      }
+    });
+  }
+
+  /// throttle native seeks during a slider drag; the final value is always
+  /// applied when the drag ends.
+  void _commitSeek(double milliseconds) {
+    final now = DateTime.now();
+    if (_lastSeekCommit != null &&
+        now.difference(_lastSeekCommit!).inMilliseconds < 120) {
+      return;
+    }
+    _lastSeekCommit = now;
+    _player.activePlayer.seek(Duration(milliseconds: milliseconds.toInt())).catchError((_) {});
+  }
+
+  @override
   void dispose() {
+    _player.removeListener(_onPlayerForLyrics);
     _stopLrcFollow();
     _lrcScrollController.dispose();
     _dragOffset.dispose();
@@ -251,7 +299,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
               TextButton(
                 onPressed: () {
-                  final pos = _player.player.position;
+                  final pos = _player.activePlayer.position;
                   setDialogState(() {
                     a = pos;
                     if (b != null && a! >= b!) {
@@ -267,7 +315,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
               TextButton(
                 onPressed: () {
-                  final pos = _player.player.position;
+                  final pos = _player.activePlayer.position;
                   setDialogState(() {
                     b = pos;
                     if (a == null) {
@@ -415,7 +463,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _startLrcFollow() {
     _stopLrcFollow();
     if (!_syncedMode || _lrcLines.isEmpty) return;
-    _lrcPositionSub = _player.player.positionStream.listen((pos) {
+    _lrcPositionSub = _player.activePlayer.positionStream.listen((pos) {
       if (!mounted) return;
       final idx = _lrcIndexFor(pos.inMilliseconds);
       if (idx == _lrcIndex) return;
@@ -499,7 +547,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _nudgeLrcOffset(int deltaMs) {
     if (!_syncedMode || _lrcLines.isEmpty) return;
     setState(() => _lrcManualOffsetMs += deltaMs);
-    final idx = _lrcIndexFor(_player.player.position.inMilliseconds);
+    final idx = _lrcIndexFor(_player.activePlayer.position.inMilliseconds);
     setState(() => _lrcIndex = idx);
     _scrollToLrcLine(idx);
   }
@@ -622,11 +670,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildLyricsView(Song song) {
-    _maybeLoadSyncedLyrics(song);
+    // Loading and re-subscribing happen in a post-frame callback from the
+    // player listener, never from build().
     final hasSynced = _lrcLines.isNotEmpty;
-    if (hasSynced && _syncedMode && _lrcPositionSub == null && _showLyrics) {
-      _startLrcFollow();
-    }
     final Widget body =
         (hasSynced && _syncedMode) ? _buildSyncedLyricsView() : _buildPlainLyricsView(song);
     if (!hasSynced) return body;
@@ -707,14 +753,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     required VoidCallback onPressed,
   }) {
     return SizedBox(
-      width: 32,
-      height: 32,
+      width: 48,
+      height: 48,
       child: IconButton(
         onPressed: onPressed,
         tooltip: tooltip,
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        icon: Icon(icon, size: 18),
+        icon: Icon(icon, size: 20),
       ),
     );
   }
@@ -842,8 +886,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
               // Key on the active player: after a crossfade flip the
               // audible player is a different instance; without a key this
               // keeps the outgoing player's state stream forever.
-              key: ValueKey('art_state_${_player.player.hashCode}_${song.id}'),
-              stream: _player.player.playerStateStream,
+              key: ValueKey('art_state_${_player.activePlayer.hashCode}_${song.id}'),
+              stream: _player.activePlayer.playerStateStream,
               builder: (context, snapshot) {
                 final playing = snapshot.data?.playing ?? false;
                 return AnimatedScale(
@@ -919,11 +963,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
           StreamBuilder<Duration>(
             // See above: without a key the slider keeps the outgoing
             // player's position stream after a crossfade.
-            key: ValueKey('slider_${_player.player.hashCode}_${song.id}'),
-            stream: _player.player.positionStream,
+            key: ValueKey('slider_${_player.activePlayer.hashCode}_${song.id}'),
+            stream: _player.activePlayer.positionStream,
             builder: (context, snapshot) {
               final pos = snapshot.data ?? Duration.zero;
-              final dur = _player.player.duration ?? Duration.zero;
+              final dur = _player.activePlayer.duration ?? Duration.zero;
               return Column(
                 children: [
                   SliderTheme(
@@ -931,7 +975,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     child: Slider(
                       value: pos.inMilliseconds.toDouble().clamp(0, dur.inMilliseconds.toDouble()),
                       max: dur.inMilliseconds.toDouble() > 0 ? dur.inMilliseconds.toDouble() : 1,
-                      onChanged: (v) => _player.player.seek(Duration(milliseconds: v.toInt())),
+                      onChanged: _commitSeek,
+                      onChangeStart: (_) => _player.setUserSeeking(true),
+                      onChangeEnd: (v) {
+                        _player.setUserSeeking(false);
+                        _player.activePlayer
+                            .seek(Duration(milliseconds: v.toInt()))
+                            .catchError((_) {});
+                      },
                     ),
                   ),
                   Padding(
@@ -963,15 +1014,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
               IconButton(
                 icon: Icon(Icons.shuffle,
                     color: _player.isShuffle ? Theme.of(context).colorScheme.primary : Colors.grey),
+                tooltip: AppLocalizations.of(context)!.playerShuffle,
                 onPressed: _player.toggleShuffle,
               ),
               IconButton(
                 icon: const Icon(Icons.replay_10),
                 tooltip: AppLocalizations.of(context)!.playerSeekBack,
-                onPressed: () => _player.player
-                    .seek(Duration(
-                        milliseconds: (_player.player.position.inMilliseconds - 10000).clamp(0, 1 << 30)))
-                    .catchError((_) {}),
+                onPressed: () {
+                  final dur = _player.activePlayer.duration?.inMilliseconds ?? 0;
+                  final pos = _player.activePlayer.position.inMilliseconds;
+                  final target = (pos - 10000).clamp(0, dur > 0 ? dur : pos);
+                  _player.activePlayer
+                      .seek(Duration(milliseconds: target))
+                      .catchError((_) {});
+                },
               ),
               IconButton(
                 icon: const Icon(Icons.skip_previous),
@@ -981,12 +1037,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
               StreamBuilder(
                 // Same reasoning as the other two: re-subscribe after a
                 // crossfade flip instead of keeping the dead player.
-                key: ValueKey('pp_${_player.player.hashCode}_${song.id}'),
-                stream: _player.player.playerStateStream,
+                key: ValueKey('pp_${_player.activePlayer.hashCode}_${song.id}'),
+                stream: _player.activePlayer.playerStateStream,
                 builder: (context, snapshot) {
                   final playing = snapshot.data?.playing ?? false;
                   return IconButton(
                     iconSize: 48,
+                    tooltip: AppLocalizations.of(context)!.playerPlayPause,
                     icon: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
                       transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
@@ -1011,10 +1068,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
               IconButton(
                 icon: const Icon(Icons.forward_10),
                 tooltip: AppLocalizations.of(context)!.playerSeekForward,
-                onPressed: () => _player.player
-                    .seek(Duration(
-                        milliseconds: _player.player.position.inMilliseconds + 10000))
-                    .catchError((_) {}),
+                onPressed: () {
+                  final dur = _player.activePlayer.duration?.inMilliseconds ?? 0;
+                  final pos = _player.activePlayer.position.inMilliseconds;
+                  // Stay one ms below the end so a skip never emits a
+                  // completion event and advances the track by itself.
+                  final target = dur > 0
+                      ? (pos + 10000).clamp(0, dur - 1)
+                      : pos + 10000;
+                  _player.activePlayer
+                      .seek(Duration(milliseconds: target))
+                      .catchError((_) {});
+                },
               ),
               _buildRepeatButton(),
             ],

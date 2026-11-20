@@ -8,6 +8,7 @@ import 'package:swara/providers/language_provider.dart';
 import '../models/song.dart';
 import 'db_helper.dart';
 import 'equalizer_service.dart';
+import 'loudness_service.dart';
 
 enum SwaraRepeatMode { off, all, one }
 
@@ -86,6 +87,10 @@ class PlayerService extends ChangeNotifier {
   // before the platform re-emits a position event.
   int? _restoredPositionMs;
   Timer? _resumeSaveTimer;
+  // Memo of the serialized queue so the 5s resume-save tick does not join
+  // thousands of ids into a string on every tick.
+  int _resumeSavedQueueVersion = -1;
+  String? _resumeQueueKeyCache;
   static const Duration _resumeSaveInterval = Duration(seconds: 5);
   double _speed = 1.0;
   double _pitch = 1.0;
@@ -191,12 +196,23 @@ class PlayerService extends ChangeNotifier {
   // position trigger fires only once per song without a bool flag.
   int _crossfadeGeneration = 0;
   int _crossfadeActiveGeneration = -1;
+  // Bumped at each audible-player swap (repeat-one crossfades keep the same
+  // song id), so widgets watching the song id alone can re-key their streams.
+  int _playbackFlipCount = 0;
+
+  int get playbackFlipCount => _playbackFlipCount;
   bool _disposed = false;
   // Set on every load, cleared only when a new track actually starts. The
   // just_audio completed event and the position watchdog both call
   // [_handleCompletionOnce], which drops every signal after the first for
   // the same load, so auto advance can never fire twice, and can never be
   // missed either when the reused player fails to emit completed again.
+  // True while the user drags the seek slider. A-B loops and crossfade
+  // triggers must not yank the playhead back mid-drag.
+  bool _userSeeking = false;
+
+  void setUserSeeking(bool value) => _userSeeking = value;
+
   bool _completionHandled = false;
 
   /// Subscribe to the active player position stream for crossfade triggers.
@@ -223,12 +239,19 @@ class PlayerService extends ChangeNotifier {
     if (_playOrder.isEmpty || _queue.isEmpty) return;
     try {
       final idx = _posInOrder.clamp(0, _playOrder.length - 1);
-      final ids = <int>[
-        for (final i in _playOrder) _queue[i].id,
-      ];
       // The queue can be huge; persist it only when it changed since the
       // last write to avoid hammering the preferences file on every 5s tick.
-      final queueKey = ids.join(',');
+      final String queueKey;
+      if (_resumeQueueKeyCache != null &&
+          _resumeSavedQueueVersion == queueVersion) {
+        queueKey = _resumeQueueKeyCache!;
+      } else {
+        queueKey = <int>[
+          for (final i in _playOrder) _queue[i].id,
+        ].join(',');
+        _resumeQueueKeyCache = queueKey;
+        _resumeSavedQueueVersion = queueVersion;
+      }
       final prefs = await SharedPreferences.getInstance();
       final queueUnchanged = prefs.getString(_prefsResumeQueueKey) == queueKey;
       if (!queueUnchanged) {
@@ -317,6 +340,18 @@ class PlayerService extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint('Failed to restore resume state: $e');
+      // Roll the phantom session back: an unplayable restored file must not
+      // leave a mini player with no source behind it.
+      _queue = const <Song>[];
+      _playOrder = const <int>[];
+      _posInOrder = 0;
+      _restoredPositionMs = null;
+      _suspendAutoActions = false;
+      _completionHandled = false;
+      queueVersion++;
+      lastError = lookupAppLocalizations(LanguageProvider.instance.locale)
+          .coreRestoreFailed;
+      notifyListeners();
     }
   }
 
@@ -357,6 +392,11 @@ class PlayerService extends ChangeNotifier {
     if (_usingCrossfadePlayer && crossfade != null) return crossfade;
     return _player;
   }
+
+  /// Public view of the audible player for UI stream subscriptions: during a
+  /// crossfade the primary player is paused, so binding progress/state to it
+  /// would freeze the mini player and lyrics.
+  AudioPlayer get activePlayer => _activePlayer;
 
   /// The "standby" player used to fade in the next song. Creates the
   /// crossfade player on first real use so normal playback stays light.
@@ -626,6 +666,8 @@ class PlayerService extends ChangeNotifier {
     // Cold-start resume must not trigger anything on its own: the user sees
     // the paused song first and decides when to continue.
     if (_suspendAutoActions) return;
+    // The user owns the playhead while dragging: no A-B yank, no crossfade.
+    if (_userSeeking) return;
     if (_checkABRepeat(position)) return;
     _maybeAdvanceAtDuration(position);
     _maybeStartCrossfade(position);
@@ -719,9 +761,11 @@ class PlayerService extends ChangeNotifier {
       _logListening();
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       _usingCrossfadePlayer = !_usingCrossfadePlayer;
+      _playbackFlipCount++;
       // Attach the equalizer only after the flip, to the now audible player.
       // The outgoing player is left alone until its pause above.
       unawaited(EqualizerService.instance.attach(_activePlayer));
+      unawaited(LoudnessService.instance.attach(_activePlayer));
       _posInOrder = nextPos;
       _clearABRepeatSilent(); // new track, drop any A-B segment
       _playStartedAt = DateTime.now();
@@ -744,7 +788,20 @@ class PlayerService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Crossfade failed, continue normal: $e');
-      if (fadeGen == _crossfadeGeneration) _crossfadeActiveGeneration = -1;
+      if (fadeGen == _crossfadeGeneration) {
+        _crossfadeActiveGeneration = -1;
+        // A mid-fade failure can leave both players audible with the
+        // outgoing one stuck at a partial volume. Pause the standby and
+        // restore full volume on the audible player before returning.
+        unawaited(incoming.pause().catchError((Object pauseError) {
+          debugPrint('Standby pause after crossfade failure: $pauseError');
+        }));
+        unawaited(incoming.setVolume(1).catchError((Object volError) {
+          debugPrint('Standby volume reset after crossfade failure: $volError');
+        }));
+        unawaited(_vol(() => outgoing.setVolume(1)));
+        notifyListeners();
+      }
     }
   }
 
@@ -771,6 +828,58 @@ class PlayerService extends ChangeNotifier {
     if (!isCrossfadeActive) return;
     _cancelCrossfade();
     _stopStandbyPlayer();
+  }
+
+  /// Keep the live queue in step with library deletions. A song removed from
+  /// the library must not keep playing with a stale id (which would log
+  /// listening history against a row that no longer exists).
+  Future<void> onLibrarySongsRemoved(Set<int> ids) async {
+    if (_disposed || ids.isEmpty || _queue.isEmpty) return;
+    final oldQueue = _queue;
+    final oldOrder = _playOrder;
+    final nextQueue = <Song>[];
+    final remap = <int, int>{};
+    for (var i = 0; i < oldQueue.length; i++) {
+      if (ids.contains(oldQueue[i].id)) continue;
+      remap[i] = nextQueue.length;
+      nextQueue.add(oldQueue[i]);
+    }
+    if (nextQueue.length == oldQueue.length) return;
+    final currentId = currentSong?.id;
+    final wasPlaying = _player.playing || (_crossfadePlayer?.playing ?? false);
+    if (wasPlaying && isCrossfadeActive) _abortCrossfadeForQueueEdit();
+    final nextOrder = <int>[
+      for (final slot in oldOrder)
+        if (remap.containsKey(slot)) remap[slot]!,
+    ];
+    _queue = nextQueue;
+    _playOrder = nextOrder;
+    queueVersion++;
+    if (nextOrder.isEmpty) {
+      _posInOrder = 0;
+      await _vol(() => _player.pause());
+      await _unsubscribePosition();
+      notifyListeners();
+      return;
+    }
+    if (currentId != null && ids.contains(currentId)) {
+      // The audible song was deleted: move to its successor and reload it
+      // when playback was live, otherwise just leave the UI on the next row.
+      _posInOrder = _posInOrder.clamp(0, nextOrder.length - 1);
+      if (wasPlaying) {
+        _cancelCrossfade();
+        _usingCrossfadePlayer = false;
+        await _vol(() => _crossfadePlayer?.pause() ?? Future<void>.value());
+        await _playCurrent();
+        return;
+      }
+    } else if (currentId != null) {
+      final idx =
+          nextOrder.indexWhere((slot) => nextQueue[slot].id == currentId);
+      if (idx >= 0) _posInOrder = idx;
+    }
+    notifyListeners();
+    unawaited(_saveResumeState());
   }
 
   /// Pause the standby player and restore its volume, so a cancelled fade
@@ -830,14 +939,23 @@ class PlayerService extends ChangeNotifier {
     // Drop the standby player while crossfade is off so manual
     // navigation does not leave audio resources allocated.
     if (!crossfadeEnabled) _releaseCrossfadePlayer();
+    if (songs.isEmpty) {
+      _queue = const <Song>[];
+      _playOrder = const <int>[];
+      _posInOrder = 0;
+      queueVersion++;
+      notifyListeners();
+      return;
+    }
     _queue = List.of(songs);
+    final clampedStart = startIndex.clamp(0, songs.length - 1);
 
     if (_shuffle) {
-      _playOrder = _buildShuffledOrder(_queue.length, startIndex);
+      _playOrder = _buildShuffledOrder(_queue.length, clampedStart);
       _posInOrder = 0;
     } else {
       _playOrder = List.generate(_queue.length, (i) => i);
-      _posInOrder = startIndex;
+      _posInOrder = clampedStart;
     }
 
     notifyListeners(); // so the mini-player shows immediately, without waiting for the file to finish loading
@@ -897,6 +1015,30 @@ class PlayerService extends ChangeNotifier {
     return ordered;
   }
 
+  // Bounded consecutive load failures, so a queue of deleted files skips
+  // forward instead of leaving playback dead on the first bad file.
+  int _consecutiveLoadFailures = 0;
+
+  Future<void> _skipUnplayableAndContinue() async {
+    if (_disposed || _playOrder.isEmpty) return;
+    if (_consecutiveLoadFailures >= _queue.length) {
+      // Every file in the queue failed. Stop trying instead of looping.
+      _consecutiveLoadFailures = 0;
+      return;
+    }
+    _consecutiveLoadFailures++;
+    if (_posInOrder < _playOrder.length - 1) {
+      _posInOrder++;
+    } else if (_repeatMode == SwaraRepeatMode.all) {
+      _posInOrder = 0;
+    } else {
+      return;
+    }
+    queueVersion++;
+    notifyListeners();
+    await _playCurrent();
+  }
+
   Future<void> _playCurrent() async {
     if (_disposed) return;
     final playGen = _playGeneration;
@@ -913,6 +1055,9 @@ class PlayerService extends ChangeNotifier {
       debugPrint('Failed to play song: $e');
       lastError = '${lookupAppLocalizations(LanguageProvider.instance.locale).corePlayFailed} "${song.title}": $e';
       notifyListeners();
+      // The file may have been moved or deleted outside the app. Skip it
+      // instead of leaving the queue stuck with no audible source.
+      unawaited(_skipUnplayableAndContinue());
       return;
     }
     if (playGen != _playGeneration || _disposed) return;
@@ -938,9 +1083,11 @@ class PlayerService extends ChangeNotifier {
     await DBHelper.instance.markPlayed(song.id);
     if (playGen != _playGeneration || _disposed) return;
     lastError = null;
+    _consecutiveLoadFailures = 0;
     // Attach the system equalizer to this session (fire and forget,
     // the service guards its own errors and never blocks playback).
     unawaited(EqualizerService.instance.attach(_player));
+    unawaited(LoudnessService.instance.attach(_player));
     // Re-attach the position listener to the now-active player, so
     // crossfade keeps triggering for the following songs too (not just once).
     await _subscribePosition();
@@ -1015,6 +1162,9 @@ class PlayerService extends ChangeNotifier {
       // normally (or auto advance) from here.
       _suspendAutoActions = false;
       _completionHandled = false;
+      // The widget now reports the live player position again, not the
+      // frozen cold-start offset.
+      _restoredPositionMs = null;
       _playStartedAt = DateTime.now();
       final target = _activePlayer;
       await _vol(() => target.setVolume(1));
@@ -1443,6 +1593,9 @@ class PlayerService extends ChangeNotifier {
       _playOrder = List.generate(_queue.length, (i) => i);
       _posInOrder = currentQueueIndex;
     }
+    // The MediaSession queue is republished on queueVersion changes, so
+    // shuffling must bump it or the notification keeps the old order.
+    queueVersion++;
     // Order changed, so any cached preload is stale.
     notifyListeners();
   }
@@ -1474,7 +1627,8 @@ class PlayerService extends ChangeNotifier {
         ..remove(currentQueueIndex);
       _playOrder = [currentQueueIndex, ..._shuffleRest(rest)];
       _posInOrder = 0;
-        notifyListeners();
+      queueVersion++;
+      notifyListeners();
     }
   }
 
@@ -1688,6 +1842,9 @@ class PlayerService extends ChangeNotifier {
   Future<void> _startSleepFadeOut() async {
     if (_disposed) return;
     _cancelPauseFade();
+    // A crossfade in flight writes through the same volume chain and would
+    // advance the track after the sleep stop; abort it before fading.
+    _abortCrossfadeForQueueEdit();
     final isPlaying =
         _player.playing || (_crossfadePlayer?.playing ?? false);
     if (!isPlaying) {
@@ -1894,6 +2051,11 @@ class PlayerService extends ChangeNotifier {
   /// Pause both players for a sleep stop and always restore full volume on
   /// both, so the next manual play starts loud.
   void _pauseBothForSleep() {
+    // A fade that is still running must not keep playing or advance the
+    // position after the sleep decision, and no A-B loop may re-arm itself
+    // on the next manual play.
+    _abortCrossfadeForQueueEdit();
+    _clearABRepeatSilent();
     _vol(() => _player.pause()).then((_) => _vol(() => _player.setVolume(1)));
     final standby = _crossfadePlayer;
     if (standby == null) return;
@@ -1968,6 +2130,12 @@ class PlayerService extends ChangeNotifier {
     _unsubscribePosition();
     _playerStateSub?.cancel();
     _crossfadeStateSub?.cancel();
+    _effectStateSub?.cancel();
+    _effectCrossfadeSub?.cancel();
+    // The periodic resume save must not keep the singleton alive or write
+    // preferences forever after the app is torn down.
+    _resumeSaveTimer?.cancel();
+    _resumeSaveTimer = null;
     _sleepScheduleTicker?.cancel();
     _sleepScheduleTicker = null;
     _speedPitchApplyTimer?.cancel();
@@ -1988,6 +2156,7 @@ class PlayerService extends ChangeNotifier {
     });
     _crossfadePlayer = null;
     unawaited(EqualizerService.instance.release());
+    unawaited(LoudnessService.instance.release());
     // Everything above needed _disposed to be false. Set it last, right
     // before super.dispose(), so no async callback can slip in afterwards.
     _disposed = true;

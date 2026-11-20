@@ -67,6 +67,20 @@ class AudioEffectsService {
     await _invoke<void>('releaseEqualizer');
   }
 
+  /// Attach the native loudness enhancer to [sessionId].
+  Future<bool> attachLoudness(int sessionId) async {
+    return (await _invoke<bool>('attachLoudness', {'sessionId': sessionId})) ??
+        false;
+  }
+
+  Future<void> releaseLoudness() async {
+    await _invoke<void>('releaseLoudness');
+  }
+
+  Future<void> setLoudnessEnabled(bool enabled) async {
+    await _invoke<void>('setLoudnessEnabled', {'enabled': enabled});
+  }
+
   /// Device reported capabilities for the attached effect, or null when the
   /// effect is not attached or the device cannot report them.
   Future<Map<String, dynamic>?> getEqualizerInfo() async {
@@ -122,6 +136,14 @@ class AudioEffectsService {
 
   Future<dynamic> _onNativeCall(MethodCall call) async {
     final handler = _handlers[call.method];
-    if (handler != null) handler();
+    if (handler == null) return null;
+    try {
+      handler();
+    } catch (e) {
+      // A throwing listener must not become an unhandled async error that
+      // takes down the audio handler.
+      debugPrint('AudioEffects handler ${call.method} failed: $e');
+    }
+    return null;
   }
 }

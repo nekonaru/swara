@@ -76,8 +76,14 @@ class _SongArtImageState extends State<SongArtImage> {
       fit: widget.fit,
       cacheWidth: widget.cacheWidth,
       gaplessPlayback: widget.gaplessPlayback,
-      errorBuilder: (_, __, ___) =>
-          _embeddedPath != null && path == _embeddedPath ? _networkOrIcon() : widget.fallback,
+      errorBuilder: (_, __, ___) {
+        // A referenced local file that fails to decode must not strand the
+        // row on a placeholder while embedded or network art is available.
+        if (path != _embeddedPath && _embeddedPath != null) {
+          return _localImage(_embeddedPath!);
+        }
+        return _networkOrIcon();
+      },
     );
   }
 

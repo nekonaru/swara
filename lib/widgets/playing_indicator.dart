@@ -41,6 +41,9 @@ class _PlayingIndicatorState extends State<PlayingIndicator> with TickerProvider
         if (!c.isAnimating) c.repeat(reverse: true);
       } else {
         c.stop();
+        // Settle at the baseline instead of freezing mid-bounce: a paused
+        // indicator should look still, not like a stalled animation.
+        c.value = 0.0;
       }
     }
   }

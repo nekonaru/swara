@@ -7,8 +7,7 @@ import '../services/db_helper.dart';
 import '../services/metadata_service.dart';
 
 // Screen listing songs that have no lyrics, with per song and bulk refetch.
-// Mirrors MissingArtScreen. New strings are English literals.
-// TODO L10N: move these strings into .arb when translations are added.
+// Mirrors MissingArtScreen. All user-facing strings come from AppLocalizations.
 class MissingLyricsScreen extends StatefulWidget {
   const MissingLyricsScreen({super.key});
 

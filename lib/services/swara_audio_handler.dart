@@ -230,9 +230,16 @@ class SwaraAudioHandler extends BaseAudioHandler {
           MediaAction.skipToPrevious,
           MediaAction.skipToNext,
           MediaAction.skipToQueueItem,
+          MediaAction.play,
+          MediaAction.pause,
+          MediaAction.stop,
         },
         androidCompactActionIndices: const [1, 2, 3],
-        processingState: AudioProcessingState.ready,
+        // No song loaded means nothing can play: say idle instead of
+        // advertising a live session the user cannot act on.
+        processingState: song == null
+            ? AudioProcessingState.idle
+            : AudioProcessingState.ready,
         playing: playing,
         updatePosition: ps.player.position,
         speed: ps.player.speed,

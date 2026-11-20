@@ -188,7 +188,9 @@ class EqualizerService {
 
   Future<void> _applyBandsNow() async {
     if (_preset == 'Flat') {
-      _fire(() => _native.setEqualizerEnabled(false), 'disable');
+      // Awaited with error handling: a dropped disable call would leave the
+      // previous EQ curve audible while the UI shows "Flat".
+      await _get<void>(() => _native.setEqualizerEnabled(false), 'disable');
       return;
     }
     await _get<void>(() => _native.setEqualizerEnabled(true), 'enable');

@@ -32,7 +32,7 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.system;
   int accentColorIndex = 0;
   String equalizerPreset = 'Flat';
-  // App text scale factor. 0.85 (kecil) is the default so the app feels
+  // App text scale factor. 0.85 (small) is the default so the app feels
   // lighter on screen and fits more rows without scrolling.
   double textScale = 0.85;
   // Custom 5-band EQ gains (low to high). Used only with the Custom preset.
