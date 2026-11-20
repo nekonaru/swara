@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.12.2
+
+Rilis desain dan pemolesan: layar yang ada mengikuti token Material 3 aplikasi dan interaksi terasa lebih halus, tanpa fitur baru.
+
+## Peningkatan
+
+- **Warna mengikuti tema.** Status error, kontrol nonaktif, dan ikon keadaan kosong memakai peran `colorScheme`, sehingga tampilan mengikuti aksen pilihan dan tetap benar di tema gelap serta AMOLED.
+- **Bottom sheet seragam.** Semua sheet memakai bentuk 24 dp bersama, bukan override 20 dp per layar, dan ikon centang aksen berganti hitam/putih agar kontras.
+- **Bilah sistem mengikuti tema.** Warna serta kecerahan ikon status bar dan navigation bar mengikuti tema terang, gelap, atau AMOLED setelah splash selesai.
+- **Gerakan lebih halus.** Geseran dismiss yang pendek kini kembali dengan animasi, antrean menggulir ke lagu yang diputar, dan indikator playing turun perlahan saat jeda.
+- **Kontrol diberi label.** Menu overflow dan tombol berikon kini punya tooltip terlokalisasi untuk TalkBack.
+
+## Perbaikan bug
+
+- **Urutan playlist tetap benar setelah diurut ulang.** Aksi geser mengganti daftar sumber, sehingga baris cache tidak menampilkan urutan lama atau menulis urutan salah pada geseran kedua.
+- **Edit massal melaporkan hasil yang benar.** Penulisan database yang berhasil tidak lagi dilaporkan gagal saat pemuatan ulang pustaka error.
+- **Kegagalan clipboard ditangani.** Menyalin atau menempel backup menampilkan umpan balik, bukan error async yang tak tertangani.
+- **Saran pencarian dan timer tidur lebih baik.** Mengetuk saran pencarian langsung memakai teks tersebut, dan roda timer tidur tidak lagi bertarung dengan geseran sheet.
+
 ## v3.12.1
 
 Rilis optimasi: fitur yang ada jadi lebih ringan, lebih lancar, dan lebih native di Android, tanpa fitur baru.

@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.12.2
+
+Design and polish release: existing screens follow the app's Material 3 tokens and interactions settle smoothly, with no new features added.
+
+## Improvements
+
+- **Theme-consistent colors.** Error states, inactive controls and empty-state icons now use `colorScheme` roles, so the UI follows the chosen accent and stays correct in dark and AMOLED themes.
+- **Unified bottom sheets.** Sheets inherit the shared 24 dp shape instead of per-screen 20 dp overrides, and the accent check icon switches between black and white for contrast.
+- **System bars follow the theme.** Status and navigation bar colors and icon brightness update with the active light, dark or AMOLED theme after the splash hands off.
+- **Smoother motion.** A short dismiss drag eases back instead of snapping, the queue scrolls to the playing song, and the playing indicator settles to rest when paused.
+- **Labelled controls.** Overflow menus and icon-only actions carry localized tooltips for TalkBack.
+
+## Bug fixes
+
+- **Playlist reorder keeps the displayed order.** Dragging now replaces the source list, so cached rows cannot show the old order or write a wrong order on a second drag.
+- **Bulk edit reports success correctly.** A successful database write is no longer reported as a failure when the library reload fails.
+- **Clipboard failures are handled.** Copying or pasting a backup shows feedback instead of throwing an unhandled error.
+- **Suggestions and the sleep timer behave.** Tapping a search suggestion commits the query, and the sleep timer wheel no longer fights the sheet drag.
+
 ## v3.12.1
 
 Optimization release: existing features are lighter, smoother and more native on Android, with no new features added.
