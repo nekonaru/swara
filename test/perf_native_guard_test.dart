@@ -30,7 +30,7 @@ void main() {
       final handler = read('lib/services/swara_audio_handler.dart');
       expect(handler.contains('_queueWindowTotal = 40'), isTrue);
       expect(handler.contains('currentIndex - _queueWindowStart'), isTrue);
-      expect(handler.contains('final actual = _queueWindowStart + index'), isTrue);
+      expect(handler.contains('published[index].id.split'), isTrue);
     });
   });
 

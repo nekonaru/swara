@@ -199,7 +199,9 @@ class SwaraAudioHandler extends BaseAudioHandler {
     // slot id list here would allocate an O(queue) list per notify.
     // A full republish is debounced: a drag-reorder storm emits many bumps,
     // but the MediaSession only needs a settled queue, not every step.
-    final fingerprint = '$queueVersion';
+    // Include the current index: a crossfade flip changes the audible song
+    // without a queue mutation, but the MediaSession window must re-center.
+    final fingerprint = '$queueVersion:${ps.currentIndex}';
     if (fingerprint != _lastQueueFingerprint) {
       _lastQueueFingerprint = fingerprint;
       _queueRepublishTimer?.cancel();
@@ -300,18 +302,21 @@ class SwaraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToQueueItem(int? index) async {
-    // The platform addresses queue entries by position, which matches
-    // our playback order, so the index maps directly to posInOrder.
-    // Validate against the live queue at call time, never a cached copy,
-    // because the queue may have changed since the last sync.
+    // Resolve the stable slot id from the published MediaItem instead of
+    // adding a cached window offset: the window may have re-centered between
+    // the user's tap and this callback.
     try {
       if (index == null) return;
-      // MediaSession indexes the published window; map back to the full
-      // playback order before addressing the real queue.
-      final actual = _queueWindowStart + index;
-      final liveLength = PlayerService.instance.queue.length;
-      if (actual < 0 || actual >= liveLength) return;
-      await PlayerService.instance.playAtQueueIndex(actual);
+      final published = queue.value;
+      if (index < 0 || index >= published.length) return;
+      final parts = published[index].id.split('_');
+      if (parts.length < 2) return;
+      final slotId = int.tryParse(parts[1]);
+      if (slotId == null) return;
+      final ps = PlayerService.instance;
+      final pos = ps.queuePosForSlot(slotId);
+      if (pos == null || pos < 0 || pos >= ps.queueOrderLength) return;
+      await ps.playAtQueueIndex(pos);
     } catch (e) {
       debugPrint('skipToQueueItem failed: $e');
     }
