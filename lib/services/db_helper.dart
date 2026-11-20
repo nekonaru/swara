@@ -35,7 +35,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 11,
+      version: 12,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -80,7 +80,8 @@ class DBHelper {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE,
             createdAt TEXT,
-            folder TEXT DEFAULT ''
+            folder TEXT DEFAULT '',
+            isAuto INTEGER DEFAULT 0
           )
         ''');
         await db.execute('''
@@ -272,6 +273,17 @@ class DBHelper {
             } catch (e) {
               debugPrint('DBHelper: v11 region rename failed for ${pair[0]}: $e');
             }
+          }
+        }
+        if (oldVersion < 12) {
+          // Mark the built-in automatic playlists with an explicit flag
+          // instead of matching their hard-coded names. An explicit flag
+          // survives a user renaming the playlist.
+          if (!await _hasColumn(db, 'playlists', 'isAuto')) {
+            await db.execute(
+                'ALTER TABLE playlists ADD COLUMN isAuto INTEGER DEFAULT 0');
+            await db.execute(
+                "UPDATE playlists SET isAuto = 1 WHERE name IN ('Daily Mix', 'Unplayed')");
           }
         }
         // No automatic prune of listening_entries here. Besides deleting
@@ -639,13 +651,16 @@ class DBHelper {
 
   Future<void> deleteSong(int id) async {
     final database = await db;
-    await database.delete('songs', where: 'id = ?', whereArgs: [id]);
-    await database
-        .delete('playlist_songs', where: 'songId = ?', whereArgs: [id]);
-    await database
-        .delete('listening_entries', where: 'songId = ?', whereArgs: [id]);
-    await database
-        .delete('synced_lyrics', where: 'songId = ?', whereArgs: [id]);
+    // One transaction so a crash between deletes cannot leave a half-deleted
+    // song behind (favorites/history gone but playlist links surviving).
+    await database.transaction((txn) async {
+      await txn.delete('songs', where: 'id = ?', whereArgs: [id]);
+      await txn
+          .delete('playlist_songs', where: 'songId = ?', whereArgs: [id]);
+      await txn
+          .delete('listening_entries', where: 'songId = ?', whereArgs: [id]);
+      await txn.delete('synced_lyrics', where: 'songId = ?', whereArgs: [id]);
+    });
   }
 
   Future<void> updateSongMetadata(Song s) async {
@@ -671,14 +686,21 @@ class DBHelper {
     if (songs.isEmpty) return;
     final database = await db;
     final ids = songs.map((s) => s.id).toSet().toList();
-    final placeholders = List.filled(ids.length, '?').join(',');
-    final favoriteRows = await database.rawQuery(
-      'SELECT id, isFavorite FROM songs WHERE id IN ($placeholders)',
-      ids,
-    );
-    final favorites = {
-      for (final row in favoriteRows) row['id'] as int: row['isFavorite'],
-    };
+    final favorites = <int, Object?>{};
+    // Chunked: Android 8/9 bundle SQLite with a 999 variable limit.
+    const chunk = 400;
+    for (var off = 0; off < ids.length; off += chunk) {
+      final end = off + chunk > ids.length ? ids.length : off + chunk;
+      final slice = ids.sublist(off, end);
+      final placeholders = List.filled(slice.length, '?').join(',');
+      final rows = await database.rawQuery(
+        'SELECT id, isFavorite FROM songs WHERE id IN ($placeholders)',
+        slice,
+      );
+      for (final row in rows) {
+        favorites[row['id'] as int] = row['isFavorite'];
+      }
+    }
     final batch = database.batch();
     for (final s in songs) {
       final map = s.toMap();
@@ -694,11 +716,17 @@ class DBHelper {
   Future<List<Song>> getSongsByIds(List<int> ids) async {
     if (ids.isEmpty) return const <Song>[];
     final database = await db;
-    final placeholders = List.filled(ids.length, '?').join(',');
-    final rows = await database.rawQuery(
-      'SELECT * FROM songs WHERE id IN ($placeholders)',
-      ids,
-    );
+    final rows = <Map<String, Object?>>[];
+    const chunk = 400;
+    for (var off = 0; off < ids.length; off += chunk) {
+      final end = off + chunk > ids.length ? ids.length : off + chunk;
+      final slice = ids.sublist(off, end);
+      final placeholders = List.filled(slice.length, '?').join(',');
+      rows.addAll(await database.rawQuery(
+        'SELECT * FROM songs WHERE id IN ($placeholders)',
+        slice,
+      ));
+    }
     final byId = <int, Song>{};
     for (final song in await _songsFromRows(rows)) {
       byId[song.id] = song;
@@ -956,12 +984,19 @@ class DBHelper {
   }
 
   // ---------- Playlists ----------
-  Future<int> createPlaylist(String name) async {
+  Future<int> createPlaylist(String name, {bool isAuto = false}) async {
     final database = await db;
     return database.insert('playlists', {
       'name': name,
       'createdAt': DateTime.now().toIso8601String(),
+      'isAuto': isAuto ? 1 : 0,
     });
+  }
+
+  Future<void> setPlaylistAuto(int playlistId, bool value) async {
+    final database = await db;
+    await database.update('playlists', {'isAuto': value ? 1 : 0},
+        where: 'id = ?', whereArgs: [playlistId]);
   }
 
   /// Create a playlist dated [createdAt] instead of now. Used by the backup
@@ -1237,6 +1272,27 @@ class DBHelper {
     return await _songsFromRows(rows);
   }
 
+  /// Favorite songs whose last play is older than [days] ago (or that were
+  /// never played). Least recently played first, so the result starts with
+  /// the songs most overdue for a replay.
+  ///
+  /// lastPlayedAt is stored as an ISO 8601 string, so a lexicographic
+  /// comparison against the cutoff is chronological.
+  Future<List<Song>> getForgottenFavorites({int days = 90}) async {
+    final safeDays = days < 1 ? 90 : days;
+    final cutoff = DateTime.now()
+        .subtract(Duration(days: safeDays))
+        .toIso8601String();
+    final database = await db;
+    final rows = await database.query(
+      'songs',
+      where: 'isFavorite = 1 AND (lastPlayedAt IS NULL OR lastPlayedAt < ?)',
+      whereArgs: [cutoff],
+      orderBy: "COALESCE(lastPlayedAt, '') ASC",
+    );
+    return await _songsFromRows(rows);
+  }
+
   /// Total all-time listening time (ms)
   Future<int> getTotalListeningMs() async {
     final database = await db;
@@ -1269,13 +1325,16 @@ class DBHelper {
       SELECT songId, COUNT(*) as playCount
       FROM listening_entries
       WHERE julianday(timestamp) >= julianday(?)
+        AND songId IS NOT NULL
       GROUP BY songId
       ORDER BY playCount DESC
       LIMIT ?
     ''', [isoStart, safeLimit]);
     return rows
-        .map((r) => MapEntry((r['songId'] as num).toInt(),
-            (r['playCount'] as num).toInt()))
+        .map((r) => MapEntry(
+            (r['songId'] as num?)?.toInt() ?? -1,
+            (r['playCount'] as num?)?.toInt() ?? 0))
+        .where((e) => e.key != -1)
         .toList();
   }
 

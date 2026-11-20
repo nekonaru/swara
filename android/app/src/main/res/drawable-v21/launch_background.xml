@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Navy tile; matches the launcher background so the cold start has no seam. -->
-    <item android:drawable="@color/ic_launcher_background" />
-</layer-list>

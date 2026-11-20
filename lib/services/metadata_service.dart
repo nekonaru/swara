@@ -451,6 +451,11 @@ class MetadataService {
     if (plain != null && plain.isNotEmpty) {
       song.lyrics = plain;
       await _cacheLyrics(lyricsKey, plain);
+      if (synced != null && synced.isNotEmpty) {
+        // lrclib returns both; store the synced form too so the line-by-line
+        // view works without a second request later.
+        await applySyncedLyrics(song, synced);
+      }
       return true;
     }
     if (lrclib['rateLimited'] == true) {
@@ -464,6 +469,8 @@ class MetadataService {
       if (derived.isNotEmpty) {
         song.lyrics = derived;
         await _cacheLyrics(lyricsKey, derived);
+        // Store the synced lyrics as well, not only the derived plain view.
+        await applySyncedLyrics(song, synced);
         return true;
       }
     }

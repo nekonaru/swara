@@ -98,6 +98,11 @@ class M3uService {
     final path = files.first.path;
     if (path == null || path.isEmpty) return null;
     final file = File(path);
+    // A corrupt or malicious file must not be loaded whole into memory.
+    final length = await file.length();
+    if (length > 5 * 1024 * 1024) {
+      throw const FormatException('M3U file is too large (limit 5 MB)');
+    }
     final content = await file.readAsString();
     final match = matchContent(
       content: content,

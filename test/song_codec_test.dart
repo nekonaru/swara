@@ -79,17 +79,18 @@ void main() {
       expect(decodeLyricsFromDb(value), value);
     });
 
-    test('corrupt gz payload returns original without throwing', () {
+    test('corrupt gz payload is treated as absent without throwing', () {
       const String corruptBase64 = 'gz:!!!not-base64!!!';
       expect(() => decodeLyricsFromDb(corruptBase64), returnsNormally);
-      expect(decodeLyricsFromDb(corruptBase64), corruptBase64);
+      // Rendering the raw base64 as lyrics would look broken to the user.
+      expect(decodeLyricsFromDb(corruptBase64), isNull);
     });
 
-    test('non gzip base64 payload returns original without throwing', () {
+    test('non gzip base64 payload is treated as absent without throwing', () {
       // 'aGVsbG8=' is base64 for "hello", which is not gzip data.
       const String notGzip = 'gz:aGVsbG8=';
       expect(() => decodeLyricsFromDb(notGzip), returnsNormally);
-      expect(decodeLyricsFromDb(notGzip), notGzip);
+      expect(decodeLyricsFromDb(notGzip), isNull);
     });
   });
 

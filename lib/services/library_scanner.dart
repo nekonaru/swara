@@ -277,12 +277,32 @@ class LibraryScanner {
     final allDeviceIds = scanResult.allDeviceIds;
     // Move detection MUST run before the insert batch or matched new files
     // would be inserted as duplicates of their own ghost rows.
+    var keepIds = allDeviceIds;
     if (safeToDelete && pendingMaps.isNotEmpty) {
-      await _suppressMovedGhosts(
+      final reused = await _suppressMovedGhosts(
         pendingMaps: pendingMaps,
         dbIdsAtScanStart: dbIdsAtScanStart,
         allDeviceIds: allDeviceIds,
       );
+      // The re-pathed ghost rows keep their old MediaStore ids, which are
+      // not in allDeviceIds by definition; without them the delete pass
+      // below removes the rows we just rescued.
+      if (reused.isNotEmpty) {
+        keepIds = {...allDeviceIds, ...reused};
+      }
+    }
+    // MediaStore can re-id a file (copy, storage migration, id reuse). The
+    // row keeps its old id because playlists, favorites, history and lyrics
+    // reference it. A fresh insert with the new id would then hit the
+    // UNIQUE(filePath) constraint and REPLACE would silently delete the
+    // row, take the user data with it and orphan every child row. Detect
+    // the collision and turn the insert into an update instead.
+    if (pendingMaps.isNotEmpty) {
+      final reused = await _reusePathCollidingRows(pendingMaps: pendingMaps,
+          pendingUpdates: pendingUpdates, updateIds: updateIds);
+      if (reused.isNotEmpty) {
+        keepIds = {...keepIds, ...reused};
+      }
     }
     if (pendingMaps.isNotEmpty || pendingUpdates.isNotEmpty) {
       final batch = database.batch();
@@ -308,7 +328,7 @@ class LibraryScanner {
       // Pass the snapshot so a parallel scan cannot have its freshly inserted
       // rows deleted as ghosts by this one.
       await DBHelper.instance.deleteSongsMissingFromDevice(
-        allDeviceIds,
+        keepIds,
         knownDbIds: dbIdsAtScanStart,
       );
     }
@@ -325,18 +345,30 @@ class LibraryScanner {
   /// in the DB at scan start but are not on the device anymore. Anything
   /// ambiguous (two candidates, name mismatch) is left alone and inserted as
   /// a new row, which is always safe.
-  Future<void> _suppressMovedGhosts({
+  ///
+  /// Returns the ids of the ghost rows that were re-pathed, so the caller
+  /// can keep them out of the delete pass.
+  Future<Set<int>> _suppressMovedGhosts({
     required List<Map<String, dynamic>> pendingMaps,
     required Set<int> dbIdsAtScanStart,
     required Set<int> allDeviceIds,
   }) async {
+    final reused = <int>{};
     final ghostIds = dbIdsAtScanStart.difference(allDeviceIds);
-    if (ghostIds.isEmpty) return;
+    if (ghostIds.isEmpty) return reused;
     final database = await DBHelper.instance.db;
-    final placeholders = List.filled(ghostIds.length, '?').join(',');
-    final rows = await database.rawQuery(
-        'SELECT id, filePath, durationMs FROM songs WHERE id IN ($placeholders)',
-        ghostIds.toList());
+    // Chunked: Android 8/9 bundle SQLite with a 999 variable limit.
+    const chunk = 400;
+    final rows = <Map<String, Object?>>[];
+    final ghostList = ghostIds.toList();
+    for (var off = 0; off < ghostList.length; off += chunk) {
+      final end = off + chunk > ghostList.length ? ghostList.length : off + chunk;
+      final slice = ghostList.sublist(off, end);
+      final placeholders = List.filled(slice.length, '?').join(',');
+      rows.addAll(await database.rawQuery(
+          'SELECT id, filePath, durationMs FROM songs WHERE id IN ($placeholders)',
+          slice));
+    }
     final ghostByKey = <String, Map<String, Object?>>{};
     for (final row in rows) {
       final path = row['filePath'] as String?;
@@ -366,10 +398,67 @@ class LibraryScanner {
       }
       toRemove.add(i);
       ghostByKey.remove(_moveKey(path, dur));
+      reused.add(ghostId);
     }
     for (final i in toRemove.reversed) {
       pendingMaps.removeAt(i);
     }
+    return reused;
+  }
+
+  /// Turn inserts that collide with an existing filePath (MediaStore re-id)
+  /// into updates of the row that already holds the path. The row keeps its
+  /// id, so every child (playlists, favorites, listening history, synced
+  /// lyrics) stays valid. Returns the ids of the rows that were reused, so
+  /// the delete pass keeps them.
+  Future<Set<int>> _reusePathCollidingRows({
+    required List<Map<String, dynamic>> pendingMaps,
+    required List<Map<String, dynamic>> pendingUpdates,
+    required List<int> updateIds,
+  }) async {
+    final reused = <int>{};
+    final paths = <String>[];
+    for (final map in pendingMaps) {
+      final path = map['filePath'] as String?;
+      if (path != null && path.isNotEmpty) paths.add(path);
+    }
+    if (paths.isEmpty) return reused;
+    final database = await DBHelper.instance.db;
+    final byPath = <String, int>{};
+    const chunk = 400;
+    for (var off = 0; off < paths.length; off += chunk) {
+      final end = off + chunk > paths.length ? paths.length : off + chunk;
+      final slice = paths.sublist(off, end);
+      final placeholders = List.filled(slice.length, '?').join(',');
+      final found = await database.rawQuery(
+        'SELECT id, filePath FROM songs WHERE filePath IN ($placeholders)',
+        slice,
+      );
+      for (final row in found) {
+        byPath[row['filePath'] as String] = row['id'] as int;
+      }
+    }
+    if (byPath.isEmpty) return reused;
+    final remaining = <Map<String, dynamic>>[];
+    for (final map in pendingMaps) {
+      final path = map['filePath'] as String?;
+      final existingId = path == null ? null : byPath[path];
+      final newId = map['id'] as int?;
+      if (existingId != null && existingId != newId) {
+        pendingUpdates.add({
+          'filePath': path,
+          'durationMs': (map['durationMs'] as num?)?.toInt() ?? 0,
+        });
+        updateIds.add(existingId);
+        reused.add(existingId);
+      } else {
+        remaining.add(map);
+      }
+    }
+    pendingMaps
+      ..clear()
+      ..addAll(remaining);
+    return reused;
   }
 
   /// Key that identifies "the same file" for move detection.

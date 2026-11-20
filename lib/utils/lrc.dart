@@ -78,7 +78,10 @@ List<LrcLine> parseLrc(String raw) {
         millis = int.parse('${frac}000'.substring(0, 3));
       }
       lines.add(LrcLine(
-        timeMs: minutes * 60000 + seconds * 1000 + millis + offsetMs,
+        // A large negative file offset can push the first line before 0;
+        // downstream binary search assumes non-negative timestamps.
+        timeMs: (minutes * 60000 + seconds * 1000 + millis + offsetMs)
+            .clamp(0, 1 << 30),
         text: text,
       ));
     }

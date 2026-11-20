@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/providers/language_provider.dart';
@@ -660,6 +662,7 @@ class LibraryProvider extends ChangeNotifier {
   Future<void> deleteSong(Song song) async {
     await DBHelper.instance.deleteSong(song.id);
     _removeSongsFromMemory([song]);
+    unawaited(PlayerService.instance.onLibrarySongsRemoved({song.id}));
   }
 
   /// Delete many songs with one in memory update.
@@ -678,6 +681,8 @@ class LibraryProvider extends ChangeNotifier {
       }
     }
     _removeSongsFromMemory(toDelete);
+    unawaited(PlayerService.instance
+        .onLibrarySongsRemoved(toDelete.map((s) => s.id).toSet()));
   }
 
   /// Drop deleted songs from the cached lists and bump the version once.

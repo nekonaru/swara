@@ -161,7 +161,12 @@ class ArtCacheService {
           .get(uri, headers: const {'Accept': 'image/*'})
           .timeout(const Duration(seconds: 15));
       if (res.statusCode != 200 || res.bodyBytes.isEmpty) return null;
-    final contentType = res.headers['content-type'] ?? '';
+      // Reject obviously oversized responses before buffering more; the
+      // body is already collected by http.get, but a declared size lets us
+      // avoid caching a huge payload.
+      final declaredSize = int.tryParse(res.headers['content-length'] ?? '');
+      if (declaredSize != null && declaredSize > 5 * 1024 * 1024) return null;
+      final contentType = res.headers['content-type'] ?? '';
     if (!contentType.toLowerCase().startsWith('image/')) return null;
     if (res.bodyBytes.length > 5 * 1024 * 1024) return null;
     final b = res.bodyBytes;

@@ -24,6 +24,13 @@ void main() {
       expect(lines[1].text, 'Chorus');
     });
 
+    test('clamps negative timestamps to zero', () {
+      final lines = parseLrc('[offset:-5000]\n[00:00.50]Too early');
+      expect(lines.length, 1);
+      expect(lines[0].timeMs, 0);
+      expect(lines[0].text, 'Too early');
+    });
+
     test('supports centisecond fractions', () {
       final lines = parseLrc('[01:02.05]Centisecond');
       expect(lines.length, 1);

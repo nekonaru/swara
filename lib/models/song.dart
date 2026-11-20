@@ -20,8 +20,8 @@ String? encodeLyricsForDb(String? lyrics) {
 /// Decodes a lyrics DB value, accepting both new and legacy formats.
 ///
 /// Plaintext rows written before compression pass through unchanged.
-/// Values with the 'gz:' marker are decoded, and a corrupt payload
-/// returns the original string instead of throwing.
+/// Values with the 'gz:' marker are decoded, and a corrupt payload resolves
+/// to null so the UI never renders raw base64 as lyrics.
 /// Non-string values return null so callers never hit a cast error.
 String? decodeLyricsFromDb(dynamic value) {
   // Legacy plaintext (or null) passes through unchanged.
@@ -42,8 +42,9 @@ String? decodeLyricsFromDb(dynamic value) {
     final List<int> raw = gzip.decode(gzipped);
     return utf8.decode(raw);
   } catch (_) {
-    // Corrupt data must never break song loading, keep the raw string.
-    return value;
+    // Corrupt compressed data is not lyrics. Returning the raw base64 blob
+    // would render it to the user, so treat it as absent instead.
+    return null;
   }
 }
 
