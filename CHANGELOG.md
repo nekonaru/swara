@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.12.3
+
+Audit release: remaining correctness, accessibility and design gaps in the existing features are closed, with no new features added.
+
+## Improvements
+
+- **Shared type scale.** A small Material 3 text theme now defines headings, titles and captions, and cards use the shared 16 dp radius.
+- **Clearer in-flight states.** Search shows a progress bar, the duplicate counter says it is loading, and history errors offer a Retry button.
+- **Accessible controls.** Remaining icon buttons have localized tooltips, the tab visibility toggle exposes its checked state, and album art announces its View lyrics action.
+- **Theme-aware charts.** Dashboard chart palettes, the streak card and status dots now follow the active color scheme.
+
+## Bug fixes
+
+- **Permissions are remembered only after the prompts return.** A failed request no longer suppresses the prompts on every later launch.
+- **Updates cannot start twice.** The About action is guarded and disabled while a check or download is in flight, and Cancel dismisses the dialog immediately.
+- **Bulk delete reports real removals.** Songs that failed to delete stay in the library and are no longer counted as removed.
+- **Sleep timer checkbox toggles once.** Nested tap handlers no longer cancel each other out, and both modes forward the setting to the player.
+- **Details and updater fail safely.** Song details tolerate deleted files and DB errors, and an updater with no ABI report no longer guesses the wrong APK.
+
 ## v3.12.2
 
 Design and polish release: existing screens follow the app's Material 3 tokens and interactions settle smoothly, with no new features added.

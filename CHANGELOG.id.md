@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.12.3
+
+Rilis audit: sisa celah kebenaran, aksesibilitas, dan desain pada fitur yang ada ditutup, tanpa fitur baru.
+
+## Peningkatan
+
+- **Skala tipografi bersama.** Tema teks Material 3 ringan kini mendefinisikan judul, subjudul, dan caption, dan kartu memakai radius 16 dp bersama.
+- **Status proses lebih jelas.** Pencarian menampilkan bilah progres, penghitung duplikat menyatakan sedang memuat, dan error riwayat menyediakan tombol Coba lagi.
+- **Kontrol lebih mudah diakses.** Tombol ikon yang tersisa punya tooltip terlokalisasi, toggle visibilitas tab menampilkan status centang, dan sampul album mengumumkan aksi Lihat lirik.
+- **Grafik mengikuti tema.** Palet grafik dashboard, kartu streak, dan titik status kini mengikuti skema warna aktif.
+
+## Perbaikan bug
+
+- **Izin diingat setelah prompt selesai.** Permintaan yang gagal tidak lagi menekan prompt pada peluncuran berikutnya.
+- **Pembaruan tidak bisa dimulai dua kali.** Aksi About dijaga dan dinonaktifkan saat pengecekan atau unduhan berjalan, dan Batal langsung menutup dialog.
+- **Hapus massal melaporkan hasil nyata.** Lagu yang gagal dihapus tetap ada di pustaka dan tidak dihitung sebagai terhapus.
+- **Centang timer tidur berubah sekali.** Handler ketukan bertingkat tidak lagi saling membatalkan, dan kedua mode meneruskan pengaturan ke pemutar.
+- **Detail dan pembaruan gagal dengan aman.** Detail lagu tahan terhadap file terhapus dan error database, dan pembaruan tanpa laporan ABI tidak menebak APK yang salah.
+
 ## v3.12.2
 
 Rilis desain dan pemolesan: layar yang ada mengikuti token Material 3 aplikasi dan interaksi terasa lebih halus, tanpa fitur baru.
