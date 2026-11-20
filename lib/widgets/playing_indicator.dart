@@ -36,12 +36,14 @@ class _PlayingIndicatorState extends State<PlayingIndicator> with TickerProvider
   @override
   void didUpdateWidget(covariant PlayingIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying == oldWidget.isPlaying) return;
     for (final c in _controllers) {
       if (widget.isPlaying) {
-        if (!c.isAnimating) c.repeat(reverse: true);
+        // Always restart on a false-to-true transition: a pause animation
+        // may still be running and isAnimating would skip the restart.
+        c.stop();
+        c.repeat(reverse: true);
       } else {
-        // Settle at the baseline over a short curve instead of freezing
-        // mid-bounce and snapping when playback pauses.
         c.animateTo(0.0,
             duration: const Duration(milliseconds: 150),
             curve: Curves.easeOut);

@@ -101,9 +101,16 @@ void main() {
     test('dismiss and queue scroll ease instead of snapping', () {
       final player = read('lib/screens/player_screen.dart');
       expect(player.contains('_returnController.forward(from: 0)'), isTrue);
+      expect(player.contains('_returnController.stop();'), isTrue);
+      expect(player.contains('colorScheme.surfaceContainerHighest'), isTrue);
       final queue = read('lib/screens/queue_screen.dart');
       expect(queue.contains('_scrollController.animateTo('), isTrue);
       expect(queue.contains('_scrollController.jumpTo('), isFalse);
+    });
+
+    test('playing indicator restarts on play transition', () {
+      final source = read('lib/widgets/playing_indicator.dart');
+      expect(source.contains('widget.isPlaying == oldWidget.isPlaying'), isTrue);
     });
   });
 }

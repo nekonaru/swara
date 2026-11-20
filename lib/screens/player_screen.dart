@@ -598,6 +598,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   Widget _buildScaffold(Song song, bool isFavorite) {
     return GestureDetector(
       onVerticalDragStart: (details) {
+        // A new drag owns the offset: stop any in-flight return animation so
+        // its listener cannot overwrite the user's movement.
+        _returnController.stop();
         // Track dismiss swipes only when the drag starts in the top
         // 40 percent of the screen (art zone). Lower starts are ignored
         // for vertical so lyric lists can scroll safely.
@@ -939,8 +942,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                             // Decode near display size to save image memory.
                             cacheWidth: 520,
                             fallback: Container(
-                              width: 260, height: 260, color: Theme.of(context).colorScheme.outline,
-                              child: const Icon(Icons.music_note, size: 80),
+                              width: 260, height: 260, color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              child: Icon(Icons.music_note, size: 80,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                           ),
                         ),
