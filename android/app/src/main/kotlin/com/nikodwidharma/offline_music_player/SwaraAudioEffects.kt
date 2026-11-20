@@ -279,7 +279,7 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
         if (loudness != null && loudnessSessionId == sessionId) return true
         releaseLoudness()
         return try {
-            val effect = LoudnessEnhancer(0, sessionId)
+            val effect = LoudnessEnhancer(sessionId)
             // +6 dB of target gain, applied to quiet content only.
             effect.setTargetGain(600)
             effect.enabled = true
