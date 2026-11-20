@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.12.1
+
+Rilis optimasi: fitur yang ada jadi lebih ringan, lebih lancar, dan lebih native di Android, tanpa fitur baru.
+
+## Peningkatan
+
+- **Antrean besar tetap responsif.** Hapus Up Next membuang ekor dalam satu operasi, menyimpan antrean sebagai playlist memakai satu sisipan massal, dan MediaSession hanya mempublikasikan jendela 40 lagu, bukan seluruh pustaka.
+- **Dashboard dan pemindaian duplikat lebih hemat.** Dashboard membaca ringkasan lagu ringan dan mengambil baris lengkap hanya untuk lagu di peringkat, sementara hitungan duplikat mengirim kolom ringkas ke isolate tanpa lirik tiap lagu.
+- **Navigasi native di semua halaman.** Halaman turunan memakai route Material standar dengan transisi Android bersama, bukan geser horizontal ala iOS. Area sentuh minimal 48 dp dan bilah sistem saat splash mengikuti warna navy.
+- **Sampul album dihitung sekali.** Lagu sampul per album dipilih saat pengelompokan dibangun ulang, bukan lagi untuk setiap kartu yang terlihat pada setiap frame.
+
+## Perbaikan bug
+
+- **Menghapus lagu yang sedang diputar saat jeda tidak memutar file lama.** Sumber lagu pengganti dimuat dari awal sebelum pemutaran bisa dimulai.
+- **Kegagalan pemulihan saat start tampil.** Pemulihan pemutaran yang gagal ditampilkan sekali, bukan dianggap sudah pernah dilihat.
+- **Simpan antrean menangani nama ganda sebelum membuat.** Playlist dimuat sebelum pengecekan nama, sehingga nama yang sudah ada mendapat akhiran, bukan gagal disimpan.
+- **Kolom database rusak tidak menyembunyikan lagu.** Kolom opsional bertipe bukan string menjadi null alih-alih melempar error di `Song.fromMap`.
+- **Kegagalan async tidak mengganggu.** Siaran sesi efek punya batas waktu, penulisan preferensi dijaga, dan dialog pembaruan hanya ditutup jika masih terbuka.
+
 ## v3.12.0
 
 Rilis audit mendalam dan fitur baru: data pustaka aman saat pemindaian ulang, pemutaran tetap sinkron, dan hadir alat DSP, backup, serta playlist otomatis baru.

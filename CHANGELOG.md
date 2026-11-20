@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.12.1
+
+Optimization release: existing features are lighter, smoother and more native on Android, with no new features added.
+
+## Improvements
+
+- **Large queues stay responsive.** Clearing Up Next removes the tail in one pass instead of one rebuild per song, saving a queue as a playlist uses a single batched insert, and the MediaSession publishes a 40-song window instead of the whole library.
+- **Dashboard and duplicate scan load less.** The dashboard reads lightweight song summaries and fetches full rows only for the songs shown in rank tiles, and the duplicate count sends compact fields to its isolate instead of every song with lyrics.
+- **Native navigation everywhere.** Subpages now use standard Material routes with the shared Android transition instead of iOS-style horizontal slides. Touch targets meet 48 dp and the splash bars match the navy background.
+- **Album covers resolve once.** The cover song per album is chosen when grouping is rebuilt, not again for every visible card on every frame.
+
+## Bug fixes
+
+- **Deleting the playing song while paused no longer resumes the old file.** The replacement song's source is loaded at zero before playback can start.
+- **Boot-time restore failures surface.** A failed playback restore is shown once instead of being silently treated as already seen.
+- **Queue save handles duplicate names before creating.** Playlists are loaded before the name check, so an existing name gets a suffix instead of a failed insert.
+- **Corrupt database columns no longer hide songs.** Non-string optional fields resolve to null instead of throwing in `Song.fromMap`.
+- **Async failures stay quiet.** Effect-session broadcasts have timeouts, preference writes are guarded, and the update dialog pops only if it is still open.
+
 ## v3.12.0
 
 Deep audit and feature release: library data is protected on rescans, playback stays in sync, and new DSP, backup and auto-playlist tools arrive.
