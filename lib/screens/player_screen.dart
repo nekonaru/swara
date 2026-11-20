@@ -1152,12 +1152,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           color: isAdjusted ? color : Colors.grey,
                         ),
                       ),
-                      // Keep the chip small, it shares one row with six
-                      // icon buttons.
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      // Keep the label compact, but leave the default 48 dp
+                      // tap target: it shares a row with six icon buttons
+                      // and Android users expect a full-size control.
                       tooltip: AppLocalizations.of(context)!.playerPlaybackSpeed,
                       onPressed: hasSong ? _pickPlaybackSpeed : null,
                     ),

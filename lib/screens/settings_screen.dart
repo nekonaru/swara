@@ -128,7 +128,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // closed even after this screen is gone.
     final navigator = Navigator.of(context, rootNavigator: true);
     // Non-dismissible while the download runs; the Cancel button aborts.
-    unawaited(showDialog<void>(
+    // Keep the future so we never pop a route that hardware Back already
+    // closed, and dispose the notifier only after the dialog is gone.
+    var dialogClosed = false;
+    final dialog = showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
@@ -145,21 +148,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               LinearProgressIndicator(value: value < 0 ? null : value),
               const SizedBox(height: 12),
-              Text(value < 0 ? '…' : '${(value * 100).toStringAsFixed(0)}%'),
+              Text(value < 0 ? '...' : '${(value * 100).toStringAsFixed(0)}%'),
             ],
           ),
         ),
       ),
-    ));
+    )..whenComplete(() => dialogClosed = true);
     final result = await UpdateService.instance.downloadApk(
       downloadUrl,
       digest: digest,
       expectedSize: expectedSize,
       onProgress: (p) => progress.value = p,
     );
-    // Close the progress dialog and release the notifier no matter what;
-    // a non-dismissible dialog left open would pin the app forever.
-    navigator.pop();
+    // Close the progress dialog only if it is still on screen; a hardware
+    // Back press may already have popped it while the download ran.
+    if (!dialogClosed && navigator.mounted) navigator.pop();
+    await dialog.catchError((Object _) {});
     progress.dispose();
     if (!mounted) return;
     final path = result.$1;
@@ -354,6 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               final data = await Clipboard.getData(Clipboard.kTextPlain);
+              if (!ctx.mounted) return;
               controller.text = data?.text ?? '';
             },
             child: Text(l10n.dataPaste),
@@ -695,7 +700,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Semantics(
                         label: _accentName(l10n, i),
                         selected: isSelected,
-                        child: GestureDetector(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(24),
                           onTap: _savingPrefs
                               ? null
                               : () => _savePrefs(

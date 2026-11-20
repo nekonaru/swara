@@ -99,8 +99,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _libTabController = TabController(
         length: _allTabDefs.where((t) => t.visible).length, vsync: this);
     _loadTabConfig();
-    _lastPlayerErrorShown = PlayerService.instance.lastError;
+    // Show a boot-time restore error once the scaffold has a messenger.
+    // Seeding it as "already shown" would silently swallow that failure.
+    _lastPlayerErrorShown = null;
     PlayerService.instance.addListener(_playbackErrorListener);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _playbackErrorListener();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _initLibrary());
   }
 
@@ -289,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         initialDefs: _allTabDefs.map((t) => t.copy()).toList(),
         onApply: (newDefs) {
           _rebuildTabController(newDefs);
-          _saveTabConfig();
+          _saveTabConfig().catchError((Object _) {});
         },
       ),
     );

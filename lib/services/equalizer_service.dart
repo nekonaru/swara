@@ -225,13 +225,23 @@ class EqualizerService {
 
   /// Broadcast that an audio effect control session opened for [sessionId],
   /// so system effect apps (Wavelet and similar) attach to our session.
-  Future<void> openSystemAudioEffectSession(int? sessionId) =>
-      _native.openAudioEffectSession(sessionId).then((_) {});
+  Future<void> openSystemAudioEffectSession(int? sessionId) async {
+    try {
+      await _native.openAudioEffectSession(sessionId).timeout(_pluginTimeout);
+    } catch (e) {
+      debugPrint('Equalizer open session failed: $e');
+    }
+  }
 
   /// Broadcast that the audio effect control session closed for [sessionId],
   /// so external effect apps detach cleanly.
-  Future<void> closeSystemAudioEffectSession(int? sessionId) =>
-      _native.closeAudioEffectSession(sessionId).then((_) {});
+  Future<void> closeSystemAudioEffectSession(int? sessionId) async {
+    try {
+      await _native.closeAudioEffectSession(sessionId).timeout(_pluginTimeout);
+    } catch (e) {
+      debugPrint('Equalizer close session failed: $e');
+    }
+  }
 
   /// Register a listener for ACTION_AUDIO_BECOMING_NOISY. [handler] is
   /// invoked on the main isolate with no arguments.

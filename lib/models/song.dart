@@ -48,6 +48,12 @@ String? decodeLyricsFromDb(dynamic value) {
   }
 }
 
+/// Reads a nullable string column without throwing on a corrupt row type.
+String? _readString(Map<String, dynamic> map, String key) {
+  final value = map[key];
+  return value is String ? value : null;
+}
+
 class Song {
   final int id;
   final String filePath;
@@ -112,19 +118,19 @@ class Song {
     return Song(
       id: rawId,
       filePath: rawPath,
-      title: (map['title'] as String?)?.isNotEmpty == true
-          ? map['title'] as String
+      title: _readString(map, 'title')?.isNotEmpty == true
+          ? _readString(map, 'title')!
           : 'Unknown Title',
-      artist: (map['artist'] as String?)?.isNotEmpty == true
-          ? map['artist'] as String
+      artist: _readString(map, 'artist')?.isNotEmpty == true
+          ? _readString(map, 'artist')!
           : 'Unknown Artist',
-      album: (map['album'] as String?)?.isNotEmpty == true
-          ? map['album'] as String
+      album: _readString(map, 'album')?.isNotEmpty == true
+          ? _readString(map, 'album')!
           : 'Unknown Album',
-        genre: map['genre'] as String?,
-        region: map['region'] as String?,
-        albumArtPath: map['albumArtPath'] as String?,
-        albumArtUrl: map['albumArtUrl'] as String?,
+        genre: _readString(map, 'genre'),
+        region: _readString(map, 'region'),
+        albumArtPath: _readString(map, 'albumArtPath'),
+        albumArtUrl: _readString(map, 'albumArtUrl'),
         lyrics: decodeLyricsFromDb(map['lyrics']),
         durationMs: (map['durationMs'] as num?)?.toInt() ?? 0,
         isFavorite: (map['isFavorite'] ?? 0) == 1,

@@ -79,6 +79,25 @@ void main() {
       expect(decodeLyricsFromDb(value), value);
     });
 
+    test('corrupt non-string optional columns do not drop the row', () {
+      final song = Song.fromMap({
+        'id': 42,
+        'filePath': '/storage/music/song.mp3',
+        'title': 123,
+        'artist': <String>['bad'],
+        'album': 7,
+        'genre': 1,
+        'region': false,
+        'albumArtPath': 9,
+      });
+      expect(song.title, 'Unknown Title');
+      expect(song.artist, 'Unknown Artist');
+      expect(song.album, 'Unknown Album');
+      expect(song.genre, isNull);
+      expect(song.region, isNull);
+      expect(song.albumArtPath, isNull);
+    });
+
     test('corrupt gz payload is treated as absent without throwing', () {
       const String corruptBase64 = 'gz:!!!not-base64!!!';
       expect(() => decodeLyricsFromDb(corruptBase64), returnsNormally);

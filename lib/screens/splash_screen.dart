@@ -86,7 +86,12 @@ class _SplashScreenState extends State<SplashScreen>
     // Status and navigation bars match the splash so the whole cold start
     // reads as one surface instead of stacked chromes.
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: _kNavy,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
       child: Scaffold(
         backgroundColor: _kNavy,
         body: LayoutBuilder(

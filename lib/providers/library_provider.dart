@@ -366,7 +366,7 @@ class LibraryProvider extends ChangeNotifier {
       _applySort();
       // Same rows, different order: derived indexes must be rebuilt.
       _songsVersion++;
-      _savePrefs();
+      _savePrefs().catchError((Object _) {});
       notifyListeners();
     });
   }
@@ -662,7 +662,9 @@ class LibraryProvider extends ChangeNotifier {
   Future<void> deleteSong(Song song) async {
     await DBHelper.instance.deleteSong(song.id);
     _removeSongsFromMemory([song]);
-    unawaited(PlayerService.instance.onLibrarySongsRemoved({song.id}));
+    unawaited(PlayerService.instance
+        .onLibrarySongsRemoved({song.id})
+        .catchError((Object e) => debugPrint('Queue reconcile after delete failed: $e')));
   }
 
   /// Delete many songs with one in memory update.
@@ -682,7 +684,8 @@ class LibraryProvider extends ChangeNotifier {
     }
     _removeSongsFromMemory(toDelete);
     unawaited(PlayerService.instance
-        .onLibrarySongsRemoved(toDelete.map((s) => s.id).toSet()));
+        .onLibrarySongsRemoved(toDelete.map((s) => s.id).toSet())
+        .catchError((Object e) => debugPrint('Queue reconcile after bulk delete failed: $e')));
   }
 
   /// Drop deleted songs from the cached lists and bump the version once.

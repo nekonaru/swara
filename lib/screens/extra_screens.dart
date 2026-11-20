@@ -663,19 +663,10 @@ class _FoldersScreenState extends State<FoldersScreen> {
                     onTap: () async {
                       await Navigator.push(
                           context,
-                          PageRouteBuilder(
-                            transitionDuration: const Duration(milliseconds: 280),
-                            pageBuilder: (context, anim, _) => _FolderSongsScreen(
+                          MaterialPageRoute(
+                            builder: (_) => _FolderSongsScreen(
                                 folderName: folder.split('/').last,
                                 songs: songsInFolder),
-                            transitionsBuilder: (context, anim, _, child) =>
-                                SlideTransition(
-                              position: Tween<Offset>(
-                                      begin: const Offset(1, 0), end: Offset.zero)
-                                  .animate(CurvedAnimation(
-                                      parent: anim, curve: Curves.easeOutCubic)),
-                              child: child,
-                            ),
                           ));
                       _load();
                     },
@@ -1172,18 +1163,9 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                                 fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         onTap: () => Navigator.push(
                           context,
-                          PageRouteBuilder(
-                            transitionDuration: const Duration(milliseconds: 280),
-                            pageBuilder: (context, anim, _) =>
-                                _ArtistSongsScreen(artist: artist, songs: songs),
-                            transitionsBuilder: (context, anim, _, child) =>
-                                SlideTransition(
-                              position: Tween<Offset>(
-                                      begin: const Offset(1, 0), end: Offset.zero)
-                                  .animate(CurvedAnimation(
-                                      parent: anim, curve: Curves.easeOutCubic)),
-                              child: child,
-                            ),
+                          MaterialPageRoute(
+                            builder: (_) => _ArtistSongsScreen(
+                                artist: artist, songs: songs),
                           ),
                         ),
                       ),
@@ -1339,18 +1321,9 @@ class _GenresScreenState extends State<GenresScreen> {
                                 fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         onTap: () => Navigator.push(
                           context,
-                          PageRouteBuilder(
-                            transitionDuration: const Duration(milliseconds: 280),
-                            pageBuilder: (context, anim, _) =>
+                          MaterialPageRoute(
+                            builder: (_) =>
                                 _GenreSongsScreen(genre: genre, songs: songs),
-                            transitionsBuilder: (context, anim, _, child) =>
-                                SlideTransition(
-                              position: Tween<Offset>(
-                                      begin: const Offset(1, 0), end: Offset.zero)
-                                  .animate(CurvedAnimation(
-                                      parent: anim, curve: Curves.easeOutCubic)),
-                              child: child,
-                            ),
                           ),
                         ),
                       ),
