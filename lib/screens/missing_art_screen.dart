@@ -73,7 +73,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .artRefreshFailed(e.toString())),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
@@ -154,7 +154,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .artFetchFailed(e.toString())),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
@@ -224,8 +224,8 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.image_search,
-                          size: 64, color: Colors.grey),
+                      Icon(Icons.image_search,
+                          size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 12),
                       Text(AppLocalizations.of(context)!.artAllHaveCovers),
                     ],

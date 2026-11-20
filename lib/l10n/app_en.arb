@@ -2349,5 +2349,9 @@
     "aZIndex":  "A to Z jump bar",
     "@aZIndex":  {
                      "description":  "Accessibility label of the alphabet scrollbar"
-                 }
+                 },
+    "moreOptions":  "More options",
+    "@moreOptions":  {
+                         "description":  "Tooltip of an icon-only overflow menu button"
+                     }
 }

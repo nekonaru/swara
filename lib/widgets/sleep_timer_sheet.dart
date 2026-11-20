@@ -13,6 +13,8 @@ class SleepTimerSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      // The wheel picker owns vertical drags; sheet drag would fight it.
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => const SleepTimerSheet(),
     );
@@ -335,7 +337,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
           ),
           const SizedBox(height: 6),
           Text(AppLocalizations.of(context)!.sleepStoppingPlayback,
-              style: const TextStyle(fontSize: 14, color: Colors.grey)),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ] else ...[
           // Song mode
           Text(
@@ -384,7 +386,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: Colors.red[700],
+                  backgroundColor: Theme.of(context).colorScheme.error,
                 ),
                 child: Text(AppLocalizations.of(context)!.sleepStop,
                     style: const TextStyle(fontWeight: FontWeight.w600)),

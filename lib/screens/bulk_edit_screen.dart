@@ -76,15 +76,21 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
       }
       try {
         await DBHelper.instance.updateSongMetadataBulk(updates);
-        await lib.loadFromDb();
+        // The write is the success criterion; the reload is best effort and
+        // must not turn a successful bulk edit into "0 succeeded".
         ok = updates.length;
+        try {
+          await lib.loadFromDb();
+        } catch (_) {
+          // In-memory list will self-heal on the next library load.
+        }
         // Keep the list items in sync after the write succeeded.
         for (final s in widget.songs) {
           if (artist.isNotEmpty) s.artist = artist;
           if (genre.isNotEmpty) s.genre = genre;
         }
       } catch (_) {
-        failed = widget.songs.length;
+        failed = widget.songs.length - ok;
       }
     } catch (_) {
       // A provider level failure counts every remaining song as failed.

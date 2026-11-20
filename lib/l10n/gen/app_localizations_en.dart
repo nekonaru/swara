@@ -2056,4 +2056,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aZIndex => 'A to Z jump bar';
+
+  @override
+  String get moreOptions => 'More options';
 }

@@ -23,7 +23,8 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen>
+    with TickerProviderStateMixin {
   final _player = PlayerService.instance;
   bool _showLyrics = false;
   bool _isFetchingLyrics = false;
@@ -62,10 +63,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
   static const double _kLrcTargetAlignment = 0.4;
   static const int _kLrcOffsetStepMs = 100;
 
+  // Smooth return when a dismiss drag does not cross the threshold.
+  late final AnimationController _returnController;
+  double _returnStart = 0;
+
   @override
   void initState() {
     super.initState();
     _player.addListener(_onPlayerForLyrics);
+    _returnController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 200))
+      ..addListener(() {
+        if (mounted) {
+          _dragOffset.value = _returnStart * (1 - _returnController.value);
+        }
+      });
   }
 
   void _onPlayerForLyrics() {
@@ -107,6 +119,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void dispose() {
     _player.removeListener(_onPlayerForLyrics);
+    _returnController.dispose();
     // If the slider is disposed mid-drag, release the seek guard so A-B
     // repeat and crossfade triggers are not suppressed for the rest of the
     // session.
@@ -138,8 +151,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         // StatefulBuilder keeps the numeric readouts live while dragging.
         return StatefulBuilder(
@@ -606,7 +617,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (_dragOffset.value > 100 || (details.primaryVelocity ?? 0) > 600) {
           Navigator.pop(context);
         } else {
-          _dragOffset.value = 0;
+          // Ease back to rest instead of snapping the whole sheet.
+          _returnStart = _dragOffset.value;
+          _returnController.forward(from: 0);
         }
       },
       onVerticalDragCancel: () {
@@ -926,7 +939,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             // Decode near display size to save image memory.
                             cacheWidth: 520,
                             fallback: Container(
-                              width: 260, height: 260, color: Colors.grey[300],
+                              width: 260, height: 260, color: Theme.of(context).colorScheme.outline,
                               child: const Icon(Icons.music_note, size: 80),
                             ),
                           ),
@@ -1017,7 +1030,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             children: [
               IconButton(
                 icon: Icon(Icons.shuffle,
-                    color: _player.isShuffle ? Theme.of(context).colorScheme.primary : Colors.grey),
+                    color: _player.isShuffle ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
                 tooltip: AppLocalizations.of(context)!.playerShuffle,
                 onPressed: _player.toggleShuffle,
               ),
@@ -1094,14 +1107,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
               IconButton(
                 icon: Icon(
                   isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? Colors.red : Colors.grey,
+                  color: isFavorite ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 22,
                 ),
                 tooltip: AppLocalizations.of(context)!.playerFavorite,
                 onPressed: () => context.read<LibraryProvider>().toggleFavorite(song, !isFavorite),
               ),
               IconButton(
-                icon: const Icon(Icons.playlist_add, size: 22, color: Colors.grey),
+                icon: Icon(Icons.playlist_add, size: 22, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 tooltip: AppLocalizations.of(context)!.playerAddToPlaylist,
                 onPressed: () => pickPlaylist(context, song, context.read<PlaylistProvider>()),
               ),
@@ -1120,7 +1133,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           Icons.bedtime_outlined,
                           color: (_player.sleepTimerRemaining != null || _player.sleepSongsRemaining != null)
                               ? Theme.of(context).colorScheme.primary
-                              : Colors.grey,
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         tooltip: AppLocalizations.of(context)!.playerSleepTimer,
                         onPressed: _pickSleepTimer,
@@ -1143,13 +1156,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: ActionChip(
                       avatar: Icon(Icons.speed,
-                          size: 14, color: isAdjusted ? color : Colors.grey),
+                          size: 14, color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant),
                       label: Text(
                         _player.playbackSpeedLabel,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: isAdjusted ? color : Colors.grey,
+                          color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       // Keep the label compact, but leave the default 48 dp
@@ -1173,7 +1186,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: abActive ? Theme.of(context).colorScheme.primary : Colors.grey,
+                        color: abActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     tooltip:
@@ -1183,7 +1196,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.queue_music_outlined, size: 22, color: Colors.grey),
+                icon: Icon(Icons.queue_music_outlined, size: 22, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 tooltip: AppLocalizations.of(context)!.queueTitle,
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QueueScreen())),
               ),
@@ -1225,7 +1238,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ),
       icon: Icon(
         mode == SwaraRepeatMode.one ? Icons.repeat_one : Icons.repeat,
-        color: isActive ? color : Colors.grey,
+        color: isActive ? color : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }

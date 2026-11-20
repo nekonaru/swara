@@ -101,9 +101,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
   Future<void> _onReorder(int oldIndex, int newIndex) async {
     final previousOrder = List<Song>.of(_songs);
+    // Replace the source list instead of mutating it in place: _displayed
+    // memoizes on identical(_displayedSource, source), so an in-place edit
+    // would keep serving the old order on the next rebuild.
     setState(() {
-      final song = _songs.removeAt(oldIndex);
-      _songs.insert(newIndex, song);
+      final reordered = List<Song>.of(_songs);
+      final song = reordered.removeAt(oldIndex);
+      reordered.insert(newIndex, song);
+      _songs = reordered;
     });
     try {
       await context.read<PlaylistProvider>().reorder(widget.playlistId, _songs.map((s) => s.id).toList());
@@ -390,6 +395,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           // Extra actions menu: merge another playlist into this one.
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
+            tooltip: AppLocalizations.of(context)!.moreOptions,
             onSelected: (action) {
               if (action == 'merge') _mergeFromOther();
             },
@@ -409,7 +415,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.queue_music_outlined,
-                      size: 64, color: Colors.grey[300]),
+                      size: 64, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(height: 16),
                   Text(l.playlistEmpty, textAlign: TextAlign.center),
                 ],
@@ -493,10 +499,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
-                        const Icon(Icons.drag_handle, size: 16, color: Colors.grey),
+                        Icon(Icons.drag_handle, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 6),
                         Text(l.playlistReorderHint,
-                            style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ],
                     ),
                   ),
@@ -507,7 +513,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.search_off,
-                                  size: 56, color: Colors.grey[300]),
+                                  size: 56, color: Theme.of(context).colorScheme.outline),
                               const SizedBox(height: 16),
                               Text(l.playlistNoResults,
                                   textAlign: TextAlign.center),
@@ -563,7 +569,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       direction: DismissDirection.endToStart,
       onDismissed: (_) => _removeSong(song),
       background: Container(
-        color: Colors.red,
+        color: Theme.of(context).colorScheme.error,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: const Icon(Icons.delete, color: Colors.white),
@@ -603,13 +609,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               constraints:
                   const BoxConstraints(minWidth: 48, minHeight: 48),
               icon: const Icon(Icons.more_vert),
+              tooltip: AppLocalizations.of(context)!.moreOptions,
               onPressed: () async {
                 await showSongOptions(context, song,
                     showFullDelete: false, playlistId: widget.playlistId);
                 _load();
               },
             ),
-            if (reorderable) const Icon(Icons.drag_handle, color: Colors.grey),
+            if (reorderable) Icon(Icons.drag_handle, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],
         ),
         onTap: () => PlayerService.instance.setQueueAndPlay(songs, i),

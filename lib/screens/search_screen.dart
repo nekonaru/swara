@@ -294,8 +294,6 @@ class _SearchScreenState extends State<SearchScreen> {
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         builder: (ctx) => SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -343,7 +341,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 3),
-                              backgroundColor: failed > 0 ? Colors.red : null,
+                              backgroundColor: failed > 0 ? Theme.of(context).colorScheme.error : null,
                               content: Text(failed > 0
                                   ? partial
                                   : AppLocalizations.of(context)!
@@ -388,7 +386,7 @@ class _SearchScreenState extends State<SearchScreen> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
-          backgroundColor: error != null ? Colors.red : null,
+          backgroundColor: error != null ? Theme.of(context).colorScheme.error : null,
           content: Text(error != null
               ? AppLocalizations.of(context)!.bulkFavoriteFailed(error)
               : done),
@@ -400,7 +398,7 @@ class _SearchScreenState extends State<SearchScreen> {
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           content: Text(AppLocalizations.of(context)!
               .bulkFavoriteFailed(e.toString())),
         ),
@@ -711,6 +709,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 constraints:
                     const BoxConstraints(minWidth: 48, minHeight: 48),
                 icon: const Icon(Icons.more_vert),
+                tooltip: AppLocalizations.of(context)!.moreOptions,
                 onPressed: () => showSongOptions(context, song),
               ),
           ],
@@ -771,7 +770,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search, size: 64, color: Colors.grey[300]),
+            Icon(Icons.search, size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             Text(
               l.searchPromptTitle,
@@ -795,7 +794,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 56, color: Colors.grey[300]),
+            Icon(Icons.search_off, size: 56, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             Text(
               l.searchNoResults,
@@ -821,6 +820,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   _controller.selection = TextSelection.collapsed(
                       offset: suggestion.length);
                   _pendingQuery = suggestion;
+                  _query = suggestion;
+                  _exitMultiSelect();
                   _startSearch();
                 },
                 icon: const Icon(Icons.auto_fix_high, size: 18),

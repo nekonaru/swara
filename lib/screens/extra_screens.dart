@@ -210,6 +210,7 @@ Widget buildSongTile(
                   if (showOptions)
                     IconButton(
                       icon: const Icon(Icons.more_vert),
+                      tooltip: AppLocalizations.of(context)!.moreOptions,
                       constraints:
                           const BoxConstraints(minWidth: 48, minHeight: 48),
                       onPressed: () => showSongOptions(context, song),
@@ -555,7 +556,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.folder_outlined, size: 64, color: Colors.grey[300]),
+            Icon(Icons.folder_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             Text(AppLocalizations.of(context)!.foldersEmpty,
                 textAlign: TextAlign.center),
@@ -642,9 +643,9 @@ class _FoldersScreenState extends State<FoldersScreen> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(Icons.folder_outlined,
-                        color: isHidden ? Colors.grey : Theme.of(context).colorScheme.primary),
+                        color: isHidden ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.primary),
                     title: Text(folder.split('/').last,
-                        style: isHidden ? const TextStyle(color: Colors.grey) : null),
+                        style: isHidden ? TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant) : null),
                     subtitle: Text(
                         AppLocalizations.of(context)!
                             .librarySongCountDuration(songsInFolder.length,
@@ -966,7 +967,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.music_note_outlined,
-                            size: 64, color: Colors.grey[300]),
+                            size: 64, color: Theme.of(context).colorScheme.outline),
                         const SizedBox(height: 16),
                         Text(
                             AppLocalizations.of(context)!.foldersNoSongs,
@@ -1017,8 +1018,6 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         child: Wrap(
           children: [
@@ -1097,7 +1096,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.person_outline, size: 64, color: Colors.grey[300]),
+                Icon(Icons.person_outline, size: 64, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(height: 16),
                 Text(AppLocalizations.of(context)!.artistsEmpty,
                     textAlign: TextAlign.center),
@@ -1253,7 +1252,7 @@ class _GenresScreenState extends State<GenresScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.category_outlined,
-                    size: 64, color: Colors.grey[300]),
+                    size: 64, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(height: 16),
                 Text(AppLocalizations.of(context)!.genresEmpty,
                     textAlign: TextAlign.center),
@@ -1502,8 +1501,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
-        shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         builder: (ctx) => SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -1549,7 +1546,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 3),
-                              backgroundColor: failed > 0 ? Colors.red : null,
+                              backgroundColor: failed > 0 ? Theme.of(context).colorScheme.error : null,
                               content: Text(failed > 0
                                   ? partial
                                   : AppLocalizations.of(context)!
@@ -1695,7 +1692,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.favorite_border, size: 64, color: Colors.grey[300]),
+                Icon(Icons.favorite_border, size: 64, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(height: 16),
                 Text(AppLocalizations.of(context)!.collectionsFavoritesEmpty,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
@@ -1838,8 +1835,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         // Cap height at 90 percent of the screen and scroll on small phones.
         child: ConstrainedBox(
@@ -1942,7 +1937,7 @@ class _FavSongTile extends StatelessWidget {
                   else if (isCurrent)
                     const _FavNowPlayingBadge()
                   else
-                    const Icon(Icons.favorite, color: Colors.red, size: 20),
+                    Icon(Icons.favorite, color: Theme.of(context).colorScheme.error, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1981,6 +1976,7 @@ class _FavSongTile extends StatelessWidget {
                       constraints:
                           const BoxConstraints(minWidth: 48, minHeight: 48),
                       icon: const Icon(Icons.more_vert),
+                      tooltip: AppLocalizations.of(context)!.moreOptions,
                       onPressed: () => showSongOptions(context, song),
                     ),
                 ],
@@ -2078,7 +2074,7 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.new_releases_outlined,
-                size: 64, color: Colors.grey[300]),
+                size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             Text(
                 AppLocalizations.of(context)!.collectionsRecentlyAddedEmpty,
@@ -2171,7 +2167,7 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.trending_up_outlined, size: 64, color: Colors.grey[300]),
+            Icon(Icons.trending_up_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             Text(AppLocalizations.of(context)!.collectionsMostPlayedEmpty,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
@@ -2228,7 +2224,7 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
                                 color: i == 0
                                     ? Colors.amber
                                     : i == 1
-                                        ? Colors.grey[400]
+                                        ? Theme.of(context).colorScheme.outline
                                         : Colors.brown[300],
                                 shape: BoxShape.circle,
                               ),

@@ -38,8 +38,6 @@ Future<void> showSongOptions(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (ctx) => SafeArea(
       // Cap height at 90 percent of the screen and scroll on small phones.
       child: ConstrainedBox(
@@ -358,8 +356,6 @@ Future<void> pickPlaylist(BuildContext context, Song song, PlaylistProvider prov
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (ctx) => SafeArea(
       // Cap height at 90 percent of the screen and scroll long lists.
       child: ConstrainedBox(

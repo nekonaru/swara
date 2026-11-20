@@ -332,7 +332,7 @@ class DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.grey[300]),
+              Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.outline),
               const SizedBox(height: 20),
               Text(
                 l.dashboardLoadFailedTitle,
@@ -367,7 +367,7 @@ class DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.all(24),
           children: [
             const SizedBox(height: 80),
-            Icon(Icons.bar_chart_outlined, size: 64, color: Colors.grey[300]),
+            Icon(Icons.bar_chart_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 20),
             Text(
               l.dashboardEmptyTitle,
@@ -787,7 +787,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                     fontWeight: h == peakIndex
                         ? FontWeight.bold
                         : FontWeight.normal,
-                    color: h == peakIndex ? cs.primary : Colors.grey,
+                    color: h == peakIndex ? cs.primary : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -969,8 +969,6 @@ class DashboardScreenState extends State<DashboardScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => DraggableScrollableSheet(
         initialChildSize: 0.6,
         maxChildSize: 0.9,
@@ -1106,7 +1104,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                     fontWeight: i == todayIndex
                         ? FontWeight.bold
                         : FontWeight.normal,
-                    color: i == todayIndex ? cs.primary : Colors.grey,
+                    color: i == todayIndex ? cs.primary : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),

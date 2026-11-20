@@ -40,10 +40,11 @@ class _PlayingIndicatorState extends State<PlayingIndicator> with TickerProvider
       if (widget.isPlaying) {
         if (!c.isAnimating) c.repeat(reverse: true);
       } else {
-        c.stop();
-        // Settle at the baseline instead of freezing mid-bounce: a paused
-        // indicator should look still, not like a stalled animation.
-        c.value = 0.0;
+        // Settle at the baseline over a short curve instead of freezing
+        // mid-bounce and snapping when playback pauses.
+        c.animateTo(0.0,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut);
       }
     }
   }

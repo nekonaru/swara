@@ -2055,4 +2055,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get aZIndex => 'Bilah lompat A sampai Z';
+
+  @override
+  String get moreOptions => 'Opsi lainnya';
 }

@@ -57,7 +57,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history_outlined, size: 64, color: Colors.grey[300]),
+            Icon(Icons.history_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
             Text(l.historyEmpty, textAlign: TextAlign.center),
           ],
@@ -84,6 +84,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                   constraints:
                       const BoxConstraints(minWidth: 48, minHeight: 48),
                   icon: const Icon(Icons.more_vert),
+                  tooltip: AppLocalizations.of(context)!.moreOptions,
                   onPressed: () => showSongOptions(context, song),
                 ),
               ],

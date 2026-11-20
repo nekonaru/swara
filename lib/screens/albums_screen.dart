@@ -129,8 +129,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -173,7 +171,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.album_outlined, size: 64, color: Colors.grey[300]),
+              Icon(Icons.album_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
               const SizedBox(height: 16),
               Text(l.albumsEmpty, textAlign: TextAlign.center),
             ],

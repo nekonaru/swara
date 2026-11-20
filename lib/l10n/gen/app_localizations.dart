@@ -3620,6 +3620,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A to Z jump bar'**
   String get aZIndex;
+
+  /// Tooltip of an icon-only overflow menu button
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get moreOptions;
 }
 
 class _AppLocalizationsDelegate

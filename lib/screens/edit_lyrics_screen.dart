@@ -186,7 +186,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
                   onPressed: _clear,
                   icon: const Icon(Icons.close),
                   label: Text(l.delete),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                  style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
                 ),
               ],
             ),

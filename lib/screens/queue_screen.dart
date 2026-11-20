@@ -43,7 +43,11 @@ class _QueueScreenState extends State<QueueScreen> {
       final currentIndex = _player.currentIndex;
       // Show the currently playing song near the top of the screen (not flush with the very top)
       final target = (currentIndex * _itemHeight - _itemHeight).clamp(0, _scrollController.position.maxScrollExtent);
-      _scrollController.jumpTo(target.toDouble());
+      _scrollController.animateTo(
+        target.toDouble(),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
     });
   }
 
@@ -276,7 +280,7 @@ class _QueueScreenState extends State<QueueScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.queue_music_outlined,
-                          size: 64, color: Colors.grey[300]),
+                          size: 64, color: Theme.of(context).colorScheme.outline),
                       const SizedBox(height: 16),
                       Text(AppLocalizations.of(context)!.queueEmpty,
                           textAlign: TextAlign.center),
@@ -289,7 +293,7 @@ class _QueueScreenState extends State<QueueScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
-                          const Icon(Icons.drag_handle, size: 18, color: Colors.grey),
+                          Icon(Icons.drag_handle, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(AppLocalizations.of(context)!.queueReorderHint,
@@ -319,7 +323,7 @@ class _QueueScreenState extends State<QueueScreen> {
                               direction: isPlaying ? DismissDirection.none : DismissDirection.endToStart,
                               onDismissed: (_) => _removeSlot(slotId),
                               background: Container(
-                                color: Colors.red,
+                                color: Theme.of(context).colorScheme.error,
                                 alignment: Alignment.centerRight,
                                 padding: const EdgeInsets.symmetric(horizontal: 20),
                                 child: const Icon(Icons.delete, color: Colors.white),
@@ -350,7 +354,7 @@ class _QueueScreenState extends State<QueueScreen> {
                                           icon: const Icon(Icons.close, size: 20),
                                           onPressed: () => _removeSlot(slotId),
                                         ),
-                                      const Icon(Icons.drag_handle, color: Colors.grey),
+                                      Icon(Icons.drag_handle, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                     ],
                                   ),
                                   onTap: () => _player.playAtQueueIndex(i),

@@ -183,7 +183,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
               child: Text(l.cancel)),
           TextButton(
               onPressed: () => Navigator.pop(c, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
               child: Text(l.delete)),
         ],
       ),
@@ -357,7 +357,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(c, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: Text(AppLocalizations.of(c)!.delete),
           ),
         ],
@@ -750,6 +750,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
               ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
+              tooltip: AppLocalizations.of(context)!.moreOptions,
               onSelected: (action) {
                 if (action == 'delete') {
                   // Deleting an auto playlist is safe:
@@ -826,6 +827,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                 style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, size: 20),
+              tooltip: AppLocalizations.of(context)!.moreOptions,
               onSelected: (action) {
                 if (action == 'rename') {
                   _renameFolder(context, prov, folder);
@@ -1046,7 +1048,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.queue_music_outlined,
-                              size: 64, color: Colors.grey[300]),
+                              size: 64, color: Theme.of(context).colorScheme.outline),
                           const SizedBox(height: 12),
                           Text(l.collectionsNoPlaylists,
                               style: const TextStyle(

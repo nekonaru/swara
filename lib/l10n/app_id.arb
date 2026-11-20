@@ -2349,5 +2349,9 @@
     "aZIndex":  "Bilah lompat A sampai Z",
     "@aZIndex":  {
                      "description":  "Label aksesibilitas bilah gulir alfabet"
-                 }
+                 },
+    "moreOptions":  "Opsi lainnya",
+    "@moreOptions":  {
+                         "description":  "Tooltip tombol menu overflow berupa ikon"
+                     }
 }

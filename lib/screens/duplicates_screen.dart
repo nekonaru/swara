@@ -208,7 +208,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: Text(l10n.delete),
           ),
         ],
@@ -267,7 +267,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: Text(l10n.delete),
           ),
         ],
@@ -316,7 +316,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.copy_outlined, size: 64, color: Colors.grey[300]),
+                  Icon(Icons.copy_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(height: 12),
                   Text(
                     l10n.dupEmpty,

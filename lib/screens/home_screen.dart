@@ -288,8 +288,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => _TabSettingsSheet(
         initialDefs: _allTabDefs.map((t) => t.copy()).toList(),
         onApply: (newDefs) {

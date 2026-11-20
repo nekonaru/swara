@@ -301,7 +301,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: json));
+                try {
+                  await Clipboard.setData(ClipboardData(text: json));
+                } catch (_) {
+                  if (ctx.mounted) _showSnack(l10n.dataFailedGeneric);
+                  return;
+                }
                 await BackupService.recordExport();
                 if (!ctx.mounted) return;
                 if (mounted) setState(() => _lastExport = DateTime.now());
@@ -357,9 +362,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final data = await Clipboard.getData(Clipboard.kTextPlain);
-              if (!ctx.mounted) return;
-              controller.text = data?.text ?? '';
+              try {
+                final data = await Clipboard.getData(Clipboard.kTextPlain);
+                if (!ctx.mounted) return;
+                controller.text = data?.text ?? '';
+              } catch (_) {
+                if (ctx.mounted) {
+                  _showSnack(l10n.dataFailedGeneric);
+                }
+              }
             },
             child: Text(l10n.dataPaste),
           ),
@@ -736,8 +747,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       : null,
                                 ),
                                 child: isSelected
-                                    ? const Icon(Icons.check,
-                                        color: Colors.white, size: 18)
+                                    ? Icon(
+                                        Icons.check,
+                                        // Light accents need a dark check,
+                                        // dark accents a light one.
+                                        color: kAccentColors[i]
+                                                    .computeLuminance() >
+                                                0.5
+                                            ? Colors.black
+                                            : Colors.white,
+                                        size: 18,
+                                      )
                                     : null,
                               ),
                             ),

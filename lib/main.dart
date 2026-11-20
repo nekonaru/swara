@@ -449,12 +449,26 @@ class MusicApp extends StatelessWidget {
               builder: (context, child) {
                 final media = MediaQuery.of(context);
                 final systemScale = media.textScaler.scale(1.0);
-                return MediaQuery(
-                  data: media.copyWith(
-                    textScaler:
-                        TextScaler.linear(systemScale * tp.textScale),
+                // Keep system bars in step with the active theme after the
+                // splash hands off, including AMOLED black backgrounds.
+                final scheme = Theme.of(context).colorScheme;
+                final dark = scheme.brightness == Brightness.dark;
+                return AnnotatedRegion<SystemUiOverlayStyle>(
+                  value: SystemUiOverlayStyle(
+                    statusBarColor: Colors.transparent,
+                    statusBarIconBrightness:
+                        dark ? Brightness.light : Brightness.dark,
+                    systemNavigationBarColor: scheme.surface,
+                    systemNavigationBarIconBrightness:
+                        dark ? Brightness.light : Brightness.dark,
                   ),
-                  child: child ?? const SizedBox.shrink(),
+                  child: MediaQuery(
+                    data: media.copyWith(
+                      textScaler:
+                          TextScaler.linear(systemScale * tp.textScale),
+                    ),
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 );
               },
               themeMode: tp.themeMode,

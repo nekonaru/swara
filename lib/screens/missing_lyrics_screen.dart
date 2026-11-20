@@ -65,7 +65,7 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .lyrRefreshFailed(e.toString())),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
@@ -146,7 +146,7 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .lyrFetchFailed(e.toString())),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
@@ -216,8 +216,8 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.lyrics_outlined,
-                          size: 64, color: Colors.grey),
+                      Icon(Icons.lyrics_outlined,
+                          size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(height: 12),
                       Text(AppLocalizations.of(context)!.lyrAllHave),
                     ],

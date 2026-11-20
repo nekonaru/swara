@@ -64,7 +64,7 @@ class MiniPlayer extends StatelessWidget {
                       // Decode thumbnail size only to save image memory.
                       cacheWidth: 88,
                       fallback: Container(
-                        width: 44, height: 44, color: Colors.grey[400],
+                        width: 44, height: 44, color: Theme.of(context).colorScheme.outline,
                         child: const Icon(Icons.music_note, size: 20),
                       ),
                     ),

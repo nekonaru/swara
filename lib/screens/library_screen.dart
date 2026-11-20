@@ -276,7 +276,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(err),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 5)));
     }
@@ -297,8 +297,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         // Cap height at 90 percent of the screen and scroll on small phones.
         child: ConstrainedBox(
@@ -382,8 +380,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(
         // Cap height at 90 percent of the screen and scroll long lists.
         child: ConstrainedBox(
@@ -428,7 +424,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         behavior: SnackBarBehavior.floating,
                         duration: const Duration(seconds: 3),
-                        backgroundColor: failed > 0 ? Colors.red : null,
+                        backgroundColor: failed > 0 ? Theme.of(context).colorScheme.error : null,
                         content: Text(failed > 0
                             ? partial
                             : l.libraryAddedToPlaylist(added, name))));
@@ -513,7 +509,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 3),
-                            backgroundColor: Colors.red,
+                            backgroundColor: Theme.of(context).colorScheme.error,
                             content: Text(l.bulkActionFailed('$e'))));
                         return;
                       }
@@ -545,7 +541,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 3),
                             backgroundColor:
-                                error != null ? Colors.red : null,
+                                error != null ? Theme.of(context).colorScheme.error : null,
                             content: Text(error != null
                                 ? l.bulkFavoriteFailed(error)
                                 : done)));
@@ -554,7 +550,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 3),
-                            backgroundColor: Colors.red,
+                            backgroundColor: Theme.of(context).colorScheme.error,
                             content: Text(l.bulkFavoriteFailed('$e'))));
                       }
                     }),
@@ -680,7 +676,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         final error = lib.scanError;
         return Center(
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.library_music_outlined, size: 72, color: Colors.grey[300]),
+          Icon(Icons.library_music_outlined, size: 72, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 16),
           Text(l.libraryNoMusic,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
@@ -811,8 +807,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       // Both counters walk the whole library, so compute them only while the
       // sheet is actually built instead of on every tap that opens the menu.
       builder: (ctx) {
@@ -1064,6 +1058,7 @@ class _SongTile extends StatelessWidget {
                   constraints:
                       const BoxConstraints(minWidth: 48, minHeight: 48),
                   icon: const Icon(Icons.more_vert),
+                  tooltip: AppLocalizations.of(context)!.moreOptions,
                   onPressed: () => onOptions?.call(song) ??
                       showSongOptions(context, song)),
           ],
