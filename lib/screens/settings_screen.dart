@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +16,7 @@ import '../services/db_helper.dart';
 import '../services/audio_effects_service.dart';
 import '../services/update_service.dart';
 import '../services/equalizer_service.dart';
+import '../services/loudness_service.dart';
 import '../services/player_service.dart';
 import '../utils/scan_controls.dart';
 import '../widgets/eq_controls.dart';
@@ -36,6 +38,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ArtCacheUsage? _artUsage;
   // Busy flag while the listening history prune runs.
   bool _busyHistory = false;
+  // Last backup export, and the live DSP toggle state.
+  DateTime? _lastExport;
+  bool _loudnessEnabled = false;
   // App version shown in About, loaded once from package info.
   String _appVersion = '';
 
@@ -44,7 +49,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _refreshArtCache();
     _loadAppVersion();
+    _loudnessEnabled = LoudnessService.instance.enabled;
+    _loadLastExport();
   }
+
+  Future<void> _loadLastExport() async {
+    final stamp = await BackupService.lastExport();
+    if (!mounted) return;
+    setState(() => _lastExport = stamp);
+  }
+
+  String _formatExportStamp(DateTime stamp) =>
+      DateFormat('yyyy-MM-dd HH:mm').format(stamp.toLocal());
 
   // Read the real version once so About never shows a stale hardcode.
   Future<void> _loadAppVersion() async {
@@ -262,10 +278,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.pop(ctx),
               child: Text(l10n.close),
             ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  final file = await BackupService.saveBackupToFile(json);
+                  await BackupService.recordExport();
+                  if (!ctx.mounted) return;
+                  if (mounted) setState(() => _lastExport = DateTime.now());
+                  Navigator.pop(ctx);
+                  _showSnack(l10n.dataBackupSaved(file.path));
+                } catch (_) {
+                  if (ctx.mounted) {
+                    _showSnack(l10n.dataFailedGeneric);
+                  }
+                }
+              },
+              child: Text(l10n.dataSaveToFile),
+            ),
             FilledButton(
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: json));
+                await BackupService.recordExport();
                 if (!ctx.mounted) return;
+                if (mounted) setState(() => _lastExport = DateTime.now());
                 Navigator.pop(ctx);
                 _showSnack(l10n.dataCopied);
               },
@@ -655,39 +690,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   runSpacing: 10,
                   children: List.generate(kAccentColors.length, (i) {
                     final isSelected = i == themeProvider.accentColorIndex;
-                    return GestureDetector(
-                      onTap: _savingPrefs
-                          ? null
-                          : () => _savePrefs(
-                              () => themeProvider.setAccentColor(i)),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: kAccentColors[i],
-                          shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(
-                                  color:
-                                      Theme.of(context).colorScheme.outline,
-                                  width: 3)
-                              : null,
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: kAccentColors[i]
-                                        .withValues(alpha: 0.4),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ]
-                              : null,
+                    return Tooltip(
+                      message: _accentName(l10n, i),
+                      child: Semantics(
+                        label: _accentName(l10n, i),
+                        selected: isSelected,
+                        child: GestureDetector(
+                          onTap: _savingPrefs
+                              ? null
+                              : () => _savePrefs(
+                                  () => themeProvider.setAccentColor(i)),
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Center(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: kAccentColors[i],
+                                  shape: BoxShape.circle,
+                                  border: isSelected
+                                      ? Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outline,
+                                          width: 3)
+                                      : null,
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: kAccentColors[i]
+                                                .withValues(alpha: 0.4),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          )
+                                        ]
+                                      : null,
+                                ),
+                                child: isSelected
+                                    ? const Icon(Icons.check,
+                                        color: Colors.white, size: 18)
+                                    : null,
+                              ),
+                            ),
+                          ),
                         ),
-                        child: isSelected
-                            ? const Icon(Icons.check,
-                                color: Colors.white, size: 18)
-                            : null,
                       ),
                     );
                   }),
@@ -853,6 +902,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(l10n.eqOpenSystemSubtitle),
             onTap: _openSystemEqualizer,
           ),
+          SwitchListTile(
+            title: Text(l10n.loudnessNormalization),
+            subtitle: Text(l10n.loudnessNormalizationSubtitle),
+            secondary: const Icon(Icons.volume_up_outlined),
+            value: _loudnessEnabled,
+            onChanged: (v) async {
+              setState(() => _loudnessEnabled = v);
+              await LoudnessService.instance.setEnabled(v);
+              if (v) {
+                unawaited(LoudnessService.instance
+                    .attach(PlayerService.instance.player));
+              }
+            },
+          ),
           const Divider(),
 
           // -- LIBRARY --
@@ -938,6 +1001,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle:
                 Text(AppLocalizations.of(context)!.dataImportSubtitle),
             onTap: _busyData ? null : _importData,
+          ),
+          ListTile(
+            leading: const Icon(Icons.schedule_outlined),
+            title: Text(AppLocalizations.of(context)!.dataLastExport),
+            subtitle: Text(_lastExport == null
+                ? AppLocalizations.of(context)!.dataNever
+                : _formatExportStamp(_lastExport!)),
           ),
           ListTile(
             leading: _loadingArt

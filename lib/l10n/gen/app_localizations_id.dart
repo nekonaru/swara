@@ -2021,4 +2021,38 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get settingsCheckForUpdate => 'Periksa pembaruan';
+
+  @override
+  String get coreRestoreFailed =>
+      'Gagal memulihkan pemutaran. Pilih lagu untuk memulai.';
+
+  @override
+  String get loudnessNormalization => 'Normalisasi kenyaringan';
+
+  @override
+  String get loudnessNormalizationSubtitle =>
+      'Tingkatkan bagian yang pelan dengan DSP kenyaringan sistem';
+
+  @override
+  String get dataSaveToFile => 'Simpan ke file';
+
+  @override
+  String get dataLastExport => 'Ekspor terakhir';
+
+  @override
+  String get dataNever => 'Belum pernah';
+
+  @override
+  String dataBackupSaved(String path) {
+    return 'Backup tersimpan di $path';
+  }
+
+  @override
+  String get playerShuffle => 'Acak';
+
+  @override
+  String get playerPlayPause => 'Putar atau jeda';
+
+  @override
+  String get aZIndex => 'Bilah lompat A sampai Z';
 }

@@ -825,11 +825,11 @@
                     },
     "playerSeekBack":  "10 seconds back",
     "@playerSeekBack":  {
-                             "description":  "Button that seeks 15 seconds backwards"
+                             "description":  "Button that seeks 10 seconds backwards"
                          },
     "playerSeekForward":  "10 seconds forward",
     "@playerSeekForward":  {
-                                "description":  "Button that seeks 15 seconds forward"
+                                "description":  "Button that seeks 10 seconds forward"
                             },
     "songDetailsTitle":  "Song details",
     "@songDetailsTitle":  {
@@ -1103,7 +1103,8 @@
                                      }
                                  },
                                  "description":  "Backup rows skipped because their source songs are missing"
-                             },"dataClearConfirmTitle":  "Clear art cache?",
+                             },
+    "dataClearConfirmTitle":  "Clear art cache?",
     "dataFailedGeneric":  "Something went wrong. Details are in the log.",
     "@dataFailedGeneric":  {
                               "description":  "Generic failure message used for data-management actions whose error text would be noise"
@@ -2303,5 +2304,50 @@
     "settingsCheckForUpdate":  "Check for updates",
     "@settingsCheckForUpdate":  {
                                    "description":  "Tooltip of the refresh button in About"
-                               }
+                               },
+    "coreRestoreFailed":  "Could not restore playback. Pick a song to start.",
+    "@coreRestoreFailed":  {
+                               "description":  "Message shown when the saved playback session cannot be restored"
+                           },
+    "loudnessNormalization":  "Loudness normalization",
+    "@loudnessNormalization":  {
+                                   "description":  "Title of the loudness normalization switch"
+                               },
+    "loudnessNormalizationSubtitle":  "Lift quiet passages with the system loudness DSP",
+    "@loudnessNormalizationSubtitle":  {
+                                           "description":  "Subtitle of the loudness normalization switch"
+                                       },
+    "dataSaveToFile":  "Save to file",
+    "@dataSaveToFile":  {
+                            "description":  "Button in the backup export dialog that saves the JSON to a file"
+                        },
+    "dataLastExport":  "Last export",
+    "@dataLastExport":  {
+                            "description":  "Settings row showing when the last backup was exported"
+                        },
+    "dataNever":  "Never",
+    "@dataNever":  {
+                       "description":  "Subtitle shown when no backup has been exported yet"
+                   },
+    "dataBackupSaved":  "Backup saved to {path}",
+    "@dataBackupSaved":  {
+                             "description":  "Message after a backup was written to a file",
+                             "placeholders":  {
+                                                  "path":  {
+                                                               "type":  "String"
+                                                           }
+                                              }
+                         },
+    "playerShuffle":  "Shuffle",
+    "@playerShuffle":  {
+                           "description":  "Tooltip of the shuffle button on the player screen"
+                       },
+    "playerPlayPause":  "Play or pause",
+    "@playerPlayPause":  {
+                             "description":  "Tooltip of the main play/pause button"
+                         },
+    "aZIndex":  "A to Z jump bar",
+    "@aZIndex":  {
+                     "description":  "Accessibility label of the alphabet scrollbar"
+                 }
 }

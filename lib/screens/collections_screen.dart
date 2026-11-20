@@ -44,7 +44,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   // Names for the built-in automatic playlists.
   static const String _dailyMixName = 'Daily Mix';
   static const String _unplayedName = 'Unplayed';
+  static const String _forgottenName = 'Forgotten Favorites';
   static const int _dailyMixLimit = 25;
+  static const int _forgottenDays = 90;
 
   // One-shot guard so the auto playlists are synced once per screen visit
   // instead of on every rebuild. Deleting an auto playlist only removes
@@ -121,7 +123,17 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     controller.dispose();
     if (name != null && name.isNotEmpty && mounted) {
       final prov = context.read<PlaylistProvider>();
-      await prov.create(name);
+      try {
+        await prov.create(name);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!
+                  .autoPlaylistError(e.toString()))),
+        );
+        return;
+      }
       if (!mounted) return;
       try {
         final found = prov.playlists.firstWhere(
@@ -168,7 +180,17 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       ),
     );
     if (ok == true) {
-      await prov.delete(id);
+      try {
+        await prov.delete(id);
+      } catch (e) {
+        if (!ctx.mounted) return;
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(ctx)!.autoPlaylistError(e.toString()))),
+        );
+        return;
+      }
       try {
         await PlaylistArtService.clearPlaylistArt(id);
       } catch (_) {
@@ -177,8 +199,16 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     }
   }
 
-  bool _isAutoPlaylist(String name) =>
-      name == _dailyMixName || name == _unplayedName;
+  bool _isAutoPlaylist(Map<String, dynamic> p) {
+    // Prefer the explicit flag; the name match only keeps legacy auto rows
+    // (created before the column existed) working.
+    final flag = (p['isAuto'] as num?)?.toInt() ?? 0;
+    if (flag == 1) return true;
+    final name = p['name'] as String? ?? '';
+    return name == _dailyMixName ||
+        name == _unplayedName ||
+        name == _forgottenName;
+  }
 
   // Folder label of a playlist row. Missing or blank means ungrouped.
   String _folderOf(Map<String, dynamic> p) {
@@ -364,6 +394,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       await prov.load();
       if (!mounted) return;
       Map<String, dynamic>? existing;
+      // Auto playlists keep their canonical name in the DB; the isAuto flag
+      // keeps them recognized as automatic even after a user rename, and is
+      // stamped here for rows created before the column existed.
       for (final p in prov.playlists) {
         if ((p['name'] as String) == name) {
           existing = p;
@@ -372,7 +405,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       }
       int playlistId;
       if (existing == null) {
-        await prov.create(name);
+        await prov.create(name, isAuto: true);
         if (!mounted) return;
         final found = prov.playlists.firstWhere(
           (p) => (p['name'] as String) == name,
@@ -380,6 +413,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
         playlistId = found['id'] as int;
       } else {
         playlistId = existing['id'] as int;
+        await DBHelper.instance.setPlaylistAuto(playlistId, true);
         final current = await prov.songsIn(playlistId);
         for (final s in current) {
           await prov.removeSong(playlistId, s.id);
@@ -420,6 +454,25 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     }
   }
 
+  /// Favorites that have not been played for 90 days (or never), newest
+  /// neglected first. Rebuilt with the library, like Unplayed.
+  Future<void> _syncForgottenFavorites(
+      PlaylistProvider prov, LibraryProvider lib) async {
+    try {
+      final forgotten =
+          await DBHelper.instance.getForgottenFavorites(days: _forgottenDays);
+      if (!mounted) return;
+      final visible = lib.songs.map((s) => s.id).toSet();
+      final ids = forgotten
+          .map((s) => s.id)
+          .where((id) => visible.contains(id))
+          .toList();
+      await _syncOneAutoPlaylist(prov, _forgottenName, ids);
+    } catch (e) {
+      _showAutoError(e);
+    }
+  }
+
   // Runs once when the library is ready. Never duplicates: existing
   // playlists with the same name are updated in place.
   Future<void> _ensureAutoPlaylists(
@@ -427,14 +480,16 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     if (_autoSyncing || lib.songs.isEmpty) return;
     // Key the auto playlist sync to the library version, not to a one time
     // flag. Hiding a folder or rescanning changes the version, and Daily Mix
-    // or Unplayed would otherwise keep listing songs that are no longer
-    // visible until the app was restarted.
+    // or Forgotten Favorites would otherwise keep listing songs that are no
+    // longer visible until the app was restarted.
     if (_autoSynced && _autoSyncedVersion == lib.songsVersion) return;
     _autoSyncedVersion = lib.songsVersion;
     _autoSyncing = true;
     await _syncDailyMix(prov, lib);
     if (!mounted) return;
     await _syncUnplayed(prov, lib);
+    if (!mounted) return;
+    await _syncForgottenFavorites(prov, lib);
     if (!mounted) return;
     setState(() {
       _autoSyncing = false;
@@ -656,7 +711,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       LibraryProvider lib, Map<String, dynamic> p, int animIndex) {
     final l = AppLocalizations.of(context)!;
     final name = p['name'] as String;
-    final isAuto = _isAutoPlaylist(name);
+    final isAuto = _isAutoPlaylist(p);
     final isDaily = name == _dailyMixName;
     return EntranceFade(
       index: animIndex,
@@ -820,12 +875,8 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
         }
         final all = List<Map<String, dynamic>>.from(playlists.playlists);
         // Auto playlists first so they stand out, then user playlists.
-        final auto = all
-            .where((p) => _isAutoPlaylist(p['name'] as String))
-            .toList();
-        final user = all
-            .where((p) => !_isAutoPlaylist(p['name'] as String))
-            .toList();
+        final auto = all.where(_isAutoPlaylist).toList();
+        final user = all.where((p) => !_isAutoPlaylist(p)).toList();
         void sortByName(List<Map<String, dynamic>> list) {
           if (_sortAZ) {
             list.sort((a, b) => (a['name'] as String)
@@ -864,7 +915,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           children: [
             CustomScrollView(
               slivers: [
-                // â”€â”€ Quick-access cards (Favorites, Recently added, Recently played, Most played) â”€â”€
+                // -- Quick-access cards (Favorites, Recently added, Recently played, Most played) --
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -934,7 +985,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                     ),
                   ),
 
-                // â”€â”€ Sort bar + count â”€â”€
+                // -- Sort bar + count --
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -1080,9 +1131,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 // Playlist tile art: cached collage file with icon fallback.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 
 // Small square tile showing the generated collage when cached,
 // otherwise the same icon style the list used before.
@@ -1154,9 +1205,9 @@ class _PlaylistTileArtState extends State<_PlaylistTileArt> {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 // Quick card widget
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 
 class _QuickCard extends StatelessWidget {
   final String title;
@@ -1219,9 +1270,9 @@ class _QuickCard extends StatelessWidget {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 // Wrapper screens (opened from the quick cards) - with AppBar + MiniPlayer
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ------------------------------------------------------------------------
 
 class _FavSheet extends StatelessWidget {
   const _FavSheet();

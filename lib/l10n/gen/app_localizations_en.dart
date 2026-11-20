@@ -2022,4 +2022,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCheckForUpdate => 'Check for updates';
+
+  @override
+  String get coreRestoreFailed =>
+      'Could not restore playback. Pick a song to start.';
+
+  @override
+  String get loudnessNormalization => 'Loudness normalization';
+
+  @override
+  String get loudnessNormalizationSubtitle =>
+      'Lift quiet passages with the system loudness DSP';
+
+  @override
+  String get dataSaveToFile => 'Save to file';
+
+  @override
+  String get dataLastExport => 'Last export';
+
+  @override
+  String get dataNever => 'Never';
+
+  @override
+  String dataBackupSaved(String path) {
+    return 'Backup saved to $path';
+  }
+
+  @override
+  String get playerShuffle => 'Shuffle';
+
+  @override
+  String get playerPlayPause => 'Play or pause';
+
+  @override
+  String get aZIndex => 'A to Z jump bar';
 }

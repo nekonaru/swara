@@ -15,6 +15,7 @@ import 'providers/playlist_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/db_helper.dart';
 import 'services/equalizer_service.dart';
+import 'services/loudness_service.dart';
 import 'services/player_service.dart';
 import 'services/swara_audio_handler.dart';
 import 'screens/home_screen.dart';
@@ -385,6 +386,25 @@ Future<void> _bootApp({
         debugPrint('LanguageProvider failed to load: $e');
       }
     }(),
+    () async {
+      // Load the saved loudness preference before the player attaches its
+      // DSP effects to the first audio session.
+      try {
+        await LoudnessService.instance.load();
+      } catch (e) {
+        debugPrint('Loudness load failed: $e');
+      }
+    }(),
+    () async {
+      // Drop stale iTunes metadata cache rows once per launch so the table
+      // cannot grow without bound; listening history is product data and is
+      // never touched here.
+      try {
+        await DBHelper.instance.pruneMetadataCache(maxAgeDays: 90);
+      } catch (e) {
+        debugPrint('Metadata cache prune failed: $e');
+      }
+    }(),
   ]);
 }
 
@@ -423,13 +443,16 @@ class MusicApp extends StatelessWidget {
               locale: lp.locale,
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              // Apply the user text scale on top of the system setting.
+              // Apply the user text scale on top of the system setting,
+              // never instead of it: the OS accessibility size stays in
+              // effect, the in-app scale multiplies on top.
               builder: (context, child) {
                 final media = MediaQuery.of(context);
+                final systemScale = media.textScaler.scale(1.0);
                 return MediaQuery(
                   data: media.copyWith(
                     textScaler:
-                        TextScaler.linear(tp.textScale),
+                        TextScaler.linear(systemScale * tp.textScale),
                   ),
                   child: child ?? const SizedBox.shrink(),
                 );
@@ -501,24 +524,18 @@ class _StartupGateState extends State<StartupGate> {
   // on rebuild (inline futures in build would refetch on every frame).
   late final Future<bool> _doneFuture = _loadAndMaybeRequestNotification();
 
+  // The notification permission is requested once at first launch by
+  // _requestEssentialPermissions() in main(). It is not asked again here,
+  // so a user who denied it once never sees the prompt again on cold starts.
   Future<bool> _loadAndMaybeRequestNotification() async {
-    final bool done;
     try {
       final prefs = await SharedPreferences.getInstance();
-      done = prefs.getBool(kOnboardingDoneKey) ?? false;
+      return prefs.getBool(kOnboardingDoneKey) ?? false;
     } catch (e) {
       // On storage failure, fall back to home so the app stays usable.
       debugPrint('Failed to read onboarding flag: $e');
       return true;
     }
-    if (done) {
-      try {
-        await Permission.notification.request();
-      } catch (e) {
-        debugPrint('Notification permission could not be requested: $e');
-      }
-    }
-    return done;
   }
 
   @override

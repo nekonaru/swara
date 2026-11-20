@@ -12,8 +12,8 @@ class PlaylistProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> create(String name) async {
-    await DBHelper.instance.createPlaylist(name);
+  Future<void> create(String name, {bool isAuto = false}) async {
+    await DBHelper.instance.createPlaylist(name, isAuto: isAuto);
     await load();
   }
 

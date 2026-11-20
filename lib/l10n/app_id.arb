@@ -2304,5 +2304,50 @@
     "settingsCheckForUpdate":  "Periksa pembaruan",
     "@settingsCheckForUpdate":  {
                                    "description":  "Tooltip tombol refresh di About"
-                               }
+                               },
+    "coreRestoreFailed":  "Gagal memulihkan pemutaran. Pilih lagu untuk memulai.",
+    "@coreRestoreFailed":  {
+                               "description":  "Pesan saat sesi pemutaran tersimpan gagal dipulihkan"
+                           },
+    "loudnessNormalization":  "Normalisasi kenyaringan",
+    "@loudnessNormalization":  {
+                                   "description":  "Judul sakelar normalisasi kenyaringan"
+                               },
+    "loudnessNormalizationSubtitle":  "Tingkatkan bagian yang pelan dengan DSP kenyaringan sistem",
+    "@loudnessNormalizationSubtitle":  {
+                                           "description":  "Subjudul sakelar normalisasi kenyaringan"
+                                       },
+    "dataSaveToFile":  "Simpan ke file",
+    "@dataSaveToFile":  {
+                            "description":  "Tombol di dialog ekspor backup untuk menyimpan JSON ke file"
+                        },
+    "dataLastExport":  "Ekspor terakhir",
+    "@dataLastExport":  {
+                            "description":  "Baris pengaturan yang menampilkan waktu ekspor backup terakhir"
+                        },
+    "dataNever":  "Belum pernah",
+    "@dataNever":  {
+                       "description":  "Subjudul saat backup belum pernah diekspor"
+                   },
+    "dataBackupSaved":  "Backup tersimpan di {path}",
+    "@dataBackupSaved":  {
+                             "description":  "Pesan setelah backup ditulis ke file",
+                             "placeholders":  {
+                                                  "path":  {
+                                                               "type":  "String"
+                                                           }
+                                              }
+                         },
+    "playerShuffle":  "Acak",
+    "@playerShuffle":  {
+                           "description":  "Tooltip tombol acak di layar pemutar"
+                       },
+    "playerPlayPause":  "Putar atau jeda",
+    "@playerPlayPause":  {
+                             "description":  "Tooltip tombol putar/jeda utama"
+                         },
+    "aZIndex":  "Bilah lompat A sampai Z",
+    "@aZIndex":  {
+                     "description":  "Label aksesibilitas bilah gulir alfabet"
+                 }
 }

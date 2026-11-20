@@ -1976,13 +1976,13 @@ abstract class AppLocalizations {
   /// **'Load more ({shown} of {total})'**
   String loadMore(int shown, int total);
 
-  /// Button that seeks 15 seconds backwards
+  /// Button that seeks 10 seconds backwards
   ///
   /// In en, this message translates to:
   /// **'10 seconds back'**
   String get playerSeekBack;
 
-  /// Button that seeks 15 seconds forward
+  /// Button that seeks 10 seconds forward
   ///
   /// In en, this message translates to:
   /// **'10 seconds forward'**
@@ -3560,6 +3560,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check for updates'**
   String get settingsCheckForUpdate;
+
+  /// Message shown when the saved playback session cannot be restored
+  ///
+  /// In en, this message translates to:
+  /// **'Could not restore playback. Pick a song to start.'**
+  String get coreRestoreFailed;
+
+  /// Title of the loudness normalization switch
+  ///
+  /// In en, this message translates to:
+  /// **'Loudness normalization'**
+  String get loudnessNormalization;
+
+  /// Subtitle of the loudness normalization switch
+  ///
+  /// In en, this message translates to:
+  /// **'Lift quiet passages with the system loudness DSP'**
+  String get loudnessNormalizationSubtitle;
+
+  /// Button in the backup export dialog that saves the JSON to a file
+  ///
+  /// In en, this message translates to:
+  /// **'Save to file'**
+  String get dataSaveToFile;
+
+  /// Settings row showing when the last backup was exported
+  ///
+  /// In en, this message translates to:
+  /// **'Last export'**
+  String get dataLastExport;
+
+  /// Subtitle shown when no backup has been exported yet
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get dataNever;
+
+  /// Message after a backup was written to a file
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved to {path}'**
+  String dataBackupSaved(String path);
+
+  /// Tooltip of the shuffle button on the player screen
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get playerShuffle;
+
+  /// Tooltip of the main play/pause button
+  ///
+  /// In en, this message translates to:
+  /// **'Play or pause'**
+  String get playerPlayPause;
+
+  /// Accessibility label of the alphabet scrollbar
+  ///
+  /// In en, this message translates to:
+  /// **'A to Z jump bar'**
+  String get aZIndex;
 }
 
 class _AppLocalizationsDelegate

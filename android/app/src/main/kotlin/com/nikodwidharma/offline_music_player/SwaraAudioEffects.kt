@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Build
 import java.io.File
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -27,6 +28,8 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var appContext: Context? = null
     private var equalizer: Equalizer? = null
     private var equalizerSessionId: Int = -1
+    private var loudness: LoudnessEnhancer? = null
+    private var loudnessSessionId: Int = -1
     private var noisyReceiver: BroadcastReceiver? = null
     // Streaming a large update APK through SHA-256 must not run on the
     // platform main looper; keep it on a small background pool.
@@ -42,6 +45,7 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
         releaseEqualizer()
+        releaseLoudness()
         unregisterNoisy()
         digestExecutor.shutdown()
         appContext = null
@@ -77,6 +81,25 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
             "releaseEqualizer" -> {
                 releaseEqualizer()
                 result.success(null)
+            }
+            // Native loudness normalization: a real LoudnessEnhancer DSP on
+            // the audio session, lifting quiet passages by a fixed, gentle
+            // amount. The effect is recreated only when the session changes.
+            "attachLoudness" -> {
+                val sessionId = call.argument<Int>("sessionId") ?: -1
+                result.success(attachLoudness(sessionId))
+            }
+            "releaseLoudness" -> {
+                releaseLoudness()
+                result.success(null)
+            }
+            "setLoudnessEnabled" -> {
+                try {
+                    loudness?.enabled = call.argument<Boolean>("enabled") ?: false
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("loudness_enable_failed", e.message, null)
+                }
             }
             // Read the bands the device reports for the effect.
             "getEqualizerInfo" -> {
@@ -248,6 +271,37 @@ class SwaraAudioEffects : FlutterPlugin, MethodChannel.MethodCallHandler {
         } finally {
             equalizer = null
             equalizerSessionId = -1
+        }
+    }
+
+    private fun attachLoudness(sessionId: Int): Boolean {
+        if (sessionId <= 0) return false
+        if (loudness != null && loudnessSessionId == sessionId) return true
+        releaseLoudness()
+        return try {
+            val effect = LoudnessEnhancer(0, sessionId)
+            // +6 dB of target gain, applied to quiet content only.
+            effect.setTargetGain(600)
+            effect.enabled = true
+            loudness = effect
+            loudnessSessionId = sessionId
+            true
+        } catch (e: Exception) {
+            loudness = null
+            loudnessSessionId = -1
+            false
+        }
+    }
+
+    private fun releaseLoudness() {
+        try {
+            loudness?.enabled = false
+            loudness?.release()
+        } catch (_: Exception) {
+            // Best effort; the native effect is released on detach as well.
+        } finally {
+            loudness = null
+            loudnessSessionId = -1
         }
     }
 

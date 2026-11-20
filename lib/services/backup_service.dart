@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/embedded_art_service.dart';
 
@@ -141,11 +143,75 @@ class BackupService {
     return compute(_encodeBackup, payload);
   }
 
+  static const String kLastExportPrefKey = 'backup_last_export_at';
+
+  /// Remember a successful export so Settings can show the last time the
+  /// library was backed up. Best effort only.
+  static Future<void> recordExport() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          kLastExportPrefKey, DateTime.now().toIso8601String());
+    } catch (_) {
+      // Export itself already succeeded; a prefs failure is not fatal.
+    }
+  }
+
+  static Future<DateTime?> lastExport() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(kLastExportPrefKey);
+      return raw == null ? null : DateTime.tryParse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Write the backup JSON to the Downloads folder (falling back to external
+  // storage or the temp dir) and return the file. The name carries a
+  // timestamp so repeated exports never overwrite each other.
+  static Future<File> saveBackupToFile(String content) async {
+    Directory? dir;
+    try {
+      dir = await getDownloadsDirectory();
+    } catch (_) {
+      dir = null;
+    }
+    if (dir == null) {
+      try {
+        dir = await getExternalStorageDirectory();
+      } catch (_) {
+        dir = null;
+      }
+    }
+    dir ??= await getTemporaryDirectory();
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final stamp = '${now.year}${two(now.month)}${two(now.day)}-${two(now.hour)}${two(now.minute)}';
+    final file =
+        File('${dir.path}${Platform.pathSeparator}swara-backup-$stamp.json');
+    await file.writeAsString(content, flush: true);
+    return file;
+  }
+
   // Validate the JSON structure and write it back with a replace-safe
   // additive strategy. Each section is guarded by try/catch so one
   // bad section does not abort the others.
   static Future<BackupImportResult> importLibrary(String rawJson) async {
     final decoded = await compute(_decodeBackup, rawJson);
+    // Reject backups from a newer format instead of silently restoring a
+    // shape this build does not understand.
+    final versionRaw = decoded['version'];
+    if (versionRaw != null) {
+      final version = versionRaw is num ? versionRaw.toInt() : -1;
+      if (version != kBackupFormatVersion) {
+        throw FormatException(
+            'Unsupported backup version: $versionRaw (expected $kBackupFormatVersion)');
+      }
+    }
     final playlistsRaw = decoded['playlists'];
     final favoritesRaw = decoded['favorites'];
     final entriesRaw = decoded['listening_entries'];
@@ -447,6 +513,15 @@ class BackupService {
         throw const FormatException(
             'Backup contains no entries matching this library');
       }
+    }
+
+    // A restore changed the listening history, so the dashboard aggregate
+    // cache must not survive to show pre-restore numbers.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('dashboard_aggregate_cache_v1');
+    } catch (_) {
+      // Best effort: the numbers self-heal on the next full reload.
     }
 
     return BackupImportResult(
