@@ -1,5 +1,28 @@
 # Changelog
 
+## v3.12.0
+
+Deep audit and feature release: library data is protected on rescans, playback stays in sync, and new DSP, backup and auto-playlist tools arrive.
+
+## New features
+
+- **Loudness normalization.** A native `LoudnessEnhancer` lifts quiet passages with a gentle +6 dB target; the switch lives in Settings and is applied to each new audio session.
+- **Forgotten Favorites auto playlist.** Favorites not played for 90 days (or never played) are collected into a self-updating playlist beside Daily Mix and Unplayed. Auto playlists now carry an explicit flag, so renaming one keeps it automatic.
+- **Save backup to a file.** The backup export dialog can write a timestamped JSON file to Downloads, and Settings shows when the last export happened.
+
+## Improvements
+
+- **System text scaling is preserved.** The in-app text scale multiplies the OS accessibility scale instead of replacing it.
+- **Lyrics and accessibility polish.** Synced lyrics follow the audible player after a crossfade, lyric timing controls and accent swatches have 48 dp touch targets, and the A-Z rail supports TalkBack stepping.
+- **Android hardening.** The media browser service and media button receiver require `MEDIA_CONTENT_CONTROL`, minSdk matches the documented Android 8.0, and lockscreen transport actions include play, pause and stop.
+
+## Bug fixes
+
+- **Moved files keep their library data.** A rescan no longer deletes a re-pathed row or lets a MediaStore re-id replace it with a fresh row, so favorites, playlists and history survive folder moves and storage migrations.
+- **Sleep timer cannot fight a crossfade.** The fade aborts any in-flight crossfade, clears pending A-B loops, and never advances the track after playback stops.
+- **Dead sessions recover.** Unplayable files skip to the next song instead of stalling the queue, deleted songs leave the live queue, and a failed playback restore rolls back instead of showing a phantom mini player.
+- **Seek and notification state stay honest.** Slider drags no longer flood native seeks or fight A-B repeat, skip buttons clamp to the real duration, and seeking while paused updates the notification position.
+
 ## v3.11.0
 
 Rebrand release: Swara is the bamboo panpipe mark everywhere, from the launcher to the splash screen.

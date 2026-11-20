@@ -1,5 +1,28 @@
 # Changelog
 
+## v3.12.0
+
+Rilis audit mendalam dan fitur baru: data pustaka aman saat pemindaian ulang, pemutaran tetap sinkron, dan hadir alat DSP, backup, serta playlist otomatis baru.
+
+## Fitur baru
+
+- **Normalisasi kenyaringan.** `LoudnessEnhancer` bawaan mengangkat bagian yang pelan dengan target +6 dB; sakelarnya ada di Pengaturan dan diterapkan ke setiap sesi audio baru.
+- **Playlist otomatis Forgotten Favorites.** Favorit yang tidak diputar selama 90 hari (atau belum pernah) dikumpulkan ke playlist yang memperbarui sendiri di samping Daily Mix dan Unplayed. Playlist otomatis kini punya penanda tersendiri, jadi mengganti nama tidak membuatnya jadi playlist biasa.
+- **Simpan backup ke file.** Dialog ekspor backup bisa menulis file JSON bercap waktu ke Downloads, dan Pengaturan menampilkan waktu ekspor terakhir.
+
+## Peningkatan
+
+- **Skala teks sistem tetap dihormati.** Skala teks aplikasi mengalikan skala aksesibilitas OS, bukan menggantinya.
+- **Lirik dan aksesibilitas.** Lirik sinkron mengikuti pemutar yang terdengar setelah crossfade, kontrol waktu lirik dan pilihan warna aksen punya area sentuh 48 dp, dan bilah A-Z bisa dilangkah lewat TalkBack.
+- **Penguatan Android.** Layanan media browser dan penerima tombol media memerlukan `MEDIA_CONTENT_CONTROL`, minSdk sesuai Android 8.0 yang terdokumentasi, dan tombol transport layar kunci mencakup putar, jeda, dan berhenti.
+
+## Perbaikan bug
+
+- **File yang dipindah tetap menyimpan data pustaka.** Pemindaian ulang tidak lagi menghapus baris yang dipindah atau menggantinya saat MediaStore mengganti id, jadi favorit, playlist, dan riwayat tetap ada setelah pindah folder atau migrasi penyimpanan.
+- **Timer tidur tidak bertarung dengan crossfade.** Fade membatalkan crossfade yang berjalan, membersihkan loop A-B, dan tidak pernah memajukan lagu setelah pemutaran berhenti.
+- **Sesi mati pulih.** File yang gagal dimuat melompat ke lagu berikutnya, lagu yang dihapus keluar dari antrean, dan kegagalan pemulihan pemutaran memutar balik state alih-alih menampilkan mini player hantu.
+- **Posisi seek dan notifikasi jujur.** Geseran slider tidak membanjiri seek native atau bertarung dengan A-B, tombol lompat dibatasi durasi asli, dan seek saat jeda memperbarui posisi notifikasi.
+
 ## v3.11.0
 
 Rilis rebrand: Swara pakai logo panpipe bambu di mana-mana, dari launcher sampai splash screen.

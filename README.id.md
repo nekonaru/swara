@@ -65,6 +65,7 @@
 | **Lewati 10 detik** | Tombol seek maju dan mundur yang didedikasikan di layar Now Playing |
 | **Detail lagu** | Tahan lama lagu mana pun untuk artis, album, genre, format, durasi, ukuran, path file, dan jumlah diputar |
 | **Acak pintar** | Mengutamakan lagu yang jarang diputar dan lama tidak diputar |
+| **Forgotten Favorites** | Playlist yang memperbarui sendiri berisi favorit yang tidak diputar selama 90 hari, dibangun ulang bersama pustaka |
 | **Ulangi A-B** | Ulangi bagian lagu mana pun untuk latihan |
 
 ### Suara
@@ -72,6 +73,7 @@
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Equalizer sungguhan** | 9 preset yang membentuk suara pemutaran sebenarnya lewat DSP sistem, plus tombol pembuka equalizer sistem (Wavelet atau bawaan HPmu) |
+| **Normalisasi kenyaringan** | DSP kenyaringan bawaan mengangkat bagian yang pelan dengan target gain ringan; aktif di Pengaturan |
 | **Kontrol crossfade** | Transisi 0-12 detik yang bisa diatur plus EQ 5 band kustom (jalur DSP yang sama) |
 | **Kecepatan dan pitch** | Kecepatan putar 0.5x sampai 2.0x plus kontrol pitch dengan penerapan langsung dan reset |
 
@@ -143,6 +145,7 @@
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Cadangkan dan pulihkan** | Ekspor dan impor playlist, favorit, dan riwayat dalam bentuk JSON |
+| **Simpan backup ke file** | Tulis file JSON backup bercap waktu ke Downloads dan lihat tanggal ekspor terakhir di Pengaturan |
 | **Pembersihan riwayat** | Opsional, pembersihan riwayat mendengarkan lama yang kamu konfirmasi sendiri di Pengaturan |
 
 ### Tampilan dan Bahasa

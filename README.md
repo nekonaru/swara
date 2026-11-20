@@ -65,6 +65,7 @@
 | **Skip 10 seconds** | Dedicated seek-back and seek-forward buttons on the Now Playing screen |
 | **Song details** | Long-press any song for artist, album, genre, format, duration, size, file path and play count |
 | **Smart shuffle** | Biases playback toward rarely played and long unplayed songs |
+| **Forgotten Favorites** | Self-updating playlist of favorite songs unplayed for 90 days, rebuilt with the library |
 | **A-B repeat** | Loop any song segment for practice |
 
 ### Sound
@@ -72,6 +73,7 @@
 | Feature | Description |
 |---------|-------------|
 | **Real equalizer** | 9 presets shaping actual playback sound via the system DSP, plus a button that opens the system equalizer (Wavelet or the built-in one) |
+| **Loudness normalization** | Native loudness DSP lifts quiet passages with a gentle target gain; toggle in Settings |
 | **Crossfade control** | Adjustable 0-12s transition plus custom 5-band EQ (same DSP path) |
 | **Speed and pitch** | Playback speed 0.5x to 2.0x plus pitch control with live apply and reset |
 
@@ -143,6 +145,7 @@
 | Feature | Description |
 |---------|-------------|
 | **Backup and restore** | Export and import playlists, favorites, and history as JSON |
+| **Save backup to file** | Write a timestamped JSON backup to Downloads and see the last export date in Settings |
 | **History cleanup** | Optional, you-confirmed cleanup of old listening history in Settings |
 
 ### Appearance and Language
