@@ -445,6 +445,9 @@ class LibraryScanner {
       final existingId = path == null ? null : byPath[path];
       final newId = map['id'] as int?;
       if (existingId != null && existingId != newId) {
+        // Refresh file facts only (same policy as upsertSong). The row may
+        // carry enriched tags or manual edits, so writing freshly scanned
+        // MediaStore tags over it would destroy user data.
         pendingUpdates.add({
           'filePath': path,
           'durationMs': (map['durationMs'] as num?)?.toInt() ?? 0,

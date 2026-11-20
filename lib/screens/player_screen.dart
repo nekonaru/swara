@@ -107,6 +107,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void dispose() {
     _player.removeListener(_onPlayerForLyrics);
+    // If the slider is disposed mid-drag, release the seek guard so A-B
+    // repeat and crossfade triggers are not suppressed for the rest of the
+    // session.
+    _player.setUserSeeking(false);
     _stopLrcFollow();
     _lrcScrollController.dispose();
     _dragOffset.dispose();

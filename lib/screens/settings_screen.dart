@@ -912,7 +912,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await LoudnessService.instance.setEnabled(v);
               if (v) {
                 unawaited(LoudnessService.instance
-                    .attach(PlayerService.instance.player));
+                    .attach(PlayerService.instance.activePlayer));
               }
             },
           ),

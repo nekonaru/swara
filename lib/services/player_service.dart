@@ -715,6 +715,7 @@ class PlayerService extends ChangeNotifier {
     // Claim the trigger slot so position ticks do not start a second fade.
     final fadeGen = ++_crossfadeGeneration;
     _crossfadeActiveGeneration = fadeGen;
+    var flipped = false;
 
     try {
       await incoming.setFilePath(nextSong.filePath);
@@ -761,6 +762,7 @@ class PlayerService extends ChangeNotifier {
       _logListening();
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       _usingCrossfadePlayer = !_usingCrossfadePlayer;
+      flipped = true;
       _playbackFlipCount++;
       // Attach the equalizer only after the flip, to the now audible player.
       // The outgoing player is left alone until its pause above.
@@ -790,16 +792,21 @@ class PlayerService extends ChangeNotifier {
       debugPrint('Crossfade failed, continue normal: $e');
       if (fadeGen == _crossfadeGeneration) {
         _crossfadeActiveGeneration = -1;
-        // A mid-fade failure can leave both players audible with the
-        // outgoing one stuck at a partial volume. Pause the standby and
-        // restore full volume on the audible player before returning.
-        unawaited(incoming.pause().catchError((Object pauseError) {
-          debugPrint('Standby pause after crossfade failure: $pauseError');
-        }));
-        unawaited(incoming.setVolume(1).catchError((Object volError) {
-          debugPrint('Standby volume reset after crossfade failure: $volError');
-        }));
-        unawaited(_vol(() => outgoing.setVolume(1)));
+        if (!flipped) {
+          // Before the flip, `incoming` is the standby and `outgoing` is
+          // still audible. Pause the standby and restore the live volume.
+          unawaited(incoming.pause().catchError((Object pauseError) {
+            debugPrint('Standby pause after crossfade failure: $pauseError');
+          }));
+          unawaited(incoming.setVolume(1).catchError((Object volError) {
+            debugPrint('Standby volume reset after crossfade failure: $volError');
+          }));
+          unawaited(_vol(() => outgoing.setVolume(1)));
+        } else {
+          // After the flip the roles are reversed: `incoming` is now the
+          // audible player and must keep playing at full volume.
+          unawaited(_vol(() => incoming.setVolume(1)));
+        }
         notifyListeners();
       }
     }
@@ -847,6 +854,9 @@ class PlayerService extends ChangeNotifier {
     if (nextQueue.length == oldQueue.length) return;
     final currentId = currentSong?.id;
     final wasPlaying = _player.playing || (_crossfadePlayer?.playing ?? false);
+    // Remember the old play-order slot: the old numeric index is misleading
+    // once deleted songs before it are removed from the order.
+    final oldSlot = _posInOrder < oldOrder.length ? oldOrder[_posInOrder] : null;
     if (wasPlaying && isCrossfadeActive) _abortCrossfadeForQueueEdit();
     final nextOrder = <int>[
       for (final slot in oldOrder)
@@ -863,9 +873,30 @@ class PlayerService extends ChangeNotifier {
       return;
     }
     if (currentId != null && ids.contains(currentId)) {
-      // The audible song was deleted: move to its successor and reload it
-      // when playback was live, otherwise just leave the UI on the next row.
-      _posInOrder = _posInOrder.clamp(0, nextOrder.length - 1);
+      // The audible song was deleted: find the first surviving slot at or
+      // after its old position (wrapping to the start), then map that slot
+      // into the rebuilt order. Using the old numeric index directly would
+      // skip songs whenever a deleted entry sat before the current one.
+      int? targetSlot;
+      if (oldSlot != null) {
+        for (var i = _posInOrder; i < oldOrder.length; i++) {
+          if (remap.containsKey(oldOrder[i])) {
+            targetSlot = oldOrder[i];
+            break;
+          }
+        }
+        if (targetSlot == null) {
+          for (var i = _posInOrder - 1; i >= 0; i--) {
+            if (remap.containsKey(oldOrder[i])) {
+              targetSlot = oldOrder[i];
+              break;
+            }
+          }
+        }
+      }
+      final mapped = targetSlot == null ? -1 : remap[targetSlot]!;
+      final newPos = nextOrder.indexOf(mapped);
+      _posInOrder = newPos >= 0 ? newPos : 0;
       if (wasPlaying) {
         _cancelCrossfade();
         _usingCrossfadePlayer = false;
