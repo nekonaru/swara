@@ -3626,6 +3626,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More options'**
   String get moreOptions;
+
+  /// Semantics label of the album art tap that opens synced lyrics
+  ///
+  /// In en, this message translates to:
+  /// **'View lyrics'**
+  String get playerViewLyrics;
 }
 
 class _AppLocalizationsDelegate

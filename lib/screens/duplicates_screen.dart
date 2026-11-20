@@ -221,8 +221,8 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       final lib = context.read<LibraryProvider>();
       // One batch: deleting row by row rebuilt the row index and the A-Z map
       // for every single removal.
-      await lib.deleteSongs(toDelete);
-      removed = toDelete.length;
+      final removedNow = await lib.deleteSongs(toDelete);
+      removed = removedNow;
       if (!mounted) return;
       setState(() {
         _selectedIds.removeWhere((id) => toDelete.any((s) => s.id == id));
@@ -279,8 +279,8 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
     try {
       final lib = context.read<LibraryProvider>();
       // One batch instead of one notify (and one map rebuild) per row.
-      await lib.deleteSongs(extras);
-      removed = extras.length;
+      final removedNow = await lib.deleteSongs(extras);
+      removed = removedNow;
       if (!mounted) return;
       setState(() {
         _selectedIds.removeWhere((id) => extras.any((s) => s.id == id));
@@ -453,16 +453,20 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
                                             const EdgeInsets.symmetric(
                                                 horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.green
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary
                                               .withValues(alpha: 0.15),
                                           borderRadius:
                                               BorderRadius.circular(12),
                                         ),
                                         child: Text(
                                           l10n.dupKept,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               fontSize: 11,
-                                              color: Colors.green),
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary),
                                         ),
                                       ),
                                     IconButton(

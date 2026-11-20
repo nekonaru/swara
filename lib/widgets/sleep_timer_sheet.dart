@@ -296,11 +296,6 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
           // Finish-last-song checkbox. Updates local state for the UI and
           // forwards the value to the service so the running timer follows it.
           InkWell(
-            onTap: () {
-              final next = !_finishSong;
-              setState(() => _finishSong = next);
-              PlayerService.instance.setFinishCurrentSongOnSleep(next);
-            },
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -452,7 +447,6 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
         // Finish-song checkbox - time and bedtime modes only
         if (_mode == _TimerMode.waktu || _mode == _TimerMode.bedtime)
           InkWell(
-            onTap: () => setState(() => _finishSong = !_finishSong),
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -462,7 +456,11 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
                     width: 24, height: 24,
                     child: Checkbox(
                       value: _finishSong,
-                      onChanged: (v) => setState(() => _finishSong = v ?? false),
+                      onChanged: (v) {
+                        final next = v ?? false;
+                        setState(() => _finishSong = next);
+                        PlayerService.instance.setFinishCurrentSongOnSleep(next);
+                      },
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4)),
                     ),

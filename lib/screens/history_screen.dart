@@ -48,7 +48,18 @@ class HistoryScreenState extends State<HistoryScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(l.historyLoadFailed(_error!), textAlign: TextAlign.center),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l.historyLoadFailed(_error!), textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+                label: Text(l.retry),
+              ),
+            ],
+          ),
         ),
       );
     }

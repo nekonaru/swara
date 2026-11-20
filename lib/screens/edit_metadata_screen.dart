@@ -150,7 +150,7 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       appBar: AppBar(
         title: Text(l.editMetadataTitle),
         actions: [
-          IconButton(icon: const Icon(Icons.check), onPressed: _save),
+          IconButton(icon: const Icon(Icons.check), tooltip: AppLocalizations.of(context)!.save, onPressed: _save),
         ],
       ),
       body: ListView(

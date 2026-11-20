@@ -2353,5 +2353,9 @@
     "moreOptions":  "More options",
     "@moreOptions":  {
                          "description":  "Tooltip of an icon-only overflow menu button"
-                     }
+                     },
+    "playerViewLyrics":  "View lyrics",
+    "@playerViewLyrics":  {
+                              "description":  "Semantics label of the album art tap that opens synced lyrics"
+                          }
 }

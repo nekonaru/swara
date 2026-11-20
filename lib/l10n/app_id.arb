@@ -2353,5 +2353,9 @@
     "moreOptions":  "Opsi lainnya",
     "@moreOptions":  {
                          "description":  "Tooltip tombol menu overflow berupa ikon"
-                     }
+                     },
+    "playerViewLyrics":  "Lihat lirik",
+    "@playerViewLyrics":  {
+                              "description":  "Label aksesibilitas ketukan sampul album untuk membuka lirik"
+                          }
 }

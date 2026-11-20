@@ -190,7 +190,7 @@ class BackupService {
     }
     final now = DateTime.now();
     String two(int n) => n.toString().padLeft(2, '0');
-    final stamp = '${now.year}${two(now.month)}${two(now.day)}-${two(now.hour)}${two(now.minute)}';
+    final stamp = '${now.year}${two(now.month)}${two(now.day)}-${two(now.hour)}${two(now.minute)}${two(now.second)}';
     final file =
         File('${dir.path}${Platform.pathSeparator}swara-backup-$stamp.json');
     await file.writeAsString(content, flush: true);

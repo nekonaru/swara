@@ -30,6 +30,9 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  // True while the isolate search is in flight; shown as a thin bar in the
+  // app bar so a large library does not appear to freeze while typing.
+  bool _searching = false;
   final _controller = TextEditingController();
   String _query = '';
   _SearchFilter _filter = _SearchFilter.lagu;
@@ -216,6 +219,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // Filter the library and publish the result, but only when this run still
   // owns the active generation. Guards against stale async writes.
   Future<void> _runSearch(int gen) async {
+    if (mounted && !_searching) setState(() => _searching = true);
     final lib = context.read<LibraryProvider>();
     final source = lib.songs;
     // Same source and version, so the published result is always in sync.
@@ -227,11 +231,13 @@ class _SearchScreenState extends State<SearchScreen> {
     final found = await _filterSongs(source, query, version);
     // Guard after the isolate hop: an outdated run must not publish its
     // results or its spelling hint over a newer query.
-    if (!mounted || gen != _queryGen) return;
+    if (!mounted) return;
+    if (gen != _queryGen) return;
     setState(() {
       _results = found.songs;
       _suggestion = found.suggestion;
       _resultsLibVersion = version;
+      _searching = false;
     });
   }
 
@@ -912,6 +918,12 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
+        bottom: _searching
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(2),
+                child: LinearProgressIndicator(minHeight: 2),
+              )
+            : null,
         // In multi-select mode the AppBar shows the count + cancel action.
         title: _multiSelectMode
             ? Text(AppLocalizations.of(context)!
@@ -930,6 +942,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           constraints: const BoxConstraints(
                               minWidth: 48, minHeight: 48),
                           icon: const Icon(Icons.close),
+                          tooltip: AppLocalizations.of(context)!.cancel,
                           onPressed: () {
                             _debounce?.cancel();
                             _controller.clear();

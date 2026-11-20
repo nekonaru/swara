@@ -223,6 +223,9 @@ class UpdateService {
   /// asset URL, the GitHub-published SHA-256 digest ("sha256:…" stripped)
   /// when available, and the asset size in bytes when available.
   (String, String?, int?)? _pickApkAsset(List assets, List<String> abis) {
+    // Without an ABI report, guessing arm64 can hand a 32-bit device an
+    // incompatible split. Fail closed instead.
+    if (abis.isEmpty) return null;
     final lower = abis.map((a) => a.toLowerCase()).toSet();
     final wantsArm64 = lower.contains('arm64-v8a');
     final wantsArmv7 = lower.contains('armeabi-v7a') &&

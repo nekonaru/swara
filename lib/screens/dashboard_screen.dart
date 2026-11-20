@@ -447,7 +447,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                   icon: Icons.local_fire_department_outlined,
                   value: '$_streak',
                   label: AppLocalizations.of(context)!.dashStreak,
-                  color: Colors.deepOrange,
+                  color: Theme.of(context).colorScheme.tertiary,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1191,7 +1191,7 @@ class _StatCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Column(
@@ -1285,7 +1285,7 @@ class _RankTile extends StatelessWidget {
           children: [
             if (rank != null) ...[
               SizedBox(
-                width: 22,
+                width: 28,
                 child: Text('$rank',
                     style: TextStyle(
                         fontSize: 13,
@@ -1347,18 +1347,22 @@ class _RankTile extends StatelessWidget {
 
 /// Theme aware palette for the custom painted charts.
 Color _chartColor(ColorScheme cs, int index) {
-  const palette = <Color>[
-    Colors.blue,
-    Colors.purple,
-    Colors.teal,
-    Colors.orange,
-    Colors.pink,
-    Colors.green,
-  ];
-  if (index == 0) return cs.primary;
-  if (index == 1) return cs.secondary;
-  if (index == 2) return cs.tertiary;
-  return palette[index % palette.length];
+  // Cycle through theme roles so every slice adapts to the accent, light
+  // and dark themes and AMOLED instead of using fixed chart colors.
+  switch (index % 6) {
+    case 0:
+      return cs.primary;
+    case 1:
+      return cs.secondary;
+    case 2:
+      return cs.tertiary;
+    case 3:
+      return cs.primaryContainer;
+    case 4:
+      return cs.secondaryContainer;
+    default:
+      return cs.tertiaryContainer;
+  }
 }
 
 /// Vertical 7 day bars with grid lines, painted without any chart package.
@@ -1504,7 +1508,9 @@ class _GenreDonutPainter extends CustomPainter {
     final radius = math.min(size.width, size.height) / 2;
     final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 22;
     if (total <= 0) {
-      paint.color = const Color(0xFFE0E0E0);
+      paint.color = colors.isNotEmpty
+          ? colors.first.withValues(alpha: 0.25)
+          : const Color(0xFFE0E0E0);
       canvas.drawCircle(center, radius - 11, paint);
       return;
     }

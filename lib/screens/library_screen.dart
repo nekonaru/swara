@@ -558,6 +558,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               constraints:
                   const BoxConstraints(minWidth: 48, minHeight: 48),
               icon: const Icon(Icons.close),
+              tooltip: AppLocalizations.of(context)!.cancel,
               onPressed: _exitMultiSelect),
         ],
       ),

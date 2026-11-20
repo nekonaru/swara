@@ -2058,4 +2058,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get moreOptions => 'Opsi lainnya';
+
+  @override
+  String get playerViewLyrics => 'Lihat lirik';
 }

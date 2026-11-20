@@ -4,6 +4,15 @@ import 'package:swara/l10n/gen/app_localizations.dart';
 import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
 
+// Queue rows sit in a fixed 68dp extent; cap the text scale inside them so
+// a 2x accessibility setting cannot clip the title and subtitle.
+Widget _clampQueueRowText(BuildContext context, Widget child) {
+  final mq = MediaQuery.of(context);
+  final scaler = mq.textScaler.clamp(maxScaleFactor: 1.5);
+  if (scaler == mq.textScaler) return child;
+  return MediaQuery(data: mq.copyWith(textScaler: scaler), child: child);
+}
+
 class QueueScreen extends StatefulWidget {
   const QueueScreen({super.key});
   @override
@@ -332,7 +341,7 @@ class _QueueScreenState extends State<QueueScreen> {
                                 color: isPlaying
                                     ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4)
                                     : null,
-                                child: ListTile(
+                                child: _clampQueueRowText(context, ListTile(
                                   contentPadding:
                                       const EdgeInsets.symmetric(
                                           horizontal: 16),
@@ -352,13 +361,14 @@ class _QueueScreenState extends State<QueueScreen> {
                                                   minWidth: 48,
                                                   minHeight: 48),
                                           icon: const Icon(Icons.close, size: 20),
+                                          tooltip: AppLocalizations.of(context)!.remove,
                                           onPressed: () => _removeSlot(slotId),
                                         ),
                                       Icon(Icons.drag_handle, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                     ],
                                   ),
                                   onTap: () => _player.playAtQueueIndex(i),
-                                ),
+                                )),
                               ),
                             ),
                           );

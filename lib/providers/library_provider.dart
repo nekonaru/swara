@@ -667,25 +667,31 @@ class LibraryProvider extends ChangeNotifier {
         .catchError((Object e) => debugPrint('Queue reconcile after delete failed: $e')));
   }
 
-  /// Delete many songs with one in memory update.
+  /// Delete many songs with one in memory update. Returns the number of
+  /// rows actually removed, so callers never report a locked row as deleted.
   ///
   /// [deleteSong] in a loop re-notifies for every row, and each notification
   /// invalidates the row index map and the A-Z map, so removing a few hundred
   /// duplicates rebuilt those maps hundreds of times. This removes them all
   /// at once and bumps the version a single time.
-  Future<void> deleteSongs(List<Song> toDelete) async {
-    if (toDelete.isEmpty) return;
+  Future<int> deleteSongs(List<Song> toDelete) async {
+    if (toDelete.isEmpty) return 0;
+    final deleted = <Song>[];
     for (final song in toDelete) {
       try {
         await DBHelper.instance.deleteSong(song.id);
+        deleted.add(song);
       } catch (_) {
         // Keep going so one locked row does not abort the whole cleanup.
       }
     }
-    _removeSongsFromMemory(toDelete);
-    unawaited(PlayerService.instance
-        .onLibrarySongsRemoved(toDelete.map((s) => s.id).toSet())
-        .catchError((Object e) => debugPrint('Queue reconcile after bulk delete failed: $e')));
+    _removeSongsFromMemory(deleted);
+    if (deleted.isNotEmpty) {
+      unawaited(PlayerService.instance
+          .onLibrarySongsRemoved(deleted.map((s) => s.id).toSet())
+          .catchError((Object e) => debugPrint('Queue reconcile after bulk delete failed: $e')));
+    }
+    return deleted.length;
   }
 
   /// Drop deleted songs from the cached lists and bump the version once.

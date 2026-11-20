@@ -507,8 +507,12 @@ class _TabSettingsSheetState extends State<_TabSettingsSheet> {
                     key: ValueKey(_defs[i].id),
                     leading: ReorderableDragStartListener(
                       index: i,
-                      child: Icon(Icons.drag_handle,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
+                      child: Semantics(
+                        button: true,
+                        label: l.homeTabReorderHint,
+                        child: Icon(Icons.drag_handle,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant, size: 22),
+                      ),
                     ),
                     title: Text(
                       _labelOf(context, _defs[i]),
@@ -519,7 +523,10 @@ class _TabSettingsSheetState extends State<_TabSettingsSheet> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    trailing: GestureDetector(
+                    trailing: Semantics(
+                      label: _labelOf(context, _defs[i]),
+                      checked: _defs[i].visible,
+                      child: GestureDetector(
                       onTap: () {
                         // At least 1 tab must stay enabled
                         final enabledCount =
@@ -553,6 +560,7 @@ class _TabSettingsSheetState extends State<_TabSettingsSheet> {
                             ? Icon(Icons.check,
                                 size: 14, color: cs.onPrimary)
                             : null,
+                      ),
                       ),
                     ),
                   ),

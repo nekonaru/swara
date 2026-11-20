@@ -380,6 +380,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             onPressed: _exportM3u,
           ),
           PopupMenuButton<_PlsSortOption>(
+            tooltip: AppLocalizations.of(context)!.librarySortBy,
             icon: const Icon(Icons.sort),
             onSelected: (v) {
               setState(() => _sortOption = v);
@@ -459,6 +460,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                               constraints: const BoxConstraints(
                                   minWidth: 48, minHeight: 48),
                               icon: const Icon(Icons.close),
+                              tooltip: AppLocalizations.of(context)!.cancel,
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _query = '');

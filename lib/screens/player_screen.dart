@@ -899,7 +899,10 @@ class _PlayerScreenState extends State<PlayerScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          GestureDetector(
+          Semantics(
+            button: true,
+            label: AppLocalizations.of(context)!.playerViewLyrics,
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => _setShowLyrics(true),
             child: StreamBuilder(
@@ -954,6 +957,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 );
               },
             ),
+          ),
           ),
           const SizedBox(height: 24),
           SizedBox(

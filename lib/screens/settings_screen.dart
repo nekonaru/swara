@@ -76,8 +76,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Ask GitHub whether a newer release exists and, if it does, offer to
   // download the APK and install it in place (same signature as the
   // installed copy, so no uninstall is needed).
+  // Guard the whole check/download/install flow; sharing one APK path and
+  // one cancel flag makes concurrent updates unsafe.
+  bool _updating = false;
+
   Future<void> _checkForUpdate() async {
-    if (_savingPrefs) return;
+    if (_savingPrefs || _updating) return;
+    _updating = true;
+    try {
+      await _checkForUpdateInner();
+    } finally {
+      _updating = false;
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _checkForUpdateInner() async {
     final l10n = AppLocalizations.of(context)!;
     // Show the "checking" hint right away; the result replaces it.
     _showSnack(l10n.settingsUpdateChecking);
@@ -138,7 +152,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(l10n.settingsUpdateDownloading),
         actions: [
           TextButton(
-              onPressed: () => UpdateService.instance.cancelDownload(),
+              onPressed: () {
+                UpdateService.instance.cancelDownload();
+                // Acknowledge the tap immediately; the existing guard keeps
+                // the later cleanup from popping a second route.
+                if (!dialogClosed && navigator.mounted) navigator.pop();
+              },
               child: Text(l10n.cancel)),
         ],
         content: ValueListenableBuilder<double>(
@@ -893,7 +912,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: ready
-                          ? Colors.green
+                          ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).colorScheme.outline,
                     ),
                   ),
@@ -1096,7 +1115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               message: l10n.settingsCheckForUpdate,
               child: const Icon(Icons.refresh, size: 22),
             ),
-            onTap: _checkForUpdate,
+            onTap: _updating ? null : _checkForUpdate,
           ),
           ListTile(
             leading: const Icon(Icons.person_outline),

@@ -967,8 +967,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                   ),
                 ),
 
-                // Duplicate finder entry (only when there is something to find)
-                if (_duplicateCountFor(lib) > 0)
+                // Duplicate finder entry. While the count is computed off
+                // isolate, show a loading subtitle instead of popping in.
+                if (_duplicateCountFor(lib) != 0)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -977,10 +978,10 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                           leading: const Icon(Icons.copy_outlined),
                           title: Text(AppLocalizations.of(context)!
                               .dupFinderTitle),
-                          subtitle: Text(
-                            AppLocalizations.of(context)!.dupFinderCount(
-                                _duplicateCountFor(lib)),
-                          ),
+                          subtitle: Text(_dupCountCache < 0
+                              ? AppLocalizations.of(context)!.loading
+                              : AppLocalizations.of(context)!
+                                  .dupFinderCount(_dupCountCache)),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => _openPage(
                               context, const DuplicatesScreen()),
@@ -1124,6 +1125,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
               bottom: 16,
               child: FloatingActionButton(
                 heroTag: 'fab_new_playlist',
+                tooltip: AppLocalizations.of(context)!.collectionsNewPlaylist,
                 onPressed: _createPlaylist,
                 child: const Icon(Icons.add),
               ),
@@ -1232,10 +1234,10 @@ class _QuickCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: bgColor,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Row(
@@ -1259,6 +1261,8 @@ class _QuickCard extends StatelessWidget {
                     if (subtitle.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 11)),

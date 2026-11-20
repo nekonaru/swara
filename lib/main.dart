@@ -64,9 +64,8 @@ void main() {
     bootFuture: bootFuture,
   ));
 
-  // Register dynamic launcher shortcuts (long press on the app icon).
-  // Best effort: a shortcut failure must never crash or block the app.
-  _setupDynamicShortcuts();
+  // Dynamic launcher shortcuts are registered by the boot task after the
+  // saved language is loaded, so their titles are localized.
 }
 
 // Keys for the one-time essential permission prompt shown at first launch.
@@ -79,8 +78,6 @@ Future<void> _requestEssentialPermissions() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_essentialPermissionsAskedKey) ?? false) return;
-    await prefs.setBool(_essentialPermissionsAskedKey, true);
-
     if (!await Permission.audio.isGranted) {
       final status = await Permission.audio.request();
       debugPrint('Swara: audio permission result: $status');
@@ -89,6 +86,9 @@ Future<void> _requestEssentialPermissions() async {
       final status = await Permission.notification.request();
       debugPrint('Swara: notification permission result: $status');
     }
+    // Mark the prompt as done only after both requests returned. Persisting
+    // it first would suppress the prompts forever if a request threw.
+    await prefs.setBool(_essentialPermissionsAskedKey, true);
   } catch (e) {
     debugPrint('Swara: essential permission request failed: $e');
   }
@@ -382,6 +382,9 @@ Future<void> _bootApp({
       // Load the saved app language before startup (defaults to English).
       try {
         await languageProvider.load();
+        // Shortcut titles come from the active locale, so register them
+        // only after the saved language is known.
+        _setupDynamicShortcuts();
       } catch (e) {
         debugPrint('LanguageProvider failed to load: $e');
       }

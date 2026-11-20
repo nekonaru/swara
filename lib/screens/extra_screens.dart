@@ -659,6 +659,9 @@ class _FoldersScreenState extends State<FoldersScreen> {
                       icon: Icon(
                           isHidden ? Icons.visibility_off : Icons.visibility_outlined,
                           size: 18),
+                      tooltip: isHidden
+                          ? AppLocalizations.of(context)!.foldersShowHidden
+                          : AppLocalizations.of(context)!.foldersHideHidden,
                       onPressed: () => _toggleHideFolder(folder),
                     ),
                     onTap: () async {
@@ -949,6 +952,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
                   constraints:
                       const BoxConstraints(minWidth: 48, minHeight: 48),
                   icon: const Icon(Icons.cloud_sync_outlined),
+                  tooltip: AppLocalizations.of(context)!.libraryScanMetadata,
                   onPressed: _localSongs.isEmpty
                       ? null
                       : () => _pickScanMode(),
@@ -2054,14 +2058,21 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final lib = context.read<LibraryProvider>();
-    // Full list, no artificial cap: the sliver list builds rows lazily.
-    final songs = await lib.getRecentlyAdded(limit: _kFullListLimit);
-    if (mounted) {
+    try {
+      // Full list, no artificial cap: the sliver list builds rows lazily.
+      final songs = await lib.getRecentlyAdded(limit: _kFullListLimit);
+      if (!mounted) return;
       var total = 0;
       for (final s in songs) {
         total += s.durationMs;
       }
       setState(() { _songs = songs; _loading = false; _totalMs = total; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
+      );
     }
   }
 
@@ -2148,14 +2159,21 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final lib = context.read<LibraryProvider>();
-    // Full list, no artificial cap: the sliver list builds rows lazily.
-    final songs = await lib.getMostPlayed(limit: _kFullListLimit);
-    if (mounted) {
+    try {
+      // Full list, no artificial cap: the sliver list builds rows lazily.
+      final songs = await lib.getMostPlayed(limit: _kFullListLimit);
+      if (!mounted) return;
       var total = 0;
       for (final s in songs) {
         total += s.durationMs;
       }
       setState(() { _songs = songs; _loading = false; _totalMs = total; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
+      );
     }
   }
 

@@ -224,9 +224,16 @@ Future<void> showSongOptions(
 Future<void> _showSongDetails(BuildContext context, Song song) async {
   final l = AppLocalizations.of(context)!;
   final file = File(song.filePath);
-  final int? sizeBytes = await file.exists() ? await file.length() : null;
+  // A file deleted mid-tap or a locked DB must not abort the details sheet.
+  int? sizeBytes;
+  try {
+    if (await file.exists()) sizeBytes = await file.length();
+  } catch (_) {}
   final ext = song.filePath.split('.').last.toUpperCase();
-  final played = await DBHelper.instance.getPlayCountForSong(song.id);
+  var played = 0;
+  try {
+    played = await DBHelper.instance.getPlayCountForSong(song.id);
+  } catch (_) {}
   if (!context.mounted) return;
 
   String formatBytes(int? bytes) {

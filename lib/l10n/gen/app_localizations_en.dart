@@ -2059,4 +2059,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moreOptions => 'More options';
+
+  @override
+  String get playerViewLyrics => 'View lyrics';
 }

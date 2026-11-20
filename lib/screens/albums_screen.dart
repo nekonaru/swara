@@ -257,9 +257,9 @@ class _AlbumCard extends StatelessWidget {
         .clamp(maxScaleFactor: _kAlbumCardMaxTextScale);
     return Material(
       color: cs.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.push(
           context,
           // Standard Material route: on Android this uses the theme's
@@ -276,7 +276,7 @@ class _AlbumCard extends StatelessWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: SongArtImage(
                   song: coverSong,
                   fit: BoxFit.cover,
