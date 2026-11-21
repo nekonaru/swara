@@ -3,13 +3,12 @@ package com.nikodwidharma.offline_music_player
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Icon
-import android.media.session.PlaybackState
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import android.support.v4.media.MediaBrowserCompat
-import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
-import android.support.v4.media.session.PlaybackStateCompat
+import androidx.media.MediaBrowserCompat
+import androidx.media.session.MediaControllerCompat
+import androidx.media.session.MediaMetadataCompat
+import androidx.media.session.PlaybackStateCompat
 import android.view.KeyEvent
 
 /**
@@ -106,8 +105,7 @@ class SwaraPlaybackTile : TileService() {
     private fun updateTile() {
         val tile = qsTile ?: return
         val state = controller?.playbackState?.state
-        val playing = state == PlaybackStateCompat.STATE_PLAYING ||
-            state == PlaybackState.STATE_PLAYING
+        val playing = state == PlaybackStateCompat.STATE_PLAYING
         val title = controller?.metadata?.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
         tile.state = if (playing) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         tile.label = if (!title.isNullOrEmpty()) title else getString(R.string.quick_tile_label)

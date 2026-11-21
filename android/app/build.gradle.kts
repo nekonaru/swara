@@ -56,6 +56,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // MediaBrowserCompat/MediaControllerCompat for the Quick Settings tile.
+    implementation("androidx.media:media:1.7.0")
     // Required for the Theme.AppCompat.* themes in styles.xml (AudioServiceFragmentActivity).
     implementation("androidx.appcompat:appcompat:1.7.0")
     // Android 12+ splash screen API (navy tile + brand glyph at cold start).
