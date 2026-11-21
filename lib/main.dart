@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/language_provider.dart';
@@ -16,6 +15,7 @@ import 'providers/theme_provider.dart';
 import 'services/db_helper.dart';
 import 'services/equalizer_service.dart';
 import 'services/loudness_service.dart';
+import 'services/permission_service.dart';
 import 'services/player_service.dart';
 import 'services/swara_audio_handler.dart';
 import 'screens/home_screen.dart';
@@ -33,11 +33,9 @@ void main() {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _WidgetBridge.init();
   });
-  // Ask for the two permissions the app needs, right at first launch
-  // instead of later in the onboarding or first scan flow. Only asked once.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(_requestEssentialPermissions());
-  });
+  // Ask for permissions only after the user has seen the intro, from the
+  // onboarding finish action or the home screen. A dialog over the splash
+  // pauses the entrance animation and breaks the handoff.
 
   // Cap the in-memory image cache because the library can hold 2600 songs
   // with artwork, so unbounded cached art can spike memory on scroll.
@@ -66,32 +64,6 @@ void main() {
 
   // Dynamic launcher shortcuts are registered by the boot task after the
   // saved language is loaded, so their titles are localized.
-}
-
-// Keys for the one-time essential permission prompt shown at first launch.
-const String _essentialPermissionsAskedKey = 'essential_permissions_asked';
-
-// Ask for audio (music files) and notification permission once, at app open.
-// Whether the user allows or denies, the prompt never repeats on its own;
-// permission_handler shows nothing when the permission is already granted.
-Future<void> _requestEssentialPermissions() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_essentialPermissionsAskedKey) ?? false) return;
-    if (!await Permission.audio.isGranted) {
-      final status = await Permission.audio.request();
-      debugPrint('Swara: audio permission result: $status');
-    }
-    if (!await Permission.notification.isGranted) {
-      final status = await Permission.notification.request();
-      debugPrint('Swara: notification permission result: $status');
-    }
-    // Mark the prompt as done only after both requests returned. Persisting
-    // it first would suppress the prompts forever if a request threw.
-    await prefs.setBool(_essentialPermissionsAskedKey, true);
-  } catch (e) {
-    debugPrint('Swara: essential permission request failed: $e');
-  }
 }
 
 // Home screen widget bridge. Receives button taps from the native widget
@@ -324,11 +296,11 @@ void _startWidgetStatePush() {
   unawaited(push());
 }
 
-Future<void> _bootApp({
+Future<bool> _bootApp({
   required ThemeProvider themeProvider,
   required LanguageProvider languageProvider,
-}) {
-  return Future.wait([
+}) async {
+  final results = await Future.wait<dynamic>([
     () async {
       try {
         await PlayerService.instance.init();
@@ -367,9 +339,12 @@ Future<void> _bootApp({
         // Seed the equalizer with the saved preset so the first
         // attach already uses it (no session yet, just stored).
         // Custom gains ride along when the stored preset is Custom.
-        if (themeProvider.equalizerPreset == 'Custom') {
-          await EqualizerService.instance
-              .applyCustom(themeProvider.customEqGains);
+        final savedGains = themeProvider.gainsForActivePreset();
+        if (themeProvider.equalizerPreset == 'Custom' || savedGains != null) {
+          await EqualizerService.instance.applyCustom(
+            savedGains ?? themeProvider.customEqGains,
+            presetToken: themeProvider.equalizerPreset,
+          );
         } else {
           await EqualizerService.instance
               .applyPreset(themeProvider.equalizerPreset);
@@ -408,13 +383,26 @@ Future<void> _bootApp({
         debugPrint('Metadata cache prune failed: $e');
       }
     }(),
+    () async {
+      // Read the onboarding flag as part of boot so the intro has a single
+      // gate and no unbranded spinner stage.
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        return prefs.getBool(kOnboardingDoneKey) ?? false;
+      } catch (_) {
+        return true;
+      }
+    }(),
+    // Keep the brand moment long enough to be seen even on a warm boot.
+    Future<void>.delayed(const Duration(milliseconds: 600)),
   ]);
+  return results[6] as bool? ?? true;
 }
 
 class MusicApp extends StatelessWidget {
   final ThemeProvider themeProvider;
   final LanguageProvider languageProvider;
-  final Future<void> bootFuture;
+  final Future<bool> bootFuture;
   const MusicApp(
       {super.key,
       required this.themeProvider,
@@ -495,81 +483,52 @@ class MusicApp extends StatelessWidget {
   }
 }
 
-// Shows the splash while boot init runs, then hands off to StartupGate.
-// The handoff is a soft fade so the app does not hard-cut after boot.
-class BootGate extends StatelessWidget {
-  final Future<void> bootFuture;
+// Single gate: the branded splash crossfades straight into the first real
+// screen. No unbranded spinner and no hard cut between two gates.
+class BootGate extends StatefulWidget {
+  final Future<bool> bootFuture;
   const BootGate({super.key, required this.bootFuture});
 
   @override
+  State<BootGate> createState() => _BootGateState();
+}
+
+class _BootGateState extends State<BootGate> {
+  bool _permissionRequested = false;
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: bootFuture,
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return FutureBuilder<bool>(
+      future: widget.bootFuture,
       builder: (context, snapshot) {
-        final ready = snapshot.connectionState == ConnectionState.done;
+        final ready = snapshot.hasData;
+        final onboardingDone = snapshot.data ?? false;
+        if (ready && onboardingDone && !_permissionRequested) {
+          _permissionRequested = true;
+          // Ask after the handoff, never while the splash is animating.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            unawaited(PermissionService.ensureEssentialPermissions());
+          });
+        }
+        final Widget destination = onboardingDone
+            ? const HomeScreen()
+            : const OnboardingScreen();
         return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 260),
-          // Same curve family as the splash entrance.
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 320),
           switchInCurve: const Cubic(0.23, 1.0, 0.32, 1.0),
+          switchOutCurve: const Cubic(0.23, 1.0, 0.32, 1.0),
           transitionBuilder: (child, animation) => FadeTransition(
             opacity: animation,
             child: child,
           ),
           child: ready
-              ? const StartupGate(key: ValueKey('gate'))
+              ? KeyedSubtree(key: const ValueKey('app'), child: destination)
               : const SplashScreen(key: ValueKey('splash')),
         );
-      },
-    );
-  }
-}
-
-// Chooses the first screen based on the persisted onboarding flag.
-// Shows onboarding when 'onboarding_done' is not true, else HomeScreen.
-// Boot init above runs in parallel behind BootGate and SplashScreen.
-// The notification permission is requested here (once, best effort) only
-// after onboarding is done, so boot never pops a permission dialog.
-class StartupGate extends StatefulWidget {
-  const StartupGate({super.key});
-
-  @override
-  State<StartupGate> createState() => _StartupGateState();
-}
-
-class _StartupGateState extends State<StartupGate> {
-  // Stored once so the FutureBuilder below never restarts the future
-  // on rebuild (inline futures in build would refetch on every frame).
-  late final Future<bool> _doneFuture = _loadAndMaybeRequestNotification();
-
-  // The notification permission is requested once at first launch by
-  // _requestEssentialPermissions() in main(). It is not asked again here,
-  // so a user who denied it once never sees the prompt again on cold starts.
-  Future<bool> _loadAndMaybeRequestNotification() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(kOnboardingDoneKey) ?? false;
-    } catch (e) {
-      // On storage failure, fall back to home so the app stays usable.
-      debugPrint('Failed to read onboarding flag: $e');
-      return true;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _doneFuture,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          // Minimal splash while the flag loads.
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (snapshot.data == true) {
-          return const HomeScreen();
-        }
-        return const OnboardingScreen();
       },
     );
   }

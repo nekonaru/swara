@@ -73,6 +73,7 @@
 | Feature | Description |
 |---------|-------------|
 | **Real equalizer** | 9 presets shaping actual playback sound via the system DSP, plus a button that opens the system equalizer (Wavelet or the built-in one) |
+| **Named EQ presets** | Save, name and recall multiple custom 5-band curves; the active one survives restarts |
 | **Loudness normalization** | Native loudness DSP lifts quiet passages with a gentle target gain; toggle in Settings |
 | **Crossfade control** | Adjustable 0-12s transition plus custom 5-band EQ (same DSP path) |
 | **Speed and pitch** | Playback speed 0.5x to 2.0x plus pitch control with live apply and reset |

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/art_cache_service.dart';
 import '../services/embedded_art_service.dart';
 
 import '../services/db_helper.dart';
@@ -556,9 +557,12 @@ class BackupService {
           continue;
         }
       }
-      // Include the extracted embedded covers as well.
+      // Include the extracted embedded covers and the remote cover cache.
       bytes += await EmbeddedArtService.totalBytes();
       files += await EmbeddedArtService.totalFiles();
+      final remote = await ArtCacheService.instance.usage();
+      bytes += remote.bytes.round();
+      files += remote.files;
     } catch (_) {
       // On DB failure report an empty cache rather than throwing.
     }
@@ -594,8 +598,11 @@ class BackupService {
       } catch (_) {
         // File deletion already done; DB null-out is best effort here.
       }
-      // Also drop the extracted embedded covers, from disk and from memory.
+      // Also drop the extracted embedded covers and the remote cover cache
+      // (files, memory indexes and the image cache), so covers do not come
+      // straight back after a "clear".
       deleted += await EmbeddedArtService.clearCache();
+      await ArtCacheService.instance.clearAll();
       // Nudge every listener so the in-memory queue snapshots and the home
       // widget both forget the deleted art immediately.
       PlayerService.instance.rebroadcastState();

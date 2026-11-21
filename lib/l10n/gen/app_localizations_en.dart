@@ -2062,4 +2062,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playerViewLyrics => 'View lyrics';
+
+  @override
+  String get eqPresetSave => 'Save preset';
+
+  @override
+  String get eqPresetMyPresets => 'My presets';
+
+  @override
+  String get eqPresetName => 'Preset name';
+
+  @override
+  String get eqPresetNameEmpty => 'Enter a name';
+
+  @override
+  String get eqPresetLimit => 'Maximum of 12 presets reached';
+
+  @override
+  String get eqPresetRename => 'Rename';
+
+  @override
+  String get eqPresetDelete => 'Delete';
 }

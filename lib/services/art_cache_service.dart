@@ -64,6 +64,42 @@ class ArtCacheService {
     return 'art_${a}_$b.jpg';
   }
 
+  Future<void> clearAll() async {
+    _inflight.clear();
+    _knownPaths.clear();
+    _knownPathsByHash.clear();
+    _hashByUrl.clear();
+    _lastTouchedAt.clear();
+    _indexPreloaded = false;
+    final dir = await _cacheDir();
+    if (dir == null) return;
+    try {
+      for (final entity in dir.listSync()) {
+        if (entity is File) await entity.delete();
+      }
+    } catch (_) {
+      // Best effort: a locked file is not a reason to fail the clear.
+    }
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+  }
+
+  /// Bytes and file count of the remote art cache directory.
+  Future<({int bytes, int files})> usage() async {
+    final dir = await _cacheDir();
+    if (dir == null) return (bytes: 0, files: 0);
+    var bytes = 0;
+    var files = 0;
+    try {
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        bytes += await entity.length();
+        files++;
+      }
+    } catch (_) {}
+    return (bytes: bytes, files: files);
+  }
+
   Future<Directory?> _cacheDir() async {
     try {
       if (_dirPath != null) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/motion.dart';
 
 /// One-shot entrance fade for list rows and grid cells.
 ///
@@ -16,7 +17,7 @@ class EntranceFade extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (index >= animateUpTo) return child;
+    if (index >= animateUpTo || reduceMotion(context)) return child;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: Duration(milliseconds: 160 + (index % 10) * 20),

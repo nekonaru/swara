@@ -73,6 +73,7 @@
 | Fitur | Deskripsi |
 |-------|-----------|
 | **Equalizer sungguhan** | 9 preset yang membentuk suara pemutaran sebenarnya lewat DSP sistem, plus tombol pembuka equalizer sistem (Wavelet atau bawaan HPmu) |
+| **Preset EQ bernama** | Simpan, beri nama, dan panggil beberapa kurva 5 band kustom; preset aktif tetap ada setelah restart |
 | **Normalisasi kenyaringan** | DSP kenyaringan bawaan mengangkat bagian yang pelan dengan target gain ringan; aktif di Pengaturan |
 | **Kontrol crossfade** | Transisi 0-12 detik yang bisa diatur plus EQ 5 band kustom (jalur DSP yang sama) |
 | **Kecepatan dan pitch** | Kecepatan putar 0.5x sampai 2.0x plus kontrol pitch dengan penerapan langsung dan reset |

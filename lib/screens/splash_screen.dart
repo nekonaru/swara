@@ -15,10 +15,10 @@ const Color _kOffWhite = Color(0xFFF6E7B8);
 // Strong ease-out for entrance motion (cubic-bezier(0.23, 1, 0.32, 1)).
 const Cubic _kSplashEaseOut = Cubic(0.23, 1.0, 0.32, 1.0);
 
-// Lightweight splash shown while background init runs. The native splash and
-// this screen share one background, so the handoff is invisible; the mark,
-// wordmark and equalizer loader fade and rise in a short choreographed
-// entrance. Reduced motion gets opacity only, no movement.
+// Lightweight splash shown while background init runs. The mark is painted
+// at full opacity on the first frame, exactly where the native splash left it,
+// so there is no blank half-second. Only the wordmark and loader animate in,
+// with Fade/SlideTransitions that do not rebuild the whole tree per frame.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -28,47 +28,35 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+  static const double _markSide = 112.0;
+
   late final AnimationController _entrance = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 750),
+    duration: const Duration(milliseconds: 600),
   );
-
-  // Mark enters first: fades in while scaling from 0.88. Never scale(0).
-  late final Animation<double> _markFade = CurvedAnimation(
-    parent: _entrance,
-    curve: const Interval(0.0, 0.72, curve: _kSplashEaseOut),
-  );
-  late final Animation<double> _markScale = Tween<double>(
-    begin: 0.88,
-    end: 1.0,
-  ).animate(CurvedAnimation(
-    parent: _entrance,
-    curve: const Interval(0.0, 0.72, curve: _kSplashEaseOut),
-  ));
-
-  // Wordmark follows the mark, ~140 ms behind it, fading and rising.
   late final Animation<double> _wordFade = CurvedAnimation(
     parent: _entrance,
-    curve: const Interval(0.2, 0.92, curve: _kSplashEaseOut),
+    curve: const Interval(0.05, 0.75, curve: _kSplashEaseOut),
   );
-  late final Animation<double> _wordRise = Tween<double>(
-    begin: 10,
-    end: 0,
-  ).animate(CurvedAnimation(
+  late final Animation<double> _wordRise = Tween<double>(begin: 10, end: 0)
+      .animate(CurvedAnimation(
     parent: _entrance,
-    curve: const Interval(0.2, 0.92, curve: _kSplashEaseOut),
+    curve: const Interval(0.05, 0.75, curve: _kSplashEaseOut),
   ));
-
-  // Loader fades in last; it loops while boot init finishes.
   late final Animation<double> _loaderFade = CurvedAnimation(
     parent: _entrance,
-    curve: const Interval(0.45, 1.0, curve: Curves.easeOut),
+    curve: const Interval(0.35, 1.0, curve: Curves.easeOut),
   );
 
   @override
-  void initState() {
-    super.initState();
-    _entrance.forward();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_entrance.isCompleted || _entrance.isAnimating) return;
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      _entrance.value = 1;
+    } else {
+      _entrance.forward();
+    }
   }
 
   @override
@@ -79,12 +67,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final disableAnimations =
+    final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final reduceMotion = disableAnimations;
-
-    // Status and navigation bars match the splash so the whole cold start
-    // reads as one surface instead of stacked chromes.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -96,102 +80,87 @@ class _SplashScreenState extends State<SplashScreen>
         backgroundColor: _kNavy,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            // The native Splash icon is dead-centre on the screen; the
-            // Flutter splash shows the same mark in the same spot so the
-            // hand-off reads as one surface.
             final mid = constraints.maxHeight / 2;
-            const markSide = 112.0;
-            final markTop = mid - markSide / 2;
-            final wordTop = mid + markSide / 2 + 20;
+            final markTop = mid - _markSide / 2;
+            final wordTop = mid + _markSide / 2 + 20;
             final loaderTop = wordTop + 38 + 30;
-            return AnimatedBuilder(
-              animation: _entrance,
-              builder: (context, _) {
-                final markFade = _markFade.value;
-                final wordFade = _wordFade.value;
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Positioned(
-                      top: markTop,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Opacity(
-                          opacity: markFade,
-                          child: Transform.scale(
-                            scale: reduceMotion ? 1.0 : _markScale.value,
-                            child: Image.asset(
-                              'assets/swara-mark.png',
-                              width: markSide,
-                              height: markSide,
-                              cacheWidth: 224,
-                              errorBuilder: (context, _, __) => Container(
-                                width: 96,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  color: _kAccent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(28),
-                                ),
-                                child: const Icon(
-                                  Icons.music_note,
-                                  size: 52,
-                                  color: _kAccent,
-                                ),
-                              ),
-                            ),
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                // The mark is static and opaque from frame one: the native
+                // glyph disappears and this one is already in place.
+                Positioned(
+                  top: markTop,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/swara-mark.png',
+                      width: _markSide,
+                      height: _markSide,
+                      cacheWidth: 224,
+                      errorBuilder: (context, _, __) => Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: _kAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        child: const Icon(Icons.music_note,
+                            size: 52, color: _kAccent),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: wordTop,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: FadeTransition(
+                      opacity: _wordFade,
+                      child: SlideTransition(
+                        position: reduceMotion
+                            ? const AlwaysStoppedAnimation(Offset.zero)
+                            : Tween<Offset>(
+                                begin: const Offset(0, 10),
+                                end: Offset.zero,
+                              ).animate(_wordRise),
+                        child: const Text(
+                          'Swara',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            color: _kOffWhite,
+                            letterSpacing: 0.4,
                           ),
                         ),
                       ),
                     ),
-                    Positioned(
-                      top: wordTop,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Opacity(
-                          opacity: wordFade,
-                          child: Transform.translate(
-                            offset: reduceMotion
-                                ? Offset.zero
-                                : Offset(0, _wordRise.value),
-                            child: const Text(
-                              'Swara',
-                              style: TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold,
-                                color: _kOffWhite,
-                                letterSpacing: 0.4,
+                  ),
+                ),
+                Positioned(
+                  top: loaderTop,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: FadeTransition(
+                      opacity: _loaderFade,
+                      child: reduceMotion
+                          ? Container(
+                              key: const ValueKey('splash_loader_static'),
+                              width: 72,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: _kAccent,
+                                borderRadius: BorderRadius.circular(2),
                               ),
-                            ),
-                          ),
-                        ),
-                      ),
+                            )
+                          : const _EqualizerLoader(),
                     ),
-                    Positioned(
-                      top: loaderTop,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Opacity(
-                          opacity: _loaderFade.value,
-                          child: reduceMotion
-                              ? Container(
-                                  key: const ValueKey('splash_loader_static'),
-                                  width: 72,
-                                  height: 3,
-                                  decoration: BoxDecoration(
-                                    color: _kAccent,
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                )
-                              : const _EqualizerLoader(),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -200,9 +169,9 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// Indeterminate loading indicator with the brand voice: five azure bars
-// breathing at staggered phase offsets, like a low-latency equalizer.
-// Runs only while the splash is visible; disposed with it.
+// Indeterminate loading indicator with the brand voice: five bars breathing
+// at staggered phase offsets. Bar heights are fixed; only paint transforms
+// change, so the equalizer never lays out a single pixel per frame.
 class _EqualizerLoader extends StatefulWidget {
   const _EqualizerLoader();
 
@@ -219,6 +188,20 @@ class _EqualizerLoaderState extends State<_EqualizerLoader>
     duration: const Duration(milliseconds: 1100),
   )..repeat();
 
+  late final List<Animation<double>> _scales = List.generate(
+    _barCount,
+    (i) => Tween<double>(begin: 0.25, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(
+          i / (_barCount + 1),
+          (i + 1.6) / (_barCount + 1),
+          curve: Curves.easeInOutSine,
+        ),
+      ),
+    ),
+  );
+
   @override
   void dispose() {
     _controller.dispose();
@@ -227,39 +210,34 @@ class _EqualizerLoaderState extends State<_EqualizerLoader>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        final t = _controller.value * 2 * math.pi;
-        return SizedBox(
-          key: const ValueKey('splash_loader'),
-          height: 32,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: List.generate(_barCount, (i) {
-              // Each bar breathes on its own phase offset so the set reads
-              // as music, not as a row of identical pulses.
-              final phase = i * 0.9;
-              final wave = math.sin(t + phase);
-              final normalized = (wave + 1) / 2; // 0..1
-              final height = 6 + normalized * 22;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Container(
-                  width: 5,
-                  height: height,
-                  decoration: BoxDecoration(
-                    color: _kAccent,
-                    borderRadius: BorderRadius.circular(2.5),
-                  ),
+    return SizedBox(
+      key: const ValueKey('splash_loader'),
+      height: 32,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(_barCount, (i) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: AnimatedBuilder(
+              animation: _scales[i],
+              builder: (context, child) => Transform.scale(
+                scaleY: math.max(0.05, _scales[i].value),
+                child: child,
+              ),
+              child: Container(
+                width: 5,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: _kAccent,
+                  borderRadius: BorderRadius.circular(2.5),
                 ),
-              );
-            }),
-          ),
-        );
-      },
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }

@@ -3632,6 +3632,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View lyrics'**
   String get playerViewLyrics;
+
+  /// Button that saves the current EQ curve as a named preset
+  ///
+  /// In en, this message translates to:
+  /// **'Save preset'**
+  String get eqPresetSave;
+
+  /// Label above the list of saved EQ presets
+  ///
+  /// In en, this message translates to:
+  /// **'My presets'**
+  String get eqPresetMyPresets;
+
+  /// Hint for the named EQ preset dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Preset name'**
+  String get eqPresetName;
+
+  /// Validation message for an empty EQ preset name
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name'**
+  String get eqPresetNameEmpty;
+
+  /// Message when the saved EQ preset limit is reached
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of 12 presets reached'**
+  String get eqPresetLimit;
+
+  /// Menu item to rename a saved EQ preset
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get eqPresetRename;
+
+  /// Menu item to delete a saved EQ preset
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get eqPresetDelete;
 }
 
 class _AppLocalizationsDelegate

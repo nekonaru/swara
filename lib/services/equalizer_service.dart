@@ -175,10 +175,10 @@ class EqualizerService {
     await _flushApply();
   }
 
-  /// Apply user slider gains as the Custom preset. Always treated as a
-  /// non Flat preset (effect enabled, resampled, bands set).
-  Future<void> applyCustom(List<double> gains) async {
-    _preset = 'Custom';
+  /// Apply user slider gains as the Custom preset. The token can be a
+  /// factory name or `user:<id>` for a saved curve; both use the DSP path.
+  Future<void> applyCustom(List<double> gains, {String? presetToken}) async {
+    _preset = presetToken ?? 'Custom';
     _customGains = List<double>.generate(
         5, (i) => i < gains.length ? gains[i] : 0.0);
     if (!_ready) return;

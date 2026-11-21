@@ -289,8 +289,9 @@ class SwaraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
-    if (PlayerService.instance.player.playing) {
-      await PlayerService.instance.togglePlayPause();
+    if (PlayerService.instance.player.playing ||
+        PlayerService.instance.isSleepFadeOutActive) {
+      await PlayerService.instance.pausePlayback();
     }
   }
 
@@ -372,8 +373,8 @@ class SwaraAudioHandler extends BaseAudioHandler {
     try {
       // Use the PlayerService pause path (with its fade and its own listener
       // bookkeeping) rather than touching the player directly.
-      if (ps.player.playing) {
-        await ps.togglePlayPause();
+      if (ps.player.playing || ps.isSleepFadeOutActive) {
+        await ps.pausePlayback();
       }
     } catch (e) {
       debugPrint('MediaSession stop failed: $e');

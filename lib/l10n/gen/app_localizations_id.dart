@@ -2061,4 +2061,25 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get playerViewLyrics => 'Lihat lirik';
+
+  @override
+  String get eqPresetSave => 'Simpan preset';
+
+  @override
+  String get eqPresetMyPresets => 'Preset saya';
+
+  @override
+  String get eqPresetName => 'Nama preset';
+
+  @override
+  String get eqPresetNameEmpty => 'Masukkan nama';
+
+  @override
+  String get eqPresetLimit => 'Batas 12 preset tercapai';
+
+  @override
+  String get eqPresetRename => 'Ganti nama';
+
+  @override
+  String get eqPresetDelete => 'Hapus';
 }

@@ -19,7 +19,10 @@ class PlayerService extends ChangeNotifier {
   PlayerService._();
   static final PlayerService instance = PlayerService._();
 
-  final AudioPlayer _player = AudioPlayer();
+  // Audio focus and route changes are handled ONCE, on the main isolate.
+  // just_audio's default handling would pause silently (no state notify, no
+  // saved position) while our native receiver also toggled, so the two raced.
+  final AudioPlayer _player = AudioPlayer(handleInterruptions: false);
   // Second player for crossfade, created lazily only when crossfade is
   // actually used, so idle playback never pays its memory cost.
   AudioPlayer? _crossfadePlayer;
@@ -48,6 +51,7 @@ class PlayerService extends ChangeNotifier {
   static const int crossfadeMaxSeconds = 12;
   static const int crossfadeDefaultSeconds = 3;
   static const String _prefsCrossfadeSecondsKey = 'crossfadeSeconds';
+  static const String _prefsCrossfadeEnabledKey = 'crossfadeEnabled';
   Duration crossfadeDuration = const Duration(seconds: 3);
 
   // Smart shuffle preference, persisted with the same pattern as the
@@ -380,10 +384,28 @@ class PlayerService extends ChangeNotifier {
   /// Headset unplugged or bluetooth route lost: pause like the user asked
   /// instead of blasting the speakers. togglePlayPause fades the volume
   /// out, which is the same audible behavior as a manual pause.
-  void _onBecomingNoisy() {
-    if (player.playing) {
-      unawaited(togglePlayPause());
+  /// Force a pause even while a manual pause fade is running. Notification,
+  /// headset and Assistant pause/stop must never be swallowed by the fade's
+  /// cancel branch (which is only for a second toggle-tap).
+  Future<void> pausePlayback() async {
+    if (_disposed) return;
+    if (_pauseFadeOutActive) {
+      _pauseFadeGeneration++;
+      _pauseFadeOutActive = false;
     }
+    if (_sleepFadeActive) _cancelSleepFadeOut();
+    _cancelCrossfade();
+    await _vol(() => _activePlayer.pause());
+    await _unsubscribePosition();
+    unawaited(_saveResumeState());
+    notifyListeners();
+  }
+
+  /// Force pause for an external audio-focus/noisy event. The native
+  /// receiver is the single owner of route changes, so this is the only
+  /// pause path used for them.
+  void _onBecomingNoisy() {
+    unawaited(pausePlayback());
   }
 
   /// The player that is CURRENTLY audible (switches each time a crossfade finishes)
@@ -411,7 +433,7 @@ class PlayerService extends ChangeNotifier {
   AudioPlayer _ensureCrossfadePlayer() {
     final existing = _crossfadePlayer;
     if (existing != null) return existing;
-    final created = AudioPlayer();
+    final created = AudioPlayer(handleInterruptions: false);
     _crossfadePlayer = created;
     _syncSpeedPitch(created).catchError((Object e) {
       debugPrint('Crossfade speed/pitch sync failed: $e');
@@ -506,6 +528,7 @@ class PlayerService extends ChangeNotifier {
             saved.clamp(crossfadeMinSeconds, crossfadeMaxSeconds);
         crossfadeDuration = Duration(seconds: clamped);
       }
+      crossfadeEnabled = prefs.getBool(_prefsCrossfadeEnabledKey) ?? false;
       // Smart shuffle is a plain bool flag, same persistence pattern.
       _smartShuffle = prefs.getBool(_prefsSmartShuffleKey) ?? false;
       // Daily sleep schedule: enabled flag plus a 24h hour/minute pair.
@@ -1790,6 +1813,9 @@ class PlayerService extends ChangeNotifier {
 
   void setCrossfadeEnabled(bool value) {
     crossfadeEnabled = value;
+    unawaited(SharedPreferences.getInstance().then((prefs) async {
+      await prefs.setBool(_prefsCrossfadeEnabledKey, value);
+    }).catchError((Object _) {}));
     if (!value) {
       // Cancel any fade in flight and drop any stale crossfade state.
       // When the standby player is currently audible, the release is

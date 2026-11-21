@@ -9,11 +9,13 @@ void main() {
       File(path).readAsStringSync().replaceAll('\r\n', '\n');
 
   group('correctness', () {
-    test('permission flag is persisted only after requests', () {
+    test('permissions are requested after onboarding, not during boot', () {
       final main = read('lib/main.dart');
-      final flag = main.indexOf('setBool(_essentialPermissionsAskedKey, true)');
-      final request = main.indexOf('Permission.audio.request()');
-      expect(flag > request, isTrue);
+      expect(main.contains('PermissionService.ensureEssentialPermissions()'), isTrue);
+      expect(main.contains('Permission.audio.request()'), isFalse);
+      final permissionService = read('lib/services/permission_service.dart');
+      expect(permissionService.indexOf('setBool(askedKey, true)') >
+          permissionService.indexOf('Permission.audio.request()'), isTrue);
     });
 
     test('shortcuts are registered after the locale loads', () {

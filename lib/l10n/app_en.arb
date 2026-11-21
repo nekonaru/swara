@@ -2357,5 +2357,33 @@
     "playerViewLyrics":  "View lyrics",
     "@playerViewLyrics":  {
                               "description":  "Semantics label of the album art tap that opens synced lyrics"
-                          }
+                          },
+    "eqPresetSave":  "Save preset",
+    "@eqPresetSave":  {
+                          "description":  "Button that saves the current EQ curve as a named preset"
+                      },
+    "eqPresetMyPresets":  "My presets",
+    "@eqPresetMyPresets":  {
+                               "description":  "Label above the list of saved EQ presets"
+                           },
+    "eqPresetName":  "Preset name",
+    "@eqPresetName":  {
+                          "description":  "Hint for the named EQ preset dialog"
+                      },
+    "eqPresetNameEmpty":  "Enter a name",
+    "@eqPresetNameEmpty":  {
+                               "description":  "Validation message for an empty EQ preset name"
+                           },
+    "eqPresetLimit":  "Maximum of 12 presets reached",
+    "@eqPresetLimit":  {
+                           "description":  "Message when the saved EQ preset limit is reached"
+                       },
+    "eqPresetRename":  "Rename",
+    "@eqPresetRename":  {
+                            "description":  "Menu item to rename a saved EQ preset"
+                        },
+    "eqPresetDelete":  "Delete",
+    "@eqPresetDelete":  {
+                            "description":  "Menu item to delete a saved EQ preset"
+                        }
 }

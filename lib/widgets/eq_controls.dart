@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:swara/l10n/gen/app_localizations.dart';
 import '../providers/theme_provider.dart';
 import '../services/equalizer_service.dart';
 
@@ -69,11 +70,81 @@ class _EqControlsState extends State<EqControls> {
       _resetEqDraft();
       if (preset == 'Custom') {
         await EqualizerService.instance.applyCustom(theme.customEqGains);
+      } else if (preset.startsWith('user:')) {
+        final gains = theme.gainsForActivePreset() ?? theme.customEqGains;
+        await EqualizerService.instance.applyCustom(gains, presetToken: preset);
       } else {
         await EqualizerService.instance.applyPreset(preset);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  bool _isCustomCurve(String preset) =>
+      preset == 'Custom' || preset.startsWith('user:');
+
+  Future<String?> _askPresetName(String initial) async {
+    final l = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: initial);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.eqPresetSave),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l.eqPresetName),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: Text(l.save)),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
+  }
+
+  Future<void> _savePreset(ThemeProvider theme) async {
+    final l = AppLocalizations.of(context)!;
+    final name = await _askPresetName('');
+    if (name == null || !mounted) return;
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.eqPresetNameEmpty)));
+      return;
+    }
+    final index = await theme.saveEqPreset(name, _eqDraftFrom(theme));
+    if (!mounted) return;
+    if (index < 0) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.eqPresetLimit)));
+      return;
+    }
+    await EqualizerService.instance.applyCustom(
+      theme.eqPresets[index].gains,
+      presetToken: 'user:${theme.eqPresets[index].id}',
+    );
+  }
+
+  Future<void> _presetAction(
+      ThemeProvider theme, int index, String action) async {
+    if (action == 'rename') {
+      final name = await _askPresetName(theme.eqPresets[index].name);
+      if (name == null || !mounted || name.isEmpty) return;
+      await theme.renameEqPreset(index, name);
+    } else {
+      await theme.deleteEqPreset(index);
+      if (!mounted) return;
+      final token = theme.equalizerPreset;
+      if (token == 'Flat' || token.startsWith('user:')) return;
+      await EqualizerService.instance.applyPreset(token);
     }
   }
 
@@ -100,8 +171,9 @@ class _EqControlsState extends State<EqControls> {
             }).toList(),
           ),
         ),
-        // Custom 5-band sliders, shown only for the Custom preset.
-        if (themeProvider.equalizerPreset == 'Custom')
+        // Custom 5-band sliders, shown for the Custom curve and for any
+        // selected user preset so the curve can be inspected and tuned.
+        if (_isCustomCurve(themeProvider.equalizerPreset))
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Column(
@@ -131,7 +203,8 @@ class _EqControlsState extends State<EqControls> {
                           try {
                             final updated = List.of(gains)..[i] = v;
                             await themeProvider.setCustomEqGains(updated);
-                            await EqualizerService.instance.applyCustom(updated);
+                            await EqualizerService.instance.applyCustom(updated,
+                                presetToken: themeProvider.equalizerPreset);
                           } finally {
                             if (mounted) setState(() => _saving = false);
                           }
@@ -151,6 +224,64 @@ class _EqControlsState extends State<EqControls> {
               }),
             ),
           ),
+        // Saved named curves and the save action.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.eqPresetMyPresets,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed:
+                        _saving ? null : () => _savePreset(themeProvider),
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: Text(AppLocalizations.of(context)!.eqPresetSave),
+                  ),
+                ],
+              ),
+              if (themeProvider.eqPresets.isEmpty)
+                Text(
+                  AppLocalizations.of(context)!.eqPresetName,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  children: List.generate(themeProvider.eqPresets.length, (i) {
+                    final preset = themeProvider.eqPresets[i];
+                    final selected = themeProvider.equalizerPreset ==
+                        'user:${preset.id}';
+                    return GestureDetector(
+                      // Long-press is a shortcut to rename.
+                      onLongPress: _saving
+                          ? null
+                          : () => _presetAction(themeProvider, i, 'rename'),
+                      child: InputChip(
+                        label: Text(preset.name),
+                        selected: selected,
+                        onPressed: _saving
+                            ? null
+                            : () => _applyPreset(
+                                themeProvider, 'user:${preset.id}'),
+                        onDeleted: _saving
+                            ? null
+                            : () => _presetAction(themeProvider, i, 'delete'),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                      ),
+                    );
+                  }),
+                ),
+            ],
+          ),
+        ),
         // EQ band visualizer
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -176,7 +307,7 @@ class EqVisualizer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bands = preset == 'Custom'
+    final bands = (preset == 'Custom' || preset.startsWith('user:'))
         ? customGains
         : (kPresetBands[preset] ?? const [0.0, 0.0, 0.0, 0.0, 0.0]);
     final max = bands.isEmpty

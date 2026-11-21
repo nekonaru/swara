@@ -1,4 +1,30 @@
 import 'package:flutter/material.dart';
+import '../utils/motion.dart';
+
+/// Material's FadeUpwards transition, suppressed entirely when the OS asks
+/// for reduced motion. Package transitions stay consistent with Swara's
+/// own entrances and boot gate.
+class _SwaraPageTransitions extends PageTransitionsBuilder {
+  const _SwaraPageTransitions();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T>? route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (reduceMotion(context)) return child;
+    return const FadeUpwardsPageTransitionsBuilder().buildTransitions<T>(
+      route,
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+    );
+  }
+}
 
 /// The single source of truth for every visual default in Swara.
 ///
@@ -161,6 +187,7 @@ ThemeData _buildSwaraTheme({
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         shape: const StadiumBorder(),
+        minimumSize: const Size(88, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
@@ -168,6 +195,7 @@ ThemeData _buildSwaraTheme({
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         shape: const StadiumBorder(),
+        minimumSize: const Size(88, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
@@ -175,6 +203,7 @@ ThemeData _buildSwaraTheme({
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         shape: const StadiumBorder(),
+        minimumSize: const Size(64, 48),
         textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
     ),
@@ -229,9 +258,9 @@ ThemeData _buildSwaraTheme({
     // default zoom while staying calm, and it never delays the first frame.
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: <TargetPlatform, PageTransitionsBuilder>{
-        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        TargetPlatform.android: _SwaraPageTransitions(),
+        TargetPlatform.linux: _SwaraPageTransitions(),
+        TargetPlatform.windows: _SwaraPageTransitions(),
       },
     ),
   );

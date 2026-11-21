@@ -2357,5 +2357,33 @@
     "playerViewLyrics":  "Lihat lirik",
     "@playerViewLyrics":  {
                               "description":  "Label aksesibilitas ketukan sampul album untuk membuka lirik"
-                          }
+                          },
+    "eqPresetSave":  "Simpan preset",
+    "@eqPresetSave":  {
+                          "description":  "Tombol menyimpan kurva EQ saat ini sebagai preset bernama"
+                      },
+    "eqPresetMyPresets":  "Preset saya",
+    "@eqPresetMyPresets":  {
+                               "description":  "Label di atas daftar preset EQ tersimpan"
+                           },
+    "eqPresetName":  "Nama preset",
+    "@eqPresetName":  {
+                          "description":  "Petunjuk dialog nama preset EQ"
+                      },
+    "eqPresetNameEmpty":  "Masukkan nama",
+    "@eqPresetNameEmpty":  {
+                               "description":  "Pesan validasi nama preset EQ kosong"
+                           },
+    "eqPresetLimit":  "Batas 12 preset tercapai",
+    "@eqPresetLimit":  {
+                           "description":  "Pesan saat batas preset EQ tersimpan tercapai"
+                       },
+    "eqPresetRename":  "Ganti nama",
+    "@eqPresetRename":  {
+                            "description":  "Menu mengganti nama preset EQ tersimpan"
+                        },
+    "eqPresetDelete":  "Hapus",
+    "@eqPresetDelete":  {
+                            "description":  "Menu menghapus preset EQ tersimpan"
+                        }
 }

@@ -305,6 +305,14 @@ class LibraryProvider extends ChangeNotifier {
         // completes and keeps its results, because enrichSong stores each
         // song as it finishes.
         if (_bulkScanCancelRequested) break;
+        // Respect the rate-limit backoff before starting a new batch.
+        // Parallel calls within a batch can all observe "not limited" and
+        // would otherwise hammer the API right as the first 429 arrives.
+        if (MetadataService.instance.isRateLimited) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          if (_bulkScanCancelRequested) break;
+          continue;
+        }
         final batch = targets.skip(i).take(batchSize).toList();
         final results =
             await Future.wait(batch.map((song) => MetadataService.instance.enrichSong(song)));

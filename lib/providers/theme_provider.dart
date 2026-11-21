@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/eq_preset.dart';
 import '../theme/app_theme.dart';
 
 const List<Color> kAccentColors = [
@@ -26,6 +29,7 @@ class ThemeProvider extends ChangeNotifier {
   static const _equalizerPresetKey = 'equalizerPreset';
   static const _textScaleKey = 'textScale';
   static const _customEqGainsKey = 'custom_eq_gains';
+  static const _eqPresetsKey = 'custom_eq_presets';
   static const _amoledBlackKey = 'amoledBlack';
   static const _dynamicColorKey = 'dynamicColor';
 
@@ -37,6 +41,10 @@ class ThemeProvider extends ChangeNotifier {
   double textScale = 0.85;
   // Custom 5-band EQ gains (low to high). Used only with the Custom preset.
   List<double> customEqGains = [0, 0, 0, 0, 0];
+  // Named user EQ curves, persisted independently of the one Custom buffer.
+  List<EqPreset> eqPresets = const <EqPreset>[];
+  static const int maxEqPresets = 12;
+
   // Pitch black background for the dark theme. Wired in main by someone else.
   bool amoledBlack = false;
   // Material You: follow the Android 12+ system accent colors instead of the
@@ -87,6 +95,8 @@ class ThemeProvider extends ChangeNotifier {
       final savedScale = prefs.getDouble(_textScaleKey) ?? 0.85;
       textScale = kTextScales.contains(savedScale) ? savedScale : 0.85;
       customEqGains = _readCustomGains(prefs);
+      final storedPresets = prefs.getString(_eqPresetsKey);
+      if (storedPresets != null) eqPresets = decodeEqPresets(storedPresets);
       amoledBlack = prefs.getBool(_amoledBlackKey) ?? false;
       dynamicColor = prefs.getBool(_dynamicColorKey) ?? false;
     } catch (e) {
@@ -143,6 +153,76 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
     await _write((prefs) => prefs.setStringList(
         _customEqGainsKey, fixed.map((g) => g.toString()).toList()));
+  }
+
+  Future<int> saveEqPreset(String name, List<double> gains) async {
+    if (eqPresets.length >= maxEqPresets) return -1;
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final preset = EqPreset(
+      id: id,
+      name: name.trim(),
+      gains: EqPreset.clampGains(gains),
+    );
+    eqPresets = [...eqPresets, preset];
+    // Selecting a saved curve reuses the existing "Custom" DSP path.
+    equalizerPreset = 'user:$id';
+    customEqGains = List.of(preset.gains);
+    notifyListeners();
+    await _write((prefs) async {
+      await prefs.setString(_eqPresetsKey, encodeEqPresets(eqPresets));
+      await prefs.setString(_equalizerPresetKey, equalizerPreset);
+      await prefs.setStringList(
+          _customEqGainsKey, customEqGains.map((g) => g.toString()).toList());
+    });
+    return eqPresets.length - 1;
+  }
+
+  void selectEqPreset(EqPreset preset) {
+    equalizerPreset = 'user:${preset.id}';
+    customEqGains = List.of(preset.gains);
+    notifyListeners();
+    unawaited(_write((prefs) async {
+      await prefs.setString(_equalizerPresetKey, equalizerPreset);
+      await prefs.setStringList(
+          _customEqGainsKey, customEqGains.map((g) => g.toString()).toList());
+    }));
+  }
+
+  Future<void> renameEqPreset(int index, String name) async {
+    if (index < 0 || index >= eqPresets.length || name.trim().isEmpty) return;
+    final updated = List<EqPreset>.of(eqPresets);
+    final old = updated[index];
+    updated[index] =
+        EqPreset(id: old.id, name: name.trim(), gains: List.of(old.gains));
+    eqPresets = updated;
+    notifyListeners();
+    await _write((prefs) =>
+        prefs.setString(_eqPresetsKey, encodeEqPresets(eqPresets)));
+  }
+
+  Future<void> deleteEqPreset(int index) async {
+    if (index < 0 || index >= eqPresets.length) return;
+    final removed = eqPresets[index];
+    eqPresets = List<EqPreset>.of(eqPresets)..removeAt(index);
+    if (equalizerPreset == 'user:${removed.id}') {
+      equalizerPreset = 'Flat';
+      customEqGains = const [0, 0, 0, 0, 0];
+    }
+    notifyListeners();
+    await _write((prefs) async {
+      await prefs.setString(_eqPresetsKey, encodeEqPresets(eqPresets));
+      await prefs.setString(_equalizerPresetKey, equalizerPreset);
+    });
+  }
+
+  /// Gains for the active preset token, or null for a factory preset.
+  List<double>? gainsForActivePreset() {
+    if (!equalizerPreset.startsWith('user:')) return null;
+    final id = equalizerPreset.substring(5);
+    for (final preset in eqPresets) {
+      if (preset.id == id) return List.of(preset.gains);
+    }
+    return null;
   }
 
   // Toggle the pitch black dark theme variant and persist it.

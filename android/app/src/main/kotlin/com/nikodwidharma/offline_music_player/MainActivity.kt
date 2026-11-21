@@ -27,7 +27,15 @@ class MainActivity : AudioServiceFragmentActivity() {
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         // Android 12+ native splash (navy tile, brand glyph); a no-op on
         // older devices, which fall back to LaunchTheme's windowBackground.
-        installSplashScreen()
+        // Cross-fade the system splash over the Flutter frame instead of
+        // cutting abruptly to it.
+        installSplashScreen().setOnExitAnimationListener { splash ->
+            splash.view.animate()
+                .alpha(0f)
+                .setDuration(120)
+                .withEndAction { splash.remove() }
+                .start()
+        }
         super.onCreate(savedInstanceState)
     }
 

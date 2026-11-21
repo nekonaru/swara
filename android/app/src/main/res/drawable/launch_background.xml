@@ -2,4 +2,11 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Navy tile; matches the launcher background so the cold start has no seam. -->
     <item android:drawable="@color/ic_launcher_background" />
+    <!-- Legacy (API 26-30) splash: show the same glyph as the Flutter mark
+         so older devices do not see an empty navy screen. -->
+    <item
+        android:drawable="@drawable/ic_splash_icon"
+        android:gravity="center"
+        android:width="112dp"
+        android:height="112dp" />
 </layer-list>
