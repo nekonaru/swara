@@ -236,23 +236,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               Expanded(
                 child: LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
-                      child: PageView.builder(
-                        controller: _controller,
-                        itemCount: pages.length,
-                        onPageChanged: (i) {
-                          setState(() => _index = i);
-                          _rememberPage(i);
-                        },
-                        itemBuilder: (context, i) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
-                          child: Center(
-                            child: _page(pages[i], cs, reduceMotion,
-                                constraints.maxHeight),
-                          ),
+                  builder: (context, constraints) => SizedBox(
+                    height: constraints.maxHeight,
+                    child: PageView.builder(
+                      controller: _controller,
+                      itemCount: pages.length,
+                      onPageChanged: (i) {
+                        setState(() => _index = i);
+                        _rememberPage(i);
+                      },
+                      itemBuilder: (context, i) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Center(
+                          child: _page(pages[i], cs, reduceMotion,
+                              constraints.maxHeight),
                         ),
                       ),
                     ),

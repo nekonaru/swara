@@ -339,10 +339,13 @@ Future<bool> _bootApp({
         // Seed the equalizer with the saved preset so the first
         // attach already uses it (no session yet, just stored).
         // Custom gains ride along when the stored preset is Custom.
-        final savedGains = themeProvider.gainsForActivePreset();
-        if (themeProvider.equalizerPreset == 'Custom' || savedGains != null) {
+        // Custom gains are persisted on every slider change and on every
+        // preset selection, so they are the live curve for both 'Custom' and
+        // 'user:<id>' tokens after a restart.
+        if (themeProvider.equalizerPreset == 'Custom' ||
+            themeProvider.equalizerPreset.startsWith('user:')) {
           await EqualizerService.instance.applyCustom(
-            savedGains ?? themeProvider.customEqGains,
+            themeProvider.customEqGains,
             presetToken: themeProvider.equalizerPreset,
           );
         } else {

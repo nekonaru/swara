@@ -195,7 +195,7 @@ class EqualizerService {
     }
     await _get<void>(() => _native.setEqualizerEnabled(true), 'enable');
     final List<double> curve;
-    if (_preset == 'Custom') {
+    if (_preset == 'Custom' || _preset.startsWith('user:')) {
       curve = List.of(_customGains);
     } else {
       curve = kEqCurves[_preset] ?? kEqCurves['Flat']!;

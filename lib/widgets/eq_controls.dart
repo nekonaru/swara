@@ -71,8 +71,15 @@ class _EqControlsState extends State<EqControls> {
       if (preset == 'Custom') {
         await EqualizerService.instance.applyCustom(theme.customEqGains);
       } else if (preset.startsWith('user:')) {
-        final gains = theme.gainsForActivePreset() ?? theme.customEqGains;
-        await EqualizerService.instance.applyCustom(gains, presetToken: preset);
+        final id = preset.substring(5);
+        final index = theme.eqPresets.indexWhere((p) => p.id == id);
+        if (index >= 0) {
+          theme.selectEqPreset(theme.eqPresets[index]);
+          await EqualizerService.instance.applyCustom(
+            theme.eqPresets[index].gains,
+            presetToken: preset,
+          );
+        }
       } else {
         await EqualizerService.instance.applyPreset(preset);
       }
@@ -140,11 +147,12 @@ class _EqControlsState extends State<EqControls> {
       if (name == null || !mounted || name.isEmpty) return;
       await theme.renameEqPreset(index, name);
     } else {
+      final wasActive = theme.equalizerPreset == 'user:${theme.eqPresets[index].id}';
       await theme.deleteEqPreset(index);
       if (!mounted) return;
-      final token = theme.equalizerPreset;
-      if (token == 'Flat' || token.startsWith('user:')) return;
-      await EqualizerService.instance.applyPreset(token);
+      if (wasActive) {
+        await EqualizerService.instance.applyPreset('Flat');
+      }
     }
   }
 

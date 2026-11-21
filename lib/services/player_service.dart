@@ -389,10 +389,9 @@ class PlayerService extends ChangeNotifier {
   /// cancel branch (which is only for a second toggle-tap).
   Future<void> pausePlayback() async {
     if (_disposed) return;
-    if (_pauseFadeOutActive) {
-      _pauseFadeGeneration++;
-      _pauseFadeOutActive = false;
-    }
+    // Restore both players' volumes and abort any fade before forcing pause.
+    _cancelPauseFade();
+    if (isCrossfadeActive) _abortCrossfadeForQueueEdit();
     if (_sleepFadeActive) _cancelSleepFadeOut();
     _cancelCrossfade();
     await _vol(() => _activePlayer.pause());

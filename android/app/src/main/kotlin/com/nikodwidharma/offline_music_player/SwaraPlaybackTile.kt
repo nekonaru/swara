@@ -5,10 +5,10 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import androidx.media.MediaBrowserCompat
-import androidx.media.session.MediaControllerCompat
-import androidx.media.session.MediaMetadataCompat
-import androidx.media.session.PlaybackStateCompat
+import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
 
 /**
