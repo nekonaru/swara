@@ -45,6 +45,16 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <service
+            android:name=".SwaraPlaybackTile"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true"
+            android:label="@string/quick_tile_label"
+            android:icon="@drawable/ic_quick_tile_play">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
             android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"
             android:permission="android.permission.MEDIA_CONTENT_CONTROL"

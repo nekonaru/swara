@@ -60,6 +60,7 @@
 | **Headset unplug** | Playback pauses automatically when the headset is unplugged or the Bluetooth route is lost |
 | **Background playback** | Real Android foreground service with MediaSession: notification and lockscreen controls (play/pause/next/previous) |
 | **Home screen widget** | Album art, play/pause/prev/next controls, and a self-ticking elapsed-time chronometer right on the home screen |
+| **Quick Settings tile** | Play/pause from Android's notification shade with live track title and state, even when the app is backgrounded |
 | **Shuffle and repeat** | Shuffle, repeat off / all / one, plus sleep timer by duration or song count |
 | **Mini player** | Always visible on every page with a live progress line; playback speed and pitch control on the player screen |
 | **Skip 10 seconds** | Dedicated seek-back and seek-forward buttons on the Now Playing screen |
