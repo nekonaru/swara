@@ -83,6 +83,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _checkForUpdate() async {
     if (_savingPrefs || _updating) return;
     _updating = true;
+    // Rebuild so the About tile visibly disables while work is in flight.
+    if (mounted) setState(() {});
     try {
       await _checkForUpdateInner();
     } finally {
