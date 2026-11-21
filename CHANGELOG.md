@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.0.0
+
+Major release: a smoother, seamless intro and two new native-feeling features, backed by a deep audit of playback and cache behavior.
+
+## New features
+
+- **Named EQ presets.** Save, name, recall, rename and delete multiple 5-band curves. The active curve survives restarts, and the factory presets remain untouched.
+- **Quick Settings playback tile.** Play and pause from Android's notification shade with the live track title and state. The tile talks directly to the MediaSession and keeps working with the app backgrounded.
+
+## Improvements
+
+- **Seamless intro.** The mark is on screen from the first frame, the native splash crossfades into it, and one gate fades straight into Home or onboarding with no unbranded spinner.
+- **Smooth, accessible motion.** Entrance animations use paint-only transforms, reduce-motion is honoured everywhere through one helper, and onboarding has continuous dots, responsive layout and page progress that survives Back.
+- **Permissions after the intro.** Audio and notification prompts are asked once after onboarding, never over the splash animation.
+
+## Bug fixes
+
+- **Headset unplug is handled once.** Route changes go through a single forced-pause path, so the UI and widget stay in sync and cannot resume behind a fired sleep timer.
+- **Notification pause cannot be cancelled by a fade.** An explicit pause or stop now forces the pause even while a manual fade is running.
+- **Crossfade setting survives a restart.** The enabled flag is persisted like the other playback preferences.
+- **Clear art cache clears everything.** Remote covers, their memory indexes and the image cache are dropped along with embedded art.
+- **Bulk scans respect the API backoff.** Parallel batches wait out a 429 before continuing instead of hammering the service.
+
 ## v3.12.3
 
 Audit release: remaining correctness, accessibility and design gaps in the existing features are closed, with no new features added.

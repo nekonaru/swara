@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.0.0
+
+Rilis mayor: intro yang lebih halus dan mulus plus dua fitur baru yang terasa native, didukung audit mendalam pada pemutaran dan cache.
+
+## Fitur baru
+
+- **Preset EQ bernama.** Simpan, beri nama, panggil, ganti nama, dan hapus beberapa kurva 5 band. Preset aktif tetap ada setelah restart dan preset pabrik tidak berubah.
+- **Ubin pemutaran Quick Settings.** Putar dan jeda dari panel notifikasi Android dengan judul serta status lagu langsung. Ubin berbicara langsung ke MediaSession dan tetap bekerja saat aplikasi di latar belakang.
+
+## Peningkatan
+
+- **Intro tanpa sambungan.** Mark tampil sejak frame pertama, splash native melakukan crossfade ke sana, dan satu gate langsung memudar ke Home atau onboarding tanpa spinner polos.
+- **Gerak halus dan ramah aksesibilitas.** Animasi masuk memakai transformasi paint-only, reduce-motion dipatuhi di semua tempat lewat satu helper, dan onboarding punya titik kontinu, tata letak responsif, serta progres halaman yang tetap setelah tombol Back.
+- **Izin setelah intro.** Prompt izin audio dan notifikasi ditanyakan sekali setelah onboarding, tidak pernah menimpa animasi splash.
+
+## Perbaikan bug
+
+- **Colokan headset ditangani sekali.** Perubahan rute lewat satu jalur jeda paksa, sehingga UI dan widget tetap sinkron dan tidak bisa resume di belakang timer tidur yang sudah berjalan.
+- **Jeda dari notifikasi tidak dibatalkan fade.** Jeda atau berhenti eksplisit kini memaksa jeda walau fade manual sedang berjalan.
+- **Pengaturan crossfade tetap ada setelah restart.** Flag aktif kini disimpan seperti preferensi pemutaran lainnya.
+- **Bersihkan cache sampul menghapus semuanya.** Sampul remote, indeks memori, dan image cache ikut dihapus bersama sampul tersemat.
+- **Pemindaian massal mematuhi jeda API.** Batch paralel menunggu saat 429 sebelum lanjut, bukan menghujani layanan.
+
 ## v3.12.3
 
 Rilis audit: sisa celah kebenaran, aksesibilitas, dan desain pada fitur yang ada ditutup, tanpa fitur baru.
