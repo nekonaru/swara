@@ -3717,6 +3717,24 @@ abstract class AppLocalizations {
   /// **'Favorite'**
   String get notificationFavorite;
 
+  /// Search filter that matches stored lyrics
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics'**
+  String get searchFilterLyrics;
+
+  /// Label of the shuffle action in the media notification
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get notificationShuffle;
+
+  /// Label of the repeat action in the media notification
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get notificationRepeat;
+
   /// Title of the per-song or per-folder playback settings sheet
   ///
   /// In en, this message translates to:

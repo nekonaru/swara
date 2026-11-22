@@ -16,7 +16,12 @@ import '../widgets/playing_indicator.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/song_art_image.dart';
 
-enum _SearchFilter { lagu, album, artis, folder, genre }
+enum _SearchFilter { lagu, album, artis, folder, genre, lyrics }
+
+// Compiled once: lyric haystacks strip LRC timestamps for thousands of songs.
+final RegExp _lrcStampPattern = RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]');
+
+const int _kLyricsHaystackLimit = 4000;
 
 // Result rows keep a fixed 72 px extent while the app allows text scales up to
 // 2x, so the text of a row is clamped to stay inside that box.
@@ -518,6 +523,13 @@ class _SearchScreenState extends State<SearchScreen> {
         return parts.length > 1 ? parts[parts.length - 2] : '';
       case _SearchFilter.genre:
         return s.genre ?? '';
+      case _SearchFilter.lyrics:
+        final raw = s.lyrics ?? '';
+        if (raw.isEmpty) return '';
+        final text = raw.replaceAll(_lrcStampPattern, ' ');
+        return text.length > _kLyricsHaystackLimit
+            ? text.substring(0, _kLyricsHaystackLimit)
+            : text;
     }
   }
 
@@ -557,6 +569,7 @@ class _SearchScreenState extends State<SearchScreen> {
       (_SearchFilter.artis, l.searchFilterArtist),
       (_SearchFilter.folder, l.searchFilterFolder),
       (_SearchFilter.genre, l.searchFilterGenre),
+      (_SearchFilter.lyrics, l.searchFilterLyrics),
     ];
     return SizedBox(
       height: 40,

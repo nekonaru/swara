@@ -2414,6 +2414,18 @@
     "@notificationFavorite":  {
                                   "description":  "Label aksi notifikasi mengubah status favorit lagu saat ini"
                               },
+    "searchFilterLyrics":  "Lirik",
+    "@searchFilterLyrics":  {
+                                "description":  "Filter pencarian yang mencocokkan lirik tersimpan"
+                            },
+    "notificationShuffle":  "Acak",
+    "@notificationShuffle":  {
+                                 "description":  "Label aksi acak di notifikasi media"
+                             },
+    "notificationRepeat":  "Ulang",
+    "@notificationRepeat":  {
+                                "description":  "Label aksi ulang di notifikasi media"
+                            },
     "playbackSettingsTitle":  "Pengaturan pemutaran",
     "@playbackSettingsTitle":  {
                                    "description":  "Judul sheet pengaturan pemutaran per lagu atau per folder"

@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.3.0
+
+Android Auto lengkap dengan pemutaran dari daftar, plus mode pencarian offline baru dan perbaikan audit.
+
+## Fitur baru
+
+- **Cari berdasarkan lirik.** Filter Lirik baru mencocokkan teks tersimpan yang sudah dibersihkan dari timestamp, sehingga satu baris yang diingat bisa menemukan lagunya tanpa koneksi.
+
+## Peningkatan
+
+- **Android Auto bekerja sampai akhir.** Mengetuk lagu di Auto, Wear, atau Assistant kini memutarnya lewat `playFromMediaId` dengan slot id yang sama seperti antrean lokal.
+- **Klien media eksternal bisa tersambung.** Izin tingkat signature dihapus dari layanan media dan penerima tombol agar Android Auto dan Wear bisa bind.
+- **Label notifikasi mengikuti bahasa.** Acak dan ulang kini terlokalisasi seperti tidur dan favorit.
+
+## Perbaikan bug
+
+- **Pengaturan pemutaran hasil pulihan diverifikasi.** Id lagu dari backup dicek terhadap pustaka lokal sebelum gain atau lewati diterapkan, mencegah override ke lagu lain.
+- **Preset EQ pabrik berlaku setelah pulih backup.** Rock, Jazz, dan preset bawaan lain langsung terdengar.
+- **Favorit dari notifikasi bertahan saat start dingin.** Aksi menunggu pemulihan pemutaran sebelum mengubah lagu saat ini.
+
 ## v4.2.0
 
 Integrasi native baru plus audit mendalam pada pemutaran dan pemulihan.

@@ -110,6 +110,7 @@
 | **Jelajah folder** | Jelajahi berdasarkan folder sumber, sembunyikan folder dari pustaka |
 | **Navigasi A-Z** | Scrollbar huruf yang mengikuti jari untuk lompat cepat |
 | **Pencarian** | Pencarian real-time berdasarkan judul, artis, album, folder, atau genre, dengan input yang di-debounce |
+| **Cari lirik** | Cari di seluruh lirik tersimpan secara offline lewat filter Lirik, timestamp dibuang |
 | **Pencarian toleran** | Menemukan "faded alan walker" untuk "faded - alan walker" |
 | **Pencarian toleran typo** | Menemukan lagu meski huruf tertukar atau salah ketik, dengan petunjuk "maksud kamu" |
 | **Bagikan lagu** | Bagikan info lagu yang sedang diputar beserta file audionya |

@@ -637,6 +637,12 @@ class PlayerService extends ChangeNotifier {
     }
   }
 
+  // Completed at the end of init() so external MediaSession actions can wait
+  // for the cold-start resume before touching currentSong.
+  final Completer<void> _readyCompleter = Completer<void>();
+
+  Future<void> get ready => _readyCompleter.future;
+
   Future<void> init() async {
     await loadPreferences();
     if (_sleepScheduleEnabled) {
@@ -710,6 +716,7 @@ class PlayerService extends ChangeNotifier {
     // finished (crossfade seconds, smart shuffle, sleep schedule, speed and
     // pitch) shows the persisted values instead of the defaults.
     if (!_disposed) notifyListeners();
+    if (!_readyCompleter.isCompleted) _readyCompleter.complete();
   }
 
   /// Shared position tick for the active player. A-B repeat is checked

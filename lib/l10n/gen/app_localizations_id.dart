@@ -2107,6 +2107,15 @@ class AppLocalizationsId extends AppLocalizations {
   String get notificationFavorite => 'Favorit';
 
   @override
+  String get searchFilterLyrics => 'Lirik';
+
+  @override
+  String get notificationShuffle => 'Acak';
+
+  @override
+  String get notificationRepeat => 'Ulang';
+
+  @override
   String get playbackSettingsTitle => 'Pengaturan pemutaran';
 
   @override

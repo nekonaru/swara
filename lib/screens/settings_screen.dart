@@ -519,6 +519,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           theme.gainsForActivePreset() ?? theme.customEqGains,
           presetToken: preset,
         );
+      } else {
+        await EqualizerService.instance.applyPreset(preset);
       }
       await PlayerService.instance.reapplyAudioSettings();
       try {

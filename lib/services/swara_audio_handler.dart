@@ -38,7 +38,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
   MediaControl _shuffleControl(bool enabled) {
     return MediaControl(
       androidIcon: enabled ? _shuffleOnIcon : _shuffleOffIcon,
-      label: 'Shuffle',
+      label: lookupAppLocalizations(LanguageProvider.instance.locale).notificationShuffle,
       action: MediaAction.custom,
       customAction: const CustomMediaAction(name: 'shuffle'),
     );
@@ -48,25 +48,25 @@ class SwaraAudioHandler extends BaseAudioHandler {
   MediaControl _repeatControl(SwaraRepeatMode mode) {
     switch (mode) {
       case SwaraRepeatMode.one:
-        return const MediaControl(
+        return MediaControl(
           androidIcon: _repeatOneIcon,
-          label: 'Repeat',
+          label: lookupAppLocalizations(LanguageProvider.instance.locale).notificationRepeat,
           action: MediaAction.custom,
-          customAction: CustomMediaAction(name: 'repeat'),
+          customAction: const CustomMediaAction(name: 'repeat'),
         );
       case SwaraRepeatMode.all:
-        return const MediaControl(
+        return MediaControl(
           androidIcon: _repeatAllIcon,
-          label: 'Repeat',
+          label: lookupAppLocalizations(LanguageProvider.instance.locale).notificationRepeat,
           action: MediaAction.custom,
-          customAction: CustomMediaAction(name: 'repeat'),
+          customAction: const CustomMediaAction(name: 'repeat'),
         );
       case SwaraRepeatMode.off:
-        return const MediaControl(
+        return MediaControl(
           androidIcon: _repeatOffIcon,
-          label: 'Repeat',
+          label: lookupAppLocalizations(LanguageProvider.instance.locale).notificationRepeat,
           action: MediaAction.custom,
-          customAction: CustomMediaAction(name: 'repeat'),
+          customAction: const CustomMediaAction(name: 'repeat'),
         );
     }
   }
@@ -333,17 +333,32 @@ class SwaraAudioHandler extends BaseAudioHandler {
       if (index == null) return;
       final published = queue.value;
       if (index < 0 || index >= published.length) return;
-      final parts = published[index].id.split('_');
-      if (parts.length < 2) return;
-      final slotId = int.tryParse(parts[1]);
-      if (slotId == null) return;
-      final ps = PlayerService.instance;
-      final pos = ps.queuePosForSlot(slotId);
-      if (pos == null || pos < 0 || pos >= ps.queueOrderLength) return;
-      await ps.playAtQueueIndex(pos);
+      await _playMediaItem(published[index].id);
     } catch (e) {
       debugPrint('skipToQueueItem failed: $e');
     }
+  }
+
+  /// Android Auto, Wear and Assistant tap a browse item through
+  /// playFromMediaId, with the same `queue_<slotId>_<path>` id we publish.
+  @override
+  Future<void> playFromMediaId(String mediaId, [Map<String, dynamic>? extras]) async {
+    try {
+      await _playMediaItem(mediaId);
+    } catch (e) {
+      debugPrint('playFromMediaId failed: $e');
+    }
+  }
+
+  Future<void> _playMediaItem(String mediaId) async {
+    final parts = mediaId.split('_');
+    if (parts.length < 2) return;
+    final slotId = int.tryParse(parts[1]);
+    if (slotId == null) return;
+    final ps = PlayerService.instance;
+    final pos = ps.queuePosForSlot(slotId);
+    if (pos == null || pos < 0 || pos >= ps.queueOrderLength) return;
+    await ps.playAtQueueIndex(pos);
   }
 
   @override
@@ -370,6 +385,10 @@ class SwaraAudioHandler extends BaseAudioHandler {
         _syncState();
         break;
       case 'favorite':
+        // A notification tap can arrive before a cold-start resume finishes.
+        await PlayerService.instance.ready
+            .timeout(const Duration(seconds: 3))
+            .catchError((Object _) {});
         final song = PlayerService.instance.currentSong;
         if (song != null) {
           final next = !song.isFavorite;

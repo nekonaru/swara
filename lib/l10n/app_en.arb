@@ -2414,6 +2414,18 @@
     "@notificationFavorite":  {
                                   "description":  "Label of the notification action that toggles the current song's favorite state"
                               },
+    "searchFilterLyrics":  "Lyrics",
+    "@searchFilterLyrics":  {
+                                "description":  "Search filter that matches stored lyrics"
+                            },
+    "notificationShuffle":  "Shuffle",
+    "@notificationShuffle":  {
+                                 "description":  "Label of the shuffle action in the media notification"
+                             },
+    "notificationRepeat":  "Repeat",
+    "@notificationRepeat":  {
+                                "description":  "Label of the repeat action in the media notification"
+                            },
     "playbackSettingsTitle":  "Playback settings",
     "@playbackSettingsTitle":  {
                                    "description":  "Title of the per-song or per-folder playback settings sheet"

@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.3.0
+
+Android Auto is completed with real browse playback, plus a new offline search mode and audit fixes.
+
+## New features
+
+- **Search by lyrics.** A new Lyrics filter matches the stored, timestamp-stripped text of every song, so a remembered line can find its song without a network request.
+
+## Improvements
+
+- **Android Auto browse works end to end.** Tapping a song in Auto, Wear, or Assistant now starts it through `playFromMediaId`, using the same stable slot id as the local queue.
+- **External media clients can connect.** The signature-level permission was removed from the media service and button receiver so Android Auto and Wear can bind.
+- **Notification labels follow the locale.** Shuffle and repeat labels are now localized like sleep and favorite.
+
+## Bug fixes
+
+- **Restored playback settings are checked against the local library.** Song ids from a backup are validated before a gain or skip setting is applied, preventing wrong-song overrides.
+- **Factory EQ presets apply after a backup restore.** Rock, Jazz and the other built-in curves take effect immediately.
+- **Favorite from the notification survives a cold start.** The action waits for playback restore before toggling the current song.
+
 ## v4.2.0
 
 New native integrations plus a deep audit of playback and restore behavior.

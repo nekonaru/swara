@@ -110,6 +110,7 @@
 | **Folder browsing** | Browse by source folder, hide folders from the library |
 | **A-Z navigation** | Finger-following letter scrollbar for fast jumps |
 | **Search** | Real-time search by title, artist, album, folder, or genre, with debounced input |
+| **Lyrics search** | Search across stored lyrics offline with the Lyrics filter, timestamps stripped |
 | **Forgiving search** | Finds "faded alan walker" for "faded - alan walker" |
 | **Typo tolerant search** | Finds songs despite swapped or mistyped letters, with a "did you mean" hint |
 | **Share songs** | Share the currently playing info plus audio file |

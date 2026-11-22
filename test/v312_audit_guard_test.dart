@@ -101,7 +101,8 @@ void main() {
       final gradle = read('android/app/build.gradle.kts');
       expect(gradle.contains('minSdk = 26'), isTrue);
       final manifest = read('android/app/src/main/AndroidManifest.xml');
-      expect(manifest.contains('android.permission.MEDIA_CONTENT_CONTROL'), isTrue);
+      // Android Auto and Wear must be able to bind to the media service.
+      expect(manifest.contains('android.permission.MEDIA_CONTENT_CONTROL'), isFalse);
     });
   });
 }

@@ -2108,6 +2108,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationFavorite => 'Favorite';
 
   @override
+  String get searchFilterLyrics => 'Lyrics';
+
+  @override
+  String get notificationShuffle => 'Shuffle';
+
+  @override
+  String get notificationRepeat => 'Repeat';
+
+  @override
   String get playbackSettingsTitle => 'Playback settings';
 
   @override

@@ -610,17 +610,36 @@ class BackupService {
     try {
       final existingSongs =
           await DBHelper.instance.getAllSongPlaybackSettings();
+      final candidates = <int>[];
+      final settingsBySong = <int, Map<String, dynamic>>{};
       for (final raw in (songsPlaybackRaw as List? ?? [])) {
         if (raw is! Map) continue;
         final id = (raw['songId'] as num?)?.toInt();
         if (id == null || existingSongs.containsKey(id)) continue;
+        candidates.add(id);
+        settingsBySong[id] = Map<String, dynamic>.from(raw);
+      }
+      // MediaStore ids are not stable across devices. Validate each id
+      // against the local songs table before applying a gain to it.
+      final database = await DBHelper.instance.db;
+      final presentIds = <int>{};
+      const chunk = 400;
+      for (var off = 0; off < candidates.length; off += chunk) {
+        final end = off + chunk > candidates.length ? candidates.length : off + chunk;
+        final slice = candidates.sublist(off, end);
+        final placeholders = List.filled(slice.length, '?').join(',');
+        final rows = await database.rawQuery(
+          'SELECT id FROM songs WHERE id IN ($placeholders)', slice);
+        presentIds.addAll(rows.map((r) => r['id']).whereType<int>());
+      }
+      for (final id in presentIds) {
+        final raw = settingsBySong[id]!;
         await DBHelper.instance.setSongPlaybackSettings(
           id,
           gainDb: (raw['gainDb'] as num?)?.toDouble() ?? 0,
           skipStartMs: (raw['skipStartMs'] as num?)?.toInt() ?? 0,
           skipEndMs: (raw['skipEndMs'] as num?)?.toInt() ?? 0,
         );
-        existingSongs[id] = const {};
         songSettingsRestored++;
       }
       final existingFolders =
