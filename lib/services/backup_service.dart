@@ -5,14 +5,16 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../providers/language_provider.dart';
 import '../services/art_cache_service.dart';
 import '../services/embedded_art_service.dart';
+import '../utils/backup_settings_codec.dart';
 
 import '../services/db_helper.dart';
 import 'player_service.dart';
 
 // Backup format version. Bump when the JSON schema changes.
-const int kBackupFormatVersion = 1;
+const int kBackupFormatVersion = 2;
 
 // Decode the backup payload off the main isolate; the import can be a
 // multi-megabyte JSON document and the parse must not block the UI.
@@ -37,6 +39,9 @@ class BackupImportResult {
   final int listeningEntriesSkipped;
   final int playlistMembersSkipped;
   final int favoritesSkipped;
+  final int preferencesRestored;
+  final int songSettingsRestored;
+  final int folderSettingsRestored;
 
   const BackupImportResult({
     this.playlistsCreated = 0,
@@ -46,6 +51,9 @@ class BackupImportResult {
     this.listeningEntriesSkipped = 0,
     this.playlistMembersSkipped = 0,
     this.favoritesSkipped = 0,
+    this.preferencesRestored = 0,
+    this.songSettingsRestored = 0,
+    this.folderSettingsRestored = 0,
   });
 }
 
@@ -64,12 +72,48 @@ class ArtCacheUsage {
 class BackupService {
   BackupService._();
 
+  // Preference keys carried by a backup. Whitelisted so a future sensitive
+  // preference is never exported accidentally.
+  static const List<String> kBackupPrefKeys = [
+    'equalizerPreset',
+    'custom_eq_gains',
+    'custom_eq_presets',
+    'textScale',
+    'themeMode',
+    'accentColorIndex',
+    'amoledBlack',
+    'dynamicColor',
+    'loudness_enabled',
+    'crossfadeSeconds',
+    'crossfadeEnabled',
+    'smartShuffle',
+    'playbackSpeed',
+    'playbackPitch',
+    'sleepScheduleEnabled',
+    'sleepScheduleHour',
+    'sleepScheduleMinute',
+    'shuffle',
+    'repeatMode',
+  ];
+
   // Collect playlists with members, favorite ids, and listening
   // entries into a single JSON string.
   // The reads run inside one transaction so the exported snapshot is
   // consistent: writes cannot interleave between the favorites read and
   // the history read.
   static Future<String> exportLibrary() async {
+    // Preferences are bundled so a reinstall can restore the user's tunings
+    // (EQ curves, crossfade, speeds, theme) along with the library data.
+    final prefs = await SharedPreferences.getInstance();
+    final settings = <String, dynamic>{};
+    for (final key in kBackupPrefKeys) {
+      if (!prefs.containsKey(key)) continue;
+      final value = prefs.get(key);
+      if (value is String || value is bool || value is num || value is List<String>) {
+        settings[key] = value;
+      }
+    }
+    settings['language_code'] = LanguageProvider.instance.locale.languageCode;
     final dbHelper = DBHelper.instance;
     final database = await dbHelper.db;
     final snapshot = await database.transaction((txn) async {
@@ -134,12 +178,29 @@ class BackupService {
     final favoriteIds = snapshot.$2;
     final entriesJson = snapshot.$3;
 
+    final songSettings = await DBHelper.instance.getAllSongPlaybackSettings();
+    final folderSettings = await DBHelper.instance.getAllFolderPlaybackSettings();
     final payload = {
       'version': kBackupFormatVersion,
       'exportedAt': DateTime.now().toIso8601String(),
       'playlists': playlistsJson,
       'favorites': favoriteIds,
       'listening_entries': entriesJson,
+      'settings': settings,
+      'playback_settings': {
+        'songs': songSettings.entries.map((e) => {
+          'songId': e.key,
+          'gainDb': e.value['gainDb'],
+          'skipStartMs': e.value['skipStartMs'],
+          'skipEndMs': e.value['skipEndMs'],
+        }).toList(),
+        'folders': folderSettings.entries.map((e) => {
+          'folderPath': e.key,
+          'gainDb': e.value['gainDb'],
+          'skipStartMs': e.value['skipStartMs'],
+          'skipEndMs': e.value['skipEndMs'],
+        }).toList(),
+      },
     };
     return compute(_encodeBackup, payload);
   }
@@ -208,7 +269,8 @@ class BackupService {
     final versionRaw = decoded['version'];
     if (versionRaw != null) {
       final version = versionRaw is num ? versionRaw.toInt() : -1;
-      if (version != kBackupFormatVersion) {
+      // Older backups remain importable; only a NEWER format must be rejected.
+      if (version > kBackupFormatVersion) {
         throw FormatException(
             'Unsupported backup version: $versionRaw (expected $kBackupFormatVersion)');
       }
@@ -216,6 +278,22 @@ class BackupService {
     final playlistsRaw = decoded['playlists'];
     final favoritesRaw = decoded['favorites'];
     final entriesRaw = decoded['listening_entries'];
+    final settingsRaw = decoded['settings'];
+    final playbackRaw = decoded['playback_settings'];
+    if (playbackRaw != null && playbackRaw is! Map) {
+      throw const FormatException('Invalid backup: playback_settings must be an object');
+    }
+    final songsPlaybackRaw = playbackRaw is Map ? playbackRaw['songs'] : null;
+    final foldersPlaybackRaw = playbackRaw is Map ? playbackRaw['folders'] : null;
+    if (songsPlaybackRaw != null && songsPlaybackRaw is! List) {
+      throw const FormatException('Invalid backup: song settings must be a list');
+    }
+    if (foldersPlaybackRaw != null && foldersPlaybackRaw is! List) {
+      throw const FormatException('Invalid backup: folder settings must be a list');
+    }
+    if (settingsRaw != null && settingsRaw is! Map) {
+      throw const FormatException('Invalid backup: settings must be an object');
+    }
     if (playlistsRaw != null && playlistsRaw is! List) {
       throw const FormatException('Invalid backup: playlists must be a list');
     }
@@ -516,6 +594,77 @@ class BackupService {
       }
     }
 
+    // Playback overrides are additive: existing local settings always win.
+    var songSettingsRestored = 0;
+    var folderSettingsRestored = 0;
+    try {
+      final existingSongs =
+          await DBHelper.instance.getAllSongPlaybackSettings();
+      for (final raw in (songsPlaybackRaw as List? ?? [])) {
+        if (raw is! Map) continue;
+        final id = (raw['songId'] as num?)?.toInt();
+        if (id == null || existingSongs.containsKey(id)) continue;
+        await DBHelper.instance.setSongPlaybackSettings(
+          id,
+          gainDb: (raw['gainDb'] as num?)?.toDouble() ?? 0,
+          skipStartMs: (raw['skipStartMs'] as num?)?.toInt() ?? 0,
+          skipEndMs: (raw['skipEndMs'] as num?)?.toInt() ?? 0,
+        );
+        existingSongs[id] = const {};
+        songSettingsRestored++;
+      }
+      final existingFolders =
+          await DBHelper.instance.getAllFolderPlaybackSettings();
+      for (final raw in (foldersPlaybackRaw as List? ?? [])) {
+        if (raw is! Map) continue;
+        final path = raw['folderPath'] as String?;
+        if (path == null || path.isEmpty || existingFolders.containsKey(path)) {
+          continue;
+        }
+        await DBHelper.instance.setFolderPlaybackSettings(
+          path,
+          gainDb: (raw['gainDb'] as num?)?.toDouble() ?? 0,
+          skipStartMs: (raw['skipStartMs'] as num?)?.toInt() ?? 0,
+          skipEndMs: (raw['skipEndMs'] as num?)?.toInt() ?? 0,
+        );
+        existingFolders[path] = const {};
+        folderSettingsRestored++;
+      }
+      await PlayerService.instance.refreshPlaybackSettings();
+    } catch (_) {
+      // A bad override must not fail the whole restore.
+    }
+
+    // Preferences are additive: only keys the user has never set are filled
+    // from a backup, so a restore cannot stomp current choices.
+    var preferencesRestored = 0;
+    if (settingsRaw != null) {
+      try {
+        final settings = decodeBackupSettings(settingsRaw);
+        final prefs = await SharedPreferences.getInstance();
+        for (final entry in settings.entries) {
+          if (prefs.containsKey(entry.key)) continue;
+          final value = entry.value;
+          if (value is String) {
+            await prefs.setString(entry.key, value);
+          } else if (value is bool) {
+            await prefs.setBool(entry.key, value);
+          } else if (value is int) {
+            await prefs.setInt(entry.key, value);
+          } else if (value is double) {
+            await prefs.setDouble(entry.key, value);
+          } else if (value is List<String>) {
+            await prefs.setStringList(entry.key, value);
+          } else {
+            continue;
+          }
+          preferencesRestored++;
+        }
+      } catch (_) {
+        // A bad settings section must never fail the library restore.
+      }
+    }
+
     // A restore changed the listening history, so the dashboard aggregate
     // cache must not survive to show pre-restore numbers.
     try {
@@ -533,6 +682,9 @@ class BackupService {
       listeningEntriesSkipped: entriesSkipped,
       playlistMembersSkipped: membersSkipped,
       favoritesSkipped: favoritesSkipped,
+      preferencesRestored: preferencesRestored,
+      songSettingsRestored: songSettingsRestored,
+      folderSettingsRestored: folderSettingsRestored,
     );
   }
 

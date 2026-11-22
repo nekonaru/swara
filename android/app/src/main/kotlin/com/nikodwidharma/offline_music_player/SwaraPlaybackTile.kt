@@ -21,6 +21,8 @@ class SwaraPlaybackTile : TileService() {
     private var browser: MediaBrowserCompat? = null
     private var controller: MediaControllerCompat? = null
 
+    private var isListening = false
+
     private val connectionCallback = object : MediaBrowserCompat.ConnectionCallback() {
         override fun onConnected() {
             val token = browser?.sessionToken ?: return
@@ -36,11 +38,19 @@ class SwaraPlaybackTile : TileService() {
         override fun onConnectionSuspended() {
             controller = null
             updateTile()
+            if (isListening) browser?.connect()
         }
 
         override fun onConnectionFailed() {
             controller = null
             updateTile()
+            // MediaBrowser does not retry on its own: re-arm while the tile
+            // is visible so a restarted audio service recovers immediately.
+            if (isListening) {
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    if (isListening) browser?.connect()
+                }, 500)
+            }
         }
     }
 
@@ -51,6 +61,7 @@ class SwaraPlaybackTile : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
+        isListening = true
         if (browser == null) {
             browser = MediaBrowserCompat(
                 this,
@@ -64,6 +75,7 @@ class SwaraPlaybackTile : TileService() {
 
     override fun onStopListening() {
         super.onStopListening()
+        isListening = false
         try {
             controller?.unregisterCallback(controllerCallback)
         } catch (_: Exception) {

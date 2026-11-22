@@ -2385,5 +2385,49 @@
     "eqPresetDelete":  "Delete",
     "@eqPresetDelete":  {
                             "description":  "Menu item to delete a saved EQ preset"
-                        }
+                        },
+    "dataImportFile":  "From file",
+    "@dataImportFile":  {
+                            "description":  "Button that imports a backup from a saved JSON file"
+                        },
+    "settingsQuickTile":  "Quick Settings tile",
+    "@settingsQuickTile":  {
+                               "description":  "Title of the hint about Swara's Quick Settings tile"
+                           },
+    "settingsQuickTileSubtitle":  "Add Swara in the Quick Settings edit mode for one-swipe play and pause",
+    "@settingsQuickTileSubtitle":  {
+                                       "description":  "Subtitle explaining how to add the Quick Settings tile"
+                                   },
+    "playbackSettingsTitle":  "Playback settings",
+    "@playbackSettingsTitle":  {
+                                   "description":  "Title of the per-song or per-folder playback settings sheet"
+                               },
+    "playbackSettingsSongSubtitle":  "Applied to this song only",
+    "@playbackSettingsSongSubtitle":  {
+                                          "description":  "Subtitle when editing song playback settings"
+                                      },
+    "playbackSettingsFolderSubtitle":  "Inherited by songs in this folder",
+    "@playbackSettingsFolderSubtitle":  {
+                                            "description":  "Subtitle when editing folder playback defaults"
+                                        },
+    "playbackSettingsGain":  "Volume trim",
+    "@playbackSettingsGain":  {
+                                  "description":  "Label of the per-song volume trim slider"
+                              },
+    "playbackSettingsSkipIntro":  "Skip intro",
+    "@playbackSettingsSkipIntro":  {
+                                       "description":  "Label of the intro skip slider"
+                                   },
+    "playbackSettingsSkipOutro":  "Skip outro",
+    "@playbackSettingsSkipOutro":  {
+                                       "description":  "Label of the outro skip slider"
+                                   },
+    "playbackSettingsSaved":  "Playback settings saved",
+    "@playbackSettingsSaved":  {
+                                   "description":  "Confirmation after saving playback settings"
+                               },
+    "playbackSettingsReset":  "Inherit",
+    "@playbackSettingsReset":  {
+                                   "description":  "Button that removes the override and inherits defaults"
+                               }
 }

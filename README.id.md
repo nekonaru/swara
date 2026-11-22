@@ -65,6 +65,7 @@
 | **Mini player** | Selalu terlihat di setiap halaman dengan garis progres langsung; pengatur kecepatan dan pitch ada di layar pemutar |
 | **Lewati 10 detik** | Tombol seek maju dan mundur yang didedikasikan di layar Now Playing |
 | **Detail lagu** | Tahan lama lagu mana pun untuk artis, album, genre, format, durasi, ukuran, path file, dan jumlah diputar |
+| **Pengaturan pemutaran** | Penyesuaian volume serta titik lewati intro/outro per lagu dan per folder, diwariskan dari default folder |
 | **Acak pintar** | Mengutamakan lagu yang jarang diputar dan lama tidak diputar |
 | **Forgotten Favorites** | Playlist yang memperbarui sendiri berisi favorit yang tidak diputar selama 90 hari, dibangun ulang bersama pustaka |
 | **Ulangi A-B** | Ulangi bagian lagu mana pun untuk latihan |

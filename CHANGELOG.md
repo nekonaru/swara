@@ -1,5 +1,26 @@
 # Changelog
 
+## v4.1.0
+
+Big update: per-song and per-folder playback tuning, plus a full preferences backup, backed by another deep native audit.
+
+## New features
+
+- **Playback settings per song and per folder.** Set a volume trim and skip intro/outro points for one song, or define folder defaults that songs inherit. Overrides survive rescans and take effect immediately.
+- **Back up your preferences.** Named EQ presets, the active curve, crossfade, speed and pitch, theme and other playback preferences are now included in backups and can be restored from a JSON file directly in Settings.
+
+## Improvements
+
+- **Quick Settings tile is discoverable.** Settings now explains how to add the tile, and the tile reconnects automatically if the playback service restarts.
+- **Named EQ curves stay distinct.** Editing a saved curve no longer overwrites the standalone Custom curve, and reselecting a saved curve keeps your edits.
+- **MediaSession highlights the right song.** The active queue item is republished together with the window, so external controllers never point at the wrong track.
+
+## Bug fixes
+
+- **Sleep stop no longer plays an extra song.** A pending sleep stop cancels the crossfade before the next track is brought in.
+- **Route and pause volume handling is consistent.** All volume writes go through one trim-aware chain, including sleep stop and standby players.
+- **Backups from older versions still import.** Version checking now accepts older formats instead of rejecting every v1 backup.
+
 ## v4.0.0
 
 Major release: a smoother, seamless intro and two new native-feeling features, backed by a deep audit of playback and cache behavior.

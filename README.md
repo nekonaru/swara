@@ -65,6 +65,7 @@
 | **Mini player** | Always visible on every page with a live progress line; playback speed and pitch control on the player screen |
 | **Skip 10 seconds** | Dedicated seek-back and seek-forward buttons on the Now Playing screen |
 | **Song details** | Long-press any song for artist, album, genre, format, duration, size, file path and play count |
+| **Playback settings** | Per-song and per-folder volume trim plus skip intro/outro points, inherited from folder defaults |
 | **Smart shuffle** | Biases playback toward rarely played and long unplayed songs |
 | **Forgotten Favorites** | Self-updating playlist of favorite songs unplayed for 90 days, rebuilt with the library |
 | **A-B repeat** | Loop any song segment for practice |

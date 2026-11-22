@@ -2082,4 +2082,39 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get eqPresetDelete => 'Hapus';
+
+  @override
+  String get dataImportFile => 'Dari file';
+
+  @override
+  String get settingsQuickTile => 'Ubin Quick Settings';
+
+  @override
+  String get settingsQuickTileSubtitle =>
+      'Tambahkan Swara lewat mode edit Quick Settings untuk putar/jeda sekali geser';
+
+  @override
+  String get playbackSettingsTitle => 'Pengaturan pemutaran';
+
+  @override
+  String get playbackSettingsSongSubtitle => 'Hanya diterapkan pada lagu ini';
+
+  @override
+  String get playbackSettingsFolderSubtitle =>
+      'Diwariskan ke lagu di folder ini';
+
+  @override
+  String get playbackSettingsGain => 'Penyesuaian volume';
+
+  @override
+  String get playbackSettingsSkipIntro => 'Lewati intro';
+
+  @override
+  String get playbackSettingsSkipOutro => 'Lewati outro';
+
+  @override
+  String get playbackSettingsSaved => 'Pengaturan pemutaran tersimpan';
+
+  @override
+  String get playbackSettingsReset => 'Warisi';
 }

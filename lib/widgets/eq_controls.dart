@@ -50,7 +50,9 @@ class _EqControlsState extends State<EqControls> {
     if (!_eqDraftReady) {
       _eqDraft
         ..clear()
-        ..addAll(theme.customEqGains);
+        ..addAll(theme.equalizerPreset.startsWith('user:')
+            ? (theme.gainsForActivePreset() ?? theme.customEqGains)
+            : theme.customEqGains);
       _eqDraftReady = true;
     }
     return _eqDraft;

@@ -14,6 +14,7 @@ import '../utils/format.dart';
 import '../providers/language_provider.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/entrance_fade.dart';
+import '../widgets/playback_settings_sheet.dart';
 import '../widgets/song_art_image.dart';
 import '../widgets/sort_chip.dart';
 import '../widgets/az_scrollbar.dart';
@@ -653,16 +654,42 @@ class _FoldersScreenState extends State<FoldersScreen> {
                             indonesian:
                                 LanguageProvider.instance.isIndonesian)),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
-                    trailing: IconButton(
-                      constraints:
-                          const BoxConstraints(minWidth: 48, minHeight: 48),
-                      icon: Icon(
-                          isHidden ? Icons.visibility_off : Icons.visibility_outlined,
-                          size: 18),
-                      tooltip: isHidden
-                          ? AppLocalizations.of(context)!.foldersShowHidden
-                          : AppLocalizations.of(context)!.foldersHideHidden,
-                      onPressed: () => _toggleHideFolder(folder),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          constraints:
+                              const BoxConstraints(minWidth: 48, minHeight: 48),
+                          icon: const Icon(Icons.tune_outlined, size: 18),
+                          tooltip: AppLocalizations.of(context)!.playbackSettingsTitle,
+                          onPressed: () async {
+                            final folderSettings =
+                                await DBHelper.instance.getAllFolderPlaybackSettings();
+                            final s = folderSettings[folder] ?? const {};
+                            if (!context.mounted) return;
+                            await PlaybackSettingsSheet.show(
+                              context,
+                              folderPath: folder,
+                              title: folder.split('/').last,
+                              durationMs: 0,
+                              gainDb: s['gainDb']?.toDouble() ?? 0,
+                              skipStartMs: s['skipStartMs']?.toInt() ?? 0,
+                              skipEndMs: s['skipEndMs']?.toInt() ?? 0,
+                            );
+                          },
+                        ),
+                        IconButton(
+                          constraints:
+                              const BoxConstraints(minWidth: 48, minHeight: 48),
+                          icon: Icon(
+                              isHidden ? Icons.visibility_off : Icons.visibility_outlined,
+                              size: 18),
+                          tooltip: isHidden
+                              ? AppLocalizations.of(context)!.foldersShowHidden
+                              : AppLocalizations.of(context)!.foldersHideHidden,
+                          onPressed: () => _toggleHideFolder(folder),
+                        ),
+                      ],
                     ),
                     onTap: () async {
                       await Navigator.push(

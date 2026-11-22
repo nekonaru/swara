@@ -9,6 +9,7 @@ import '../models/song.dart';
 import 'db_helper.dart';
 import 'equalizer_service.dart';
 import 'loudness_service.dart';
+import 'package:swara/utils/playback_settings.dart';
 
 enum SwaraRepeatMode { off, all, one }
 
@@ -19,7 +20,56 @@ class PlayerService extends ChangeNotifier {
   PlayerService._();
   static final PlayerService instance = PlayerService._();
 
-  // Audio focus and route changes are handled ONCE, on the main isolate.
+  // Per-player volume trim factors, keyed by AudioPlayer identity. Crossfade
+  // can have two players with different gains, so the factor must not be
+  // global. Every volume write goes through _setVol, keeping all fade curves
+  // intact while the trim multiplies the final level.
+  final Map<int, double> _trimByPlayer = <int, double>{};
+
+  Future<void> _setVol(AudioPlayer player, double base) =>
+      player.setVolume((base * (_trimByPlayer[player.hashCode] ?? 1.0)).clamp(0.0, 1.0));
+
+  Future<void> refreshPlaybackSettings() async {
+    try {
+      final songs = await DBHelper.instance.getAllSongPlaybackSettings();
+      final folders = await DBHelper.instance.getAllFolderPlaybackSettings();
+      final library = _queue;
+      for (final song in library) {
+        final folder = EffectivePlaybackSettings.folderOf(song.filePath);
+        final effective = EffectivePlaybackSettings.resolve(
+          songOverride: songs[song.id],
+          folderOverride: folders[folder],
+          durationMs: song.durationMs,
+        );
+        _trimByPlayer[_player.hashCode] = effective.volumeMultiplier;
+        final standby = _crossfadePlayer;
+        if (standby != null) _trimByPlayer[standby.hashCode] = effective.volumeMultiplier;
+      }
+      _songTrims = songs;
+      _folderTrims = folders;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Playback settings reload failed: $e');
+    }
+  }
+
+  Map<int, Map<String, num>> _songTrims = const {};
+  Map<String, Map<String, num>> _folderTrims = const {};
+
+  /// Resolve the effective settings for [song].
+  EffectivePlaybackSettings settingsFor(Song song) =>
+      EffectivePlaybackSettings.resolve(
+        songOverride: _songTrims[song.id],
+        folderOverride: _folderTrims[EffectivePlaybackSettings.folderOf(song.filePath)],
+        durationMs: song.durationMs,
+      );
+
+  /// Apply the trim for the track loaded into [player], if any.
+  void applyTrimToPlayer(AudioPlayer player, Song song) {
+    _trimByPlayer[player.hashCode] = settingsFor(song).volumeMultiplier;
+  }
+
+  /// Audio focus and route changes are handled ONCE, on the main isolate.
   // just_audio's default handling would pause silently (no state notify, no
   // saved position) while our native receiver also toggled, so the two raced.
   final AudioPlayer _player = AudioPlayer(handleInterruptions: false);
@@ -518,7 +568,7 @@ class PlayerService extends ChangeNotifier {
   List<Song> get queue => _playOrder.map((i) => _queue[i]).toList();
   int get currentIndex => _posInOrder;
 
-  Future<void> init() async {
+  Future<void> loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getInt(_prefsCrossfadeSecondsKey);
@@ -574,10 +624,14 @@ class PlayerService extends ChangeNotifier {
           await prefs.setInt(_prefsRepeatModeKey, legacy);
         }
       }
+      unawaited(refreshPlaybackSettings());
     } catch (e) {
       debugPrint('Player settings load failed: $e');
     }
-    // The schedule ticker only runs while the schedule is enabled.
+  }
+
+  Future<void> init() async {
+    await loadPreferences();
     if (_sleepScheduleEnabled) {
       // App start counts as arming time: do not fire retroactively when the
       // configured time already passed today, wait for tomorrow instead.
@@ -673,10 +727,22 @@ class PlayerService extends ChangeNotifier {
   /// Never fires while a crossfade fade is in flight: the fade loop owns the
   /// outgoing track's end-of-life, and an early advance would abort the fade
   /// and restart the incoming song from zero.
+  /// Effective end of the current song: the real duration minus its outro
+  /// skip. Used by the watchdog and the crossfade trigger so both fire
+  /// earlier on tracks with a configured outro.
+  Duration get _effectiveEnd {
+    final song = currentSong;
+    final dur = _activePlayer.duration;
+    if (song == null || dur == null) return Duration.zero;
+    final outro = settingsFor(song).skipEndMs;
+    final end = dur - Duration(milliseconds: outro);
+    return end > Duration.zero ? end : dur;
+  }
+
   void _maybeAdvanceAtDuration(Duration position) {
     if (_crossfadeActiveGeneration != -1) return; // fade owns this track's end
-    final dur = _activePlayer.duration;
-    if (dur == null || dur <= Duration.zero) return;
+    final dur = _effectiveEnd;
+    if (dur <= Duration.zero) return;
     if (position < dur - const Duration(milliseconds: 100)) return;
     _handleCompletionOnce();
   }
@@ -714,8 +780,8 @@ class PlayerService extends ChangeNotifier {
     // Trigger only once per song: an in flight fade is marked by a
     // non idle _crossfadeActiveGeneration, so later position ticks skip.
     if (!crossfadeEnabled || _crossfadeActiveGeneration != -1) return;
-    final dur = _activePlayer.duration;
-    if (dur == null) return;
+    final dur = _effectiveEnd;
+    if (dur <= Duration.zero) return;
     final remaining = dur - position;
     if (remaining <= crossfadeDuration && remaining > Duration.zero) {
       _startCrossfadeToNext();
@@ -728,6 +794,9 @@ class PlayerService extends ChangeNotifier {
     final playGen = _playGeneration;
     final nextPos = _computeNextPosition();
     if (nextPos == null) return;
+    // A sleep stop is due at this natural end: do not bring the next song in
+    // at full volume for the crossfade overlap, then pause on it.
+    if (_pendingSleepStop || sleepSongsRemaining == 1) return;
     final nextSong = _queue[_playOrder[nextPos]];
 
     // Use the dynamic getters, never hardcode _player/_crossfadePlayer, so this
@@ -744,7 +813,11 @@ class PlayerService extends ChangeNotifier {
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       await _syncSpeedPitch(incoming);
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
-      await _vol(() => incoming.setVolume(0));
+      applyTrimToPlayer(incoming, nextSong);
+      final introMs = settingsFor(nextSong).skipStartMs;
+      if (introMs > 0) await incoming.seek(Duration(milliseconds: introMs));
+      if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
+      await _vol(() => _setVol(incoming, 0));
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       await incoming.play();
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
@@ -753,7 +826,7 @@ class PlayerService extends ChangeNotifier {
       // Zero duration means no overlap: cut straight to the next song
       // at full volume instead of running a fade loop with no length.
       if (crossfadeDuration <= Duration.zero) {
-        await _vol(() => incoming.setVolume(1));
+        await _vol(() => _setVol(incoming, 1));
         if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       } else {
         const steps = 20;
@@ -763,9 +836,9 @@ class PlayerService extends ChangeNotifier {
           // Abort without side effects when a newer navigation took over.
           if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
           final v = i / steps;
-          await _vol(() => incoming.setVolume(v));
+          await _vol(() => _setVol(incoming, v));
           if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
-          await _vol(() => outgoing.setVolume(1 - v));
+          await _vol(() => _setVol(outgoing, 1 - v));
         }
         if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       }
@@ -774,7 +847,7 @@ class PlayerService extends ChangeNotifier {
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
       // Keep the outgoing player muted at restore level; its volume is
       // reset to full so a later reuse starts loud. Do not release it here.
-      await _vol(() => outgoing.setVolume(1));
+      await _vol(() => _setVol(outgoing, 1));
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
 
       // IMPORTANT: record the listening history of the OLD song first (using
@@ -820,14 +893,14 @@ class PlayerService extends ChangeNotifier {
           unawaited(incoming.pause().catchError((Object pauseError) {
             debugPrint('Standby pause after crossfade failure: $pauseError');
           }));
-          unawaited(incoming.setVolume(1).catchError((Object volError) {
+          unawaited(_setVol(incoming, 1).catchError((Object volError) {
             debugPrint('Standby volume reset after crossfade failure: $volError');
           }));
-          unawaited(_vol(() => outgoing.setVolume(1)));
+          unawaited(_vol(() => _setVol(outgoing, 1)));
         } else {
           // After the flip the roles are reversed: `incoming` is now the
           // audible player and must keep playing at full volume.
-          unawaited(_vol(() => incoming.setVolume(1)));
+          unawaited(_vol(() => _setVol(incoming, 1)));
         }
         notifyListeners();
       }
@@ -957,7 +1030,7 @@ class PlayerService extends ChangeNotifier {
     unawaited(standby.pause().catchError((Object e) {
       debugPrint('Failed to stop the standby player: $e');
     }));
-    unawaited(standby.setVolume(1).catchError((Object e) {
+    unawaited(_setVol(standby, 1).catchError((Object e) {
       debugPrint('Failed to restore the standby volume: $e');
     }));
   }
@@ -1116,7 +1189,12 @@ class PlayerService extends ChangeNotifier {
       if (playGen != _playGeneration || _disposed) return;
       await _syncSpeedPitch(_player);
       if (playGen != _playGeneration || _disposed) return;
-      await _vol(() => _player.setVolume(1));
+      // Apply this song's trim and jump past its intro once, before playback.
+      applyTrimToPlayer(_player, song);
+      final intro = settingsFor(song).skipStartMs;
+      if (intro > 0) await _player.seek(Duration(milliseconds: intro));
+      if (playGen != _playGeneration || _disposed) return;
+      await _vol(() => _setVol(_player, 1));
     } catch (e) {
       if (playGen != _playGeneration || _disposed) return;
       debugPrint('Failed to play song: $e');
@@ -1171,7 +1249,7 @@ class PlayerService extends ChangeNotifier {
     if (_pauseFadeOutActive) {
       _pauseFadeGeneration++;
       _pauseFadeOutActive = false;
-      await _vol(() => _activePlayer.setVolume(1));
+      await _vol(() => _setVol(_activePlayer, 1));
       notifyListeners();
       return;
     }
@@ -1194,15 +1272,15 @@ class PlayerService extends ChangeNotifier {
           if (_disposed) return;
           if (generation != _pauseFadeGeneration) return;
           final v = (1 - i / pauseFadeSteps).clamp(0.0, 1.0);
-          await _vol(() => target.setVolume(v));
+          await _vol(() => _setVol(target, v));
         }
         if (_disposed) return;
         if (generation != _pauseFadeGeneration) return;
         await _vol(() => target.pause());
         // Restore full volume on both players so the next play starts loud.
-        await _vol(() => _player.setVolume(1));
+        await _vol(() => _setVol(_player, 1));
         await _vol(
-            () => _crossfadePlayer?.setVolume(1) ?? Future<void>.value());
+            () => (_crossfadePlayer == null ? Future<void>.value() : _setVol(_crossfadePlayer!, 1)));
       } catch (e) {
         debugPrint('Pause fade failed: $e');
       } finally {
@@ -1234,7 +1312,7 @@ class PlayerService extends ChangeNotifier {
       _restoredPositionMs = null;
       _playStartedAt = DateTime.now();
       final target = _activePlayer;
-      await _vol(() => target.setVolume(1));
+      await _vol(() => _setVol(target, 1));
       if (_disposed) return;
       if (generation != _pauseFadeGeneration) return;
       try {
@@ -1259,7 +1337,7 @@ class PlayerService extends ChangeNotifier {
         try {
           if (!target.playing) {
             await target.play();
-            await _vol(() => target.setVolume(1));
+            await _vol(() => _setVol(target, 1));
             notifyListeners();
           }
         } catch (e) {
@@ -1277,8 +1355,8 @@ class PlayerService extends ChangeNotifier {
     _pauseFadeOutActive = false;
     // Restore full volume so a cancelled resume fade never leaves the
     // player quiet. Ordered by the chain, fire and forget is safe.
-    _vol(() => _player.setVolume(1));
-    _vol(() => _crossfadePlayer?.setVolume(1) ?? Future<void>.value());
+    _vol(() => _setVol(_player, 1));
+    _vol(() => (_crossfadePlayer == null ? Future<void>.value() : _setVol(_crossfadePlayer!, 1)));
   }
 
   /// Next song FOLLOWING the queue order (_playOrder). When shuffle is on,
@@ -1922,8 +2000,8 @@ class PlayerService extends ChangeNotifier {
     _sleepFadeActive = false;
     // Restore full volume through the chain so a resume starts loud.
     // Errors are only logged because this runs from sync UI handlers.
-    _vol(() => _player.setVolume(1));
-    _vol(() => _crossfadePlayer?.setVolume(1) ?? Future<void>.value());
+    _vol(() => _setVol(_player, 1));
+    _vol(() => (_crossfadePlayer == null ? Future<void>.value() : _setVol(_crossfadePlayer!, 1)));
   }
 
   /// Fade the audible output to 0 over [sleepFadeDuration] then pause.
@@ -1952,10 +2030,10 @@ class PlayerService extends ChangeNotifier {
       if (_disposed) return;
       if (!_sleepFadeActive || generation != _sleepFadeGeneration) return;
       final v = (1 - i / steps).clamp(0.0, 1.0);
-      await _vol(() => _player.setVolume(v));
+      await _vol(() => _setVol(_player, v));
       if (!_sleepFadeActive || generation != _sleepFadeGeneration) return;
       await _vol(
-          () => _crossfadePlayer?.setVolume(v) ?? Future<void>.value());
+          () => (_crossfadePlayer == null ? Future<void>.value() : _setVol(_crossfadePlayer!, v)));
     }
     if (_disposed) return;
     if (!_sleepFadeActive || generation != _sleepFadeGeneration) return;
@@ -1966,9 +2044,9 @@ class PlayerService extends ChangeNotifier {
     await _vol(
         () => _crossfadePlayer?.pause() ?? Future<void>.value());
     // Reset volume for the next manual play.
-    await _vol(() => _player.setVolume(1));
+    await _vol(() => _setVol(_player, 1));
     await _vol(
-        () => _crossfadePlayer?.setVolume(1) ?? Future<void>.value());
+        () => (_crossfadePlayer == null ? Future<void>.value() : _setVol(_crossfadePlayer!, 1)));
     // No crossfade trigger needed while paused, save battery.
     await _unsubscribePosition();
     notifyListeners();
@@ -2145,14 +2223,13 @@ class PlayerService extends ChangeNotifier {
     // on the next manual play.
     _abortCrossfadeForQueueEdit();
     _clearABRepeatSilent();
-    _vol(() => _player.pause()).then((_) => _vol(() => _player.setVolume(1)));
+    unawaited(_vol(() => _player.pause()).then((_) => _vol(() => _setVol(_player, 1))));
     final standby = _crossfadePlayer;
     if (standby == null) return;
-    standby.pause().catchError((Object e) {
+    unawaited(_vol(() => standby.pause()).then((_) => _vol(() => _setVol(standby, 1)))
+        .catchError((Object e) {
       debugPrint('Failed to pause for sleep timer: $e');
-    }).then((_) => standby.setVolume(1)).catchError((Object e) {
-      debugPrint('Failed to reset volume for sleep timer: $e');
-    });
+    }));
   }
 
   void _onTrackFinished() {

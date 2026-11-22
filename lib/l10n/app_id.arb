@@ -2385,5 +2385,49 @@
     "eqPresetDelete":  "Hapus",
     "@eqPresetDelete":  {
                             "description":  "Menu menghapus preset EQ tersimpan"
-                        }
+                        },
+    "dataImportFile":  "Dari file",
+    "@dataImportFile":  {
+                            "description":  "Tombol mengimpor backup dari file JSON tersimpan"
+                        },
+    "settingsQuickTile":  "Ubin Quick Settings",
+    "@settingsQuickTile":  {
+                               "description":  "Judul petunjuk ubin Quick Settings Swara"
+                           },
+    "settingsQuickTileSubtitle":  "Tambahkan Swara lewat mode edit Quick Settings untuk putar/jeda sekali geser",
+    "@settingsQuickTileSubtitle":  {
+                                       "description":  "Subjudul cara menambahkan ubin Quick Settings"
+                                   },
+    "playbackSettingsTitle":  "Pengaturan pemutaran",
+    "@playbackSettingsTitle":  {
+                                   "description":  "Judul sheet pengaturan pemutaran per lagu atau per folder"
+                               },
+    "playbackSettingsSongSubtitle":  "Hanya diterapkan pada lagu ini",
+    "@playbackSettingsSongSubtitle":  {
+                                          "description":  "Subjudul saat mengatur lagu"
+                                      },
+    "playbackSettingsFolderSubtitle":  "Diwariskan ke lagu di folder ini",
+    "@playbackSettingsFolderSubtitle":  {
+                                            "description":  "Subjudul saat mengatur default folder"
+                                        },
+    "playbackSettingsGain":  "Penyesuaian volume",
+    "@playbackSettingsGain":  {
+                                  "description":  "Label slider penyesuaian volume per lagu"
+                              },
+    "playbackSettingsSkipIntro":  "Lewati intro",
+    "@playbackSettingsSkipIntro":  {
+                                       "description":  "Label slider lewati intro"
+                                   },
+    "playbackSettingsSkipOutro":  "Lewati outro",
+    "@playbackSettingsSkipOutro":  {
+                                       "description":  "Label slider lewati outro"
+                                   },
+    "playbackSettingsSaved":  "Pengaturan pemutaran tersimpan",
+    "@playbackSettingsSaved":  {
+                                   "description":  "Konfirmasi setelah menyimpan pengaturan pemutaran"
+                               },
+    "playbackSettingsReset":  "Warisi",
+    "@playbackSettingsReset":  {
+                                   "description":  "Tombol menghapus override dan memakai default"
+                               }
 }

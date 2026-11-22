@@ -1,5 +1,26 @@
 # Changelog
 
+## v4.1.0
+
+Update besar: pengaturan pemutaran per lagu dan per folder, plus backup preferensi lengkap, dengan audit native mendalam lain.
+
+## Fitur baru
+
+- **Pengaturan pemutaran per lagu dan per folder.** Atur penyesuaian volume dan titik lewati intro/outro untuk satu lagu, atau tentukan default folder yang diwariskan. Override tetap ada setelah pemindaian ulang dan langsung berlaku.
+- **Backup preferensi.** Preset EQ bernama, kurva aktif, crossfade, kecepatan dan pitch, tema, serta preferensi pemutaran lain kini ikut dicadangkan dan bisa dipulihkan langsung dari file JSON di Pengaturan.
+
+## Peningkatan
+
+- **Ubin Quick Settings lebih mudah ditemukan.** Pengaturan menjelaskan cara menambahkannya, dan ubin menyambung ulang otomatis jika layanan pemutaran dimulai ulang.
+- **Kurva EQ bernama tetap terpisah.** Mengedit kurva tersimpan tidak menimpa kurva Custom standalone, dan memilih ulang kurva tersimpan mempertahankan edit Anda.
+- **MediaSession menyoroti lagu yang benar.** Item antrean aktif diterbitkan ulang bersama jendelanya, sehingga pengontrol eksternal tidak pernah menunjuk lagu yang salah.
+
+## Perbaikan bug
+
+- **Hentian timer tidur tidak memutar lagu tambahan.** Jeda tidur yang tertunda membatalkan crossfade sebelum lagu berikutnya masuk.
+- **Rute dan volume jeda konsisten.** Semua penulisan volume lewat satu rantai yang sadar trim, termasuk penghentian tidur dan pemutar standby.
+- **Backup versi lama tetap bisa dipulihkan.** Pemeriksaan versi kini menerima format lama, bukan menolak semua backup v1.
+
 ## v4.0.0
 
 Rilis mayor: intro yang lebih halus dan mulus plus dua fitur baru yang terasa native, didukung audit mendalam pada pemutaran dan cache.

@@ -3674,6 +3674,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get eqPresetDelete;
+
+  /// Button that imports a backup from a saved JSON file
+  ///
+  /// In en, this message translates to:
+  /// **'From file'**
+  String get dataImportFile;
+
+  /// Title of the hint about Swara's Quick Settings tile
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Settings tile'**
+  String get settingsQuickTile;
+
+  /// Subtitle explaining how to add the Quick Settings tile
+  ///
+  /// In en, this message translates to:
+  /// **'Add Swara in the Quick Settings edit mode for one-swipe play and pause'**
+  String get settingsQuickTileSubtitle;
+
+  /// Title of the per-song or per-folder playback settings sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Playback settings'**
+  String get playbackSettingsTitle;
+
+  /// Subtitle when editing song playback settings
+  ///
+  /// In en, this message translates to:
+  /// **'Applied to this song only'**
+  String get playbackSettingsSongSubtitle;
+
+  /// Subtitle when editing folder playback defaults
+  ///
+  /// In en, this message translates to:
+  /// **'Inherited by songs in this folder'**
+  String get playbackSettingsFolderSubtitle;
+
+  /// Label of the per-song volume trim slider
+  ///
+  /// In en, this message translates to:
+  /// **'Volume trim'**
+  String get playbackSettingsGain;
+
+  /// Label of the intro skip slider
+  ///
+  /// In en, this message translates to:
+  /// **'Skip intro'**
+  String get playbackSettingsSkipIntro;
+
+  /// Label of the outro skip slider
+  ///
+  /// In en, this message translates to:
+  /// **'Skip outro'**
+  String get playbackSettingsSkipOutro;
+
+  /// Confirmation after saving playback settings
+  ///
+  /// In en, this message translates to:
+  /// **'Playback settings saved'**
+  String get playbackSettingsSaved;
+
+  /// Button that removes the override and inherits defaults
+  ///
+  /// In en, this message translates to:
+  /// **'Inherit'**
+  String get playbackSettingsReset;
 }
 
 class _AppLocalizationsDelegate

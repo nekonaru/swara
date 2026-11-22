@@ -182,6 +182,10 @@ class SwaraAudioHandler extends BaseAudioHandler {
     try {
       queue.add(items);
       queueTitle.add('Swara Queue');
+      // The active item index is relative to the published window; republish
+      // it together with the window so it never points at the wrong song.
+      final active = (current - start).clamp(0, items.isEmpty ? 0 : items.length - 1);
+      playbackState.add(playbackState.value.copyWith(queueIndex: active));
     } catch (_) {
       // A dead session must never crash a timer callback.
     }

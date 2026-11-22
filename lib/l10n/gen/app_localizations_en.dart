@@ -2083,4 +2083,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eqPresetDelete => 'Delete';
+
+  @override
+  String get dataImportFile => 'From file';
+
+  @override
+  String get settingsQuickTile => 'Quick Settings tile';
+
+  @override
+  String get settingsQuickTileSubtitle =>
+      'Add Swara in the Quick Settings edit mode for one-swipe play and pause';
+
+  @override
+  String get playbackSettingsTitle => 'Playback settings';
+
+  @override
+  String get playbackSettingsSongSubtitle => 'Applied to this song only';
+
+  @override
+  String get playbackSettingsFolderSubtitle =>
+      'Inherited by songs in this folder';
+
+  @override
+  String get playbackSettingsGain => 'Volume trim';
+
+  @override
+  String get playbackSettingsSkipIntro => 'Skip intro';
+
+  @override
+  String get playbackSettingsSkipOutro => 'Skip outro';
+
+  @override
+  String get playbackSettingsSaved => 'Playback settings saved';
+
+  @override
+  String get playbackSettingsReset => 'Inherit';
 }

@@ -35,7 +35,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 12,
+      version: 13,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -119,6 +119,24 @@ class DBHelper {
             songId INTEGER PRIMARY KEY,
             lrc TEXT,
             fetchedAt TEXT
+          )
+        ''');
+        // Per-track and per-folder playback overrides. Separate tables keep
+        // rescans from overwriting user settings on the songs table.
+        await db.execute('''
+          CREATE TABLE song_playback_settings(
+            songId INTEGER PRIMARY KEY,
+            gainDb REAL DEFAULT 0,
+            skipStartMs INTEGER DEFAULT 0,
+            skipEndMs INTEGER DEFAULT 0
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE folder_playback_settings(
+            folderPath TEXT PRIMARY KEY,
+            gainDb REAL DEFAULT 0,
+            skipStartMs INTEGER DEFAULT 0,
+            skipEndMs INTEGER DEFAULT 0
           )
         ''');
         // No automatic prune of listening_entries here. The dashboard reads it
@@ -284,6 +302,28 @@ class DBHelper {
                 'ALTER TABLE playlists ADD COLUMN isAuto INTEGER DEFAULT 0');
             await db.execute(
                 "UPDATE playlists SET isAuto = 1 WHERE name IN ('Daily Mix', 'Unplayed')");
+          }
+        }
+        if (oldVersion < 13) {
+          for (final sql in <String>[
+            '''CREATE TABLE IF NOT EXISTS song_playback_settings(
+              songId INTEGER PRIMARY KEY,
+              gainDb REAL DEFAULT 0,
+              skipStartMs INTEGER DEFAULT 0,
+              skipEndMs INTEGER DEFAULT 0
+            )''',
+            '''CREATE TABLE IF NOT EXISTS folder_playback_settings(
+              folderPath TEXT PRIMARY KEY,
+              gainDb REAL DEFAULT 0,
+              skipStartMs INTEGER DEFAULT 0,
+              skipEndMs INTEGER DEFAULT 0
+            )''',
+          ]) {
+            try {
+              await db.execute(sql);
+            } catch (e) {
+              debugPrint('DBHelper: v13 table migration failed: $e');
+            }
           }
         }
         // No automatic prune of listening_entries here. Besides deleting
@@ -645,9 +685,87 @@ class DBHelper {
       batch.delete('playlist_songs', where: 'songId = ?', whereArgs: [id]);
       batch.delete('listening_entries', where: 'songId = ?', whereArgs: [id]);
       batch.delete('synced_lyrics', where: 'songId = ?', whereArgs: [id]);
+      batch.delete('song_playback_settings', where: 'songId = ?', whereArgs: [id]);
     }
     await batch.commit(noResult: true);
     return ghostIds.length;
+  }
+
+  // ---------- Playback settings ----------
+  Future<Map<int, Map<String, num>>> getAllSongPlaybackSettings() async {
+    final database = await db;
+    final rows = await database.query('song_playback_settings');
+    return {
+      for (final r in rows)
+        (r['songId'] as num).toInt(): {
+          'gainDb': (r['gainDb'] as num?) ?? 0,
+          'skipStartMs': (r['skipStartMs'] as num?) ?? 0,
+          'skipEndMs': (r['skipEndMs'] as num?) ?? 0,
+        },
+    };
+  }
+
+  Future<Map<String, Map<String, num>>> getAllFolderPlaybackSettings() async {
+    final database = await db;
+    final rows = await database.query('folder_playback_settings');
+    return {
+      for (final r in rows)
+        r['folderPath'] as String: {
+          'gainDb': (r['gainDb'] as num?) ?? 0,
+          'skipStartMs': (r['skipStartMs'] as num?) ?? 0,
+          'skipEndMs': (r['skipEndMs'] as num?) ?? 0,
+        },
+    };
+  }
+
+  Future<void> setSongPlaybackSettings(
+    int songId, {
+    required double gainDb,
+    required int skipStartMs,
+    required int skipEndMs,
+  }) async {
+    final database = await db;
+    await database.insert(
+      'song_playback_settings',
+      {
+        'songId': songId,
+        'gainDb': gainDb,
+        'skipStartMs': skipStartMs,
+        'skipEndMs': skipEndMs,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> setFolderPlaybackSettings(
+    String folderPath, {
+    required double gainDb,
+    required int skipStartMs,
+    required int skipEndMs,
+  }) async {
+    final database = await db;
+    await database.insert(
+      'folder_playback_settings',
+      {
+        'folderPath': folderPath,
+        'gainDb': gainDb,
+        'skipStartMs': skipStartMs,
+        'skipEndMs': skipEndMs,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> clearSongPlaybackSettings(int songId) async {
+    final database = await db;
+    await database.delete('song_playback_settings',
+        where: 'songId = ?', whereArgs: [songId]);
+  }
+
+  Future<void> clearFolderPlaybackSettings(String folderPath) async {
+    final database = await db;
+    await database.delete('folder_playback_settings',
+        where: 'folderPath = ?', whereArgs: [folderPath]);
   }
 
   /// IDs of songs whose metadata was already scanned (so the app does not
@@ -684,6 +802,8 @@ class DBHelper {
       await txn
           .delete('listening_entries', where: 'songId = ?', whereArgs: [id]);
       await txn.delete('synced_lyrics', where: 'songId = ?', whereArgs: [id]);
+      await txn.delete('song_playback_settings',
+          where: 'songId = ?', whereArgs: [id]);
     });
   }
 

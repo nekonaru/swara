@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -384,6 +386,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               try {
+                final picked = await FilePickerPlatform.instance.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: const ['json'],
+                );
+                if (picked.isEmpty) return;
+                final path = picked.first.path;
+                if (path == null) return;
+                final file = File(path);
+                // Cap the read so a huge file cannot OOM the UI isolate.
+                if (await file.length() > 32 * 1024 * 1024) {
+                  if (ctx.mounted) _showSnack(l10n.dataFailedGeneric);
+                  return;
+                }
+                final text = await file.readAsString();
+                if (ctx.mounted) Navigator.pop(ctx, text.trim());
+              } catch (_) {
+                if (ctx.mounted) _showSnack(l10n.dataFailedGeneric);
+              }
+            },
+            child: Text(l10n.dataImportFile),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
                 final data = await Clipboard.getData(Clipboard.kTextPlain);
                 if (!ctx.mounted) return;
                 controller.text = data?.text ?? '';
@@ -443,8 +469,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Non fatal: playlist screen reloads on open.
       }
       if (!mounted) return;
+      // A restore only writes preferences; refresh the live in-memory state
+      // too so EQ curves, theme and playback settings update immediately.
+      final theme = context.read<ThemeProvider>();
+      final language = context.read<LanguageProvider>();
+      await theme.load();
+      await LoudnessService.instance.load();
+      await PlayerService.instance.loadPreferences();
+      try {
+        await language.load();
+      } catch (_) {}
+      if (!mounted) return;
+      final l10nAfter = AppLocalizations.of(context)!;
       setState(() => _busyData = false);
-      _showSnack(AppLocalizations.of(context)!.dataImportDone(
+      _showSnack(l10nAfter.dataImportDone(
           result.playlistsCreated,
           result.playlistMembersAdded,
           result.favoritesRestored,
@@ -865,6 +903,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (v) =>
                   setState(() => PlayerService.instance.setSmartShuffle(v)),
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.add_to_home_screen_outlined),
+            title: Text(l10n.settingsQuickTile),
+            subtitle: Text(l10n.settingsQuickTileSubtitle),
           ),
           SwitchListTile(
             title: Text(l10n.settingsCrossfade),

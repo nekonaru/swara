@@ -14,6 +14,7 @@ import '../providers/playlist_provider.dart';
 import '../services/db_helper.dart';
 import '../services/player_service.dart';
 import '../screens/edit_metadata_screen.dart';
+import '../widgets/playback_settings_sheet.dart';
 
 /// Shared song options menu (bottom sheet) used on all screens.
 ///
@@ -119,6 +120,23 @@ Future<void> showSongOptions(
             onTap: () {
               Navigator.pop(ctx);
               Navigator.push(context, MaterialPageRoute(builder: (_) => EditMetadataScreen(song: song)));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.tune_outlined),
+            title: Text(l.playbackSettingsTitle),
+            onTap: () async {
+              Navigator.pop(ctx);
+              final settings = PlayerService.instance.settingsFor(song);
+              await PlaybackSettingsSheet.show(
+                context,
+                songId: song.id,
+                title: song.title,
+                durationMs: song.durationMs,
+                gainDb: settings.gainDb,
+                skipStartMs: settings.skipStartMs,
+                skipEndMs: settings.skipEndMs,
+              );
             },
           ),
           ListTile(
