@@ -308,6 +308,7 @@ class BackupService {
     int playlistsCreated = 0;
     int membersAdded = 0;
     int favoritesRestored = 0;
+    var favoritesAlreadyPresent = 0;
     int entriesRestored = 0;
     int entriesSkipped = 0;
     int membersSkipped = 0;
@@ -461,7 +462,15 @@ class BackupService {
         // Candidate favorite ids whose songs are gone; count them rather than
         // silently dropping them.
         favoritesSkipped = candidates.toSet().difference(existingIds).length;
+        final favoriteRows = await database.query('songs',
+            columns: ['id'], where: 'isFavorite = 1');
+        final alreadyFavorite =
+            favoriteRows.map((r) => r['id'] as int).toSet();
         for (final songId in existingIds) {
+          if (alreadyFavorite.contains(songId)) {
+            favoritesAlreadyPresent++;
+            continue;
+          }
           try {
             await dbHelper.setFavorite(songId, true);
             favoritesRestored++;
@@ -579,6 +588,7 @@ class BackupService {
     if (playlistsCreated == 0 &&
         membersAdded == 0 &&
         favoritesRestored == 0 &&
+        favoritesAlreadyPresent == 0 &&
         entriesRestored == 0 &&
         membersSkipped == 0 &&
         favoritesSkipped == 0 &&

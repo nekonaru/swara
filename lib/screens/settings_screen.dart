@@ -193,6 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final verified = result.$2;
     final mismatch = result.$3;
     if (path == null) {
+      if (UpdateService.instance.lastDownloadCancelled) return;
       _showSnack(mismatch
           ? l10n.settingsUpdateDigestMismatch
           : l10n.settingsUpdateFailed);
@@ -509,6 +510,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await theme.load();
       await LoudnessService.instance.load();
       await PlayerService.instance.loadPreferences();
+      // Pushed preferences must reach the live DSP and playback rate now.
+      final preset = theme.equalizerPreset;
+      if (preset == 'Flat') {
+        await EqualizerService.instance.applyPreset('Flat');
+      } else if (preset == 'Custom' || preset.startsWith('user:')) {
+        await EqualizerService.instance.applyCustom(
+          theme.gainsForActivePreset() ?? theme.customEqGains,
+          presetToken: preset,
+        );
+      }
+      await PlayerService.instance.reapplyAudioSettings();
       try {
         await language.load();
       } catch (_) {}

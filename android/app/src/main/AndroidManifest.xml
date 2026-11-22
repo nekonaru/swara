@@ -44,6 +44,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Android Auto discovers Swara as a media app through this
+             descriptor; browsing/controls go to our MediaBrowserService. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
         <service
             android:name=".SwaraPlaybackTile"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"

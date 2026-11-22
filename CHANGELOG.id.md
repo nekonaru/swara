@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.2.0
+
+Integrasi native baru plus audit mendalam pada pemutaran dan pemulihan.
+
+## Fitur baru
+
+- **Android Auto.** Swara dideklarasikan sebagai aplikasi media untuk Android Auto, sehingga pencarian dan kontrol pemutaran bisa dipakai dari mobil lewat MediaSession yang sudah ada.
+- **Aksi kustom di notifikasi.** Notifikasi media kini punya timer tidur 15 menit dan tombol favorit di samping kontrol acak, ulang, dan transport yang sudah ada.
+
+## Peningkatan
+
+- **Kurva EQ bernama tetap ada setelah restart.** Gain preset aktif diresolve dengan benar saat start dan setelah pemulihan backup, lalu langsung sampai ke DSP.
+- **Pengaturan pemutaran langsung berlaku.** Mengedit gain lagu atau memulihkan backup kini memperbarui pemutar yang terdengar tanpa menunggu lagu berikutnya.
+
+## Perbaikan bug
+
+- **Crossfade yang dibatalkan mengembalikan volume.** Mematikan crossfade, membuat loop A-B, atau mengubah antrean saat fade tidak lagi membuat suara pelan.
+- **Pemulihan saat start memakai trim tersimpan.** Lagu yang dipulihkan diresolve ulang setelah antrean dibangun.
+- **Membatalkan pembaruan bukan error.** Snackbar kegagalan tidak muncul setelah Batal ditekan.
+- **Jumlah pemulihan jujur.** Favorit yang sudah aktif tidak dihitung sebagai favorit baru.
+- **Peta per pemutar tetap terbatas.** Trim dan flag sesi efek dihapus saat pemutar crossfade dilepas.
+
 ## v4.1.1
 
 Rilis optimasi: fitur yang ada lebih cepat dimuat, lebih mulus digulir, dan lebih native, tanpa fitur baru.

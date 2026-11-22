@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.2.0
+
+New native integrations plus a deep audit of playback and restore behavior.
+
+## New features
+
+- **Android Auto.** Swara is declared as a media app for Android Auto, so browsing and playback controls work from the car through the existing MediaSession.
+- **Custom notification actions.** The media notification now offers a 15 minute sleep timer and a favorite toggle alongside the existing shuffle, repeat and transport controls.
+
+## Improvements
+
+- **Named EQ curves survive restarts.** The active saved preset's gains are resolved correctly on startup and after a backup restore, and reach the DSP immediately.
+- **Playback settings apply immediately.** Editing a song's gain or restoring a backup now updates the audible player instead of waiting for the next track.
+
+## Bug fixes
+
+- **Aborted crossfades restore volume.** Toggling crossfade off, setting an A-B loop, or editing the queue mid-fade no longer leaves the music quiet.
+- **Cold-start resume respects the saved volume trim.** The restored song is re-resolved after the queue is rebuilt.
+- **Cancelling an update is not an error.** The failure snackbar no longer appears after a deliberate Cancel tap.
+- **Restore counts are honest.** Favorites already set are not counted as newly restored.
+- **Per-player maps stay bounded.** Trims and effect-session flags are dropped when a crossfade player is released.
+
 ## v4.1.1
 
 Optimization release: existing features start faster, scroll more smoothly and behave more natively, with no new features added.

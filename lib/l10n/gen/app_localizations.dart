@@ -3705,6 +3705,18 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get settingsUpdateRetryInstall;
 
+  /// Label of the notification action that starts a 15 minute sleep timer
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep in 15 min'**
+  String get notificationSleep15;
+
+  /// Label of the notification action that toggles the current song's favorite state
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get notificationFavorite;
+
   /// Title of the per-song or per-folder playback settings sheet
   ///
   /// In en, this message translates to:

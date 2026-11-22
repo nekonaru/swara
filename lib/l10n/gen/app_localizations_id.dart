@@ -2101,6 +2101,12 @@ class AppLocalizationsId extends AppLocalizations {
   String get settingsUpdateRetryInstall => 'Coba lagi';
 
   @override
+  String get notificationSleep15 => 'Tidur 15 menit';
+
+  @override
+  String get notificationFavorite => 'Favorit';
+
+  @override
   String get playbackSettingsTitle => 'Pengaturan pemutaran';
 
   @override

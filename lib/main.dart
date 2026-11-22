@@ -342,11 +342,15 @@ Future<bool> _bootApp({
         // Custom gains are persisted on every slider change and on every
         // preset selection, so they are the live curve for both 'Custom' and
         // 'user:<id>' tokens after a restart.
-        if (themeProvider.equalizerPreset == 'Custom' ||
-            themeProvider.equalizerPreset.startsWith('user:')) {
+        final presetToken = themeProvider.equalizerPreset;
+        final isUserCurve = presetToken.startsWith('user:');
+        final savedGains = isUserCurve
+            ? themeProvider.gainsForActivePreset()
+            : null;
+        if (presetToken == 'Custom' || isUserCurve) {
           await EqualizerService.instance.applyCustom(
-            themeProvider.customEqGains,
-            presetToken: themeProvider.equalizerPreset,
+            savedGains ?? themeProvider.customEqGains,
+            presetToken: presetToken,
           );
         } else {
           await EqualizerService.instance

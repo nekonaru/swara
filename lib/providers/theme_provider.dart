@@ -100,6 +100,9 @@ class ThemeProvider extends ChangeNotifier {
       customEqGains = _readCustomGains(prefs);
       final storedPresets = prefs.getString(_eqPresetsKey);
       if (storedPresets != null) eqPresets = decodeEqPresets(storedPresets);
+      // Resolve from the stored preset list, using an empty active buffer so
+      // the id lookup runs instead of returning the stale initial [0,0,...].
+      activeEqGains = const <double>[];
       activeEqGains = gainsForActivePreset() ?? List.of(customEqGains);
       amoledBlack = prefs.getBool(_amoledBlackKey) ?? false;
       dynamicColor = prefs.getBool(_dynamicColorKey) ?? false;

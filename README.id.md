@@ -61,6 +61,8 @@
 | **Pemutaran di latar belakang** | Foreground service Android asli dengan MediaSession: kontrol notifikasi dan layar kunci (putar/jeda/berikutnya/sebelumnya) |
 | **Widget layar home** | Sampul album, kontrol sebelumnya/putar/berikutnya, dan chronometer waktu berjalan langsung di layar home |
 | **Ubin Quick Settings** | Putar/jeda dari panel notifikasi Android dengan judul dan status lagu langsung, bahkan saat aplikasi di latar belakang |
+| **Android Auto** | Jelajahi dan kontrol pustaka dari mobil lewat MediaSession Swara |
+| **Aksi notifikasi** | Mulai timer tidur 15 menit atau tandai favorit langsung dari notifikasi media |
 | **Acak dan ulangi** | Acak, ulangi mati / semua / satu lagu, plus sleep timer berdasarkan durasi atau jumlah lagu |
 | **Mini player** | Selalu terlihat di setiap halaman dengan garis progres langsung; pengatur kecepatan dan pitch ada di layar pemutar |
 | **Lewati 10 detik** | Tombol seek maju dan mundur yang didedikasikan di layar Now Playing |

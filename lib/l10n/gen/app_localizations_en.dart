@@ -2102,6 +2102,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsUpdateRetryInstall => 'Retry';
 
   @override
+  String get notificationSleep15 => 'Sleep in 15 min';
+
+  @override
+  String get notificationFavorite => 'Favorite';
+
+  @override
   String get playbackSettingsTitle => 'Playback settings';
 
   @override

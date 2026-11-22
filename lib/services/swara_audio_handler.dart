@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:swara/l10n/gen/app_localizations.dart';
+import 'package:swara/providers/language_provider.dart';
+import 'db_helper.dart';
 import 'player_service.dart';
 
 /// Thin adapter over [PlayerService]. Translates state into the Android
@@ -234,6 +237,20 @@ class SwaraAudioHandler extends BaseAudioHandler {
     // are possible: shuffle on/off crossed with repeat off/all/one.
     final shuffleControl = _shuffleControl(ps.isShuffle);
     final repeatControl = _repeatControl(ps.repeatMode);
+    final l10n =
+        lookupAppLocalizations(LanguageProvider.instance.locale);
+    final sleepControl = MediaControl(
+      androidIcon: 'drawable/ic_notif_sleep',
+      label: l10n.notificationSleep15,
+      action: MediaAction.custom,
+      customAction: const CustomMediaAction(name: 'sleep15'),
+    );
+    final favoriteControl = MediaControl(
+      androidIcon: 'drawable/ic_notif_favorite',
+      label: l10n.notificationFavorite,
+      action: MediaAction.custom,
+      customAction: const CustomMediaAction(name: 'favorite'),
+    );
     playbackState.add(
       playbackState.value.copyWith(
         controls: [
@@ -241,6 +258,8 @@ class SwaraAudioHandler extends BaseAudioHandler {
           MediaControl.skipToPrevious,
           playing ? MediaControl.pause : MediaControl.play,
           MediaControl.skipToNext,
+          sleepControl,
+          favoriteControl,
           repeatControl,
         ],
         systemActions: const {
@@ -344,6 +363,20 @@ class SwaraAudioHandler extends BaseAudioHandler {
       case 'repeat':
         PlayerService.instance.cycleRepeatMode();
         // Same as above: show the new repeat icon immediately.
+        _syncState();
+        break;
+      case 'sleep15':
+        PlayerService.instance.setSleepTimer(const Duration(minutes: 15));
+        _syncState();
+        break;
+      case 'favorite':
+        final song = PlayerService.instance.currentSong;
+        if (song != null) {
+          final next = !song.isFavorite;
+          await DBHelper.instance.setFavorite(song.id, next);
+          song.isFavorite = next;
+          PlayerService.instance.syncQueueSong(song);
+        }
         _syncState();
         break;
     }

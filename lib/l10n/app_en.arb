@@ -2406,6 +2406,14 @@
     "@settingsUpdateRetryInstall":  {
                                         "description":  "Snackbar action that retries installing the already downloaded APK"
                                     },
+    "notificationSleep15":  "Sleep in 15 min",
+    "@notificationSleep15":  {
+                                 "description":  "Label of the notification action that starts a 15 minute sleep timer"
+                             },
+    "notificationFavorite":  "Favorite",
+    "@notificationFavorite":  {
+                                  "description":  "Label of the notification action that toggles the current song's favorite state"
+                              },
     "playbackSettingsTitle":  "Playback settings",
     "@playbackSettingsTitle":  {
                                    "description":  "Title of the per-song or per-folder playback settings sheet"

@@ -70,6 +70,9 @@ class UpdateService {
   // loop so a cancelled download aborts and deletes the partial file.
   bool _cancelRequested = false;
 
+  /// True when the last download ended because the user tapped Cancel.
+  bool lastDownloadCancelled = false;
+
   /// Ask the in-flight download to abort. Safe to call even when no
   /// download is running; takes effect on the next chunk boundary.
   void cancelDownload() => _cancelRequested = true;
@@ -134,6 +137,7 @@ class UpdateService {
     void Function(double progress)? onProgress,
   }) async {
     _cancelRequested = false;
+    lastDownloadCancelled = false;
     late File apkFile;
     try {
       final docs = await getTemporaryDirectory();
@@ -175,6 +179,7 @@ class UpdateService {
           } catch (_) {
             // A missing file is fine; the cancel path does not need it.
           }
+          lastDownloadCancelled = true;
           return (null, false, false);
         }
         if (!await apkFile.exists() || await apkFile.length() == 0) return (null, false, false);

@@ -2406,6 +2406,14 @@
     "@settingsUpdateRetryInstall":  {
                                         "description":  "Aksi snackbar memasang ulang APK yang sudah terunduh"
                                     },
+    "notificationSleep15":  "Tidur 15 menit",
+    "@notificationSleep15":  {
+                                 "description":  "Label aksi notifikasi memulai timer tidur 15 menit"
+                             },
+    "notificationFavorite":  "Favorit",
+    "@notificationFavorite":  {
+                                  "description":  "Label aksi notifikasi mengubah status favorit lagu saat ini"
+                              },
     "playbackSettingsTitle":  "Pengaturan pemutaran",
     "@playbackSettingsTitle":  {
                                    "description":  "Judul sheet pengaturan pemutaran per lagu atau per folder"

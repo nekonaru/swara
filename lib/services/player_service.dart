@@ -33,20 +33,18 @@ class PlayerService extends ChangeNotifier {
     try {
       final songs = await DBHelper.instance.getAllSongPlaybackSettings();
       final folders = await DBHelper.instance.getAllFolderPlaybackSettings();
-      final library = _queue;
-      for (final song in library) {
-        final folder = EffectivePlaybackSettings.folderOf(song.filePath);
-        final effective = EffectivePlaybackSettings.resolve(
-          songOverride: songs[song.id],
-          folderOverride: folders[folder],
-          durationMs: song.durationMs,
-        );
-        _trimByPlayer[_player.hashCode] = effective.volumeMultiplier;
-        final standby = _crossfadePlayer;
-        if (standby != null) _trimByPlayer[standby.hashCode] = effective.volumeMultiplier;
-      }
       _songTrims = songs;
       _folderTrims = folders;
+      final settings = settingsFor(currentSong ??
+          (_queue.isNotEmpty ? _queue.first : null) ??
+          Song(id: 0, filePath: '', title: '', artist: '', album: ''));
+      final trim = settings.volumeMultiplier;
+      _trimByPlayer[_player.hashCode] = trim;
+      final standby = _crossfadePlayer;
+      if (standby != null) _trimByPlayer[standby.hashCode] = trim;
+      // Apply the new trim to the audible player immediately, keeping fade
+      // state intact by routing through the normal volume chain.
+      unawaited(_vol(() => _setVol(_activePlayer, 1)));
       notifyListeners();
     } catch (e) {
       debugPrint('Playback settings reload failed: $e');
@@ -373,6 +371,11 @@ class PlayerService extends ChangeNotifier {
       final song = currentSong;
       if (song == null) return;
       await _player.setFilePath(song.filePath);
+      // The resume slice rebuilt the queue, so resolve the restored song's
+      // trim now instead of relying on the empty-queue bootstrap.
+      await refreshPlaybackSettings();
+      applyTrimToPlayer(_player, song);
+      unawaited(_vol(() => _setVol(_player, 1)));
       final savedMs = prefs.getInt(_prefsResumePositionMsKey) ?? 0;
       final durMs = song.durationMs;
       final position = savedMs <= 0
@@ -509,6 +512,10 @@ class PlayerService extends ChangeNotifier {
     _crossfadeStateSub = null;
     final standby = _crossfadePlayer;
     _crossfadePlayer = null;
+    if (standby != null) {
+      _trimByPlayer.remove(standby.hashCode);
+      _lastEffectEmit.remove(standby.hashCode);
+    }
     standby?.dispose().catchError((Object e) {
       debugPrint('Crossfade dispose failed: $e');
     });
@@ -930,6 +937,9 @@ class PlayerService extends ChangeNotifier {
     if (!isCrossfadeActive) return;
     _cancelCrossfade();
     _stopStandbyPlayer();
+    // The fade loop returns on the generation mismatch without running its
+    // final volume restore, so put the audible player back to full level.
+    unawaited(_vol(() => _setVol(_activePlayer, 1)));
   }
 
   /// Keep the live queue in step with library deletions. A song removed from
@@ -1628,6 +1638,13 @@ class PlayerService extends ChangeNotifier {
   /// The platform call is throttled, so a slider drag stays cheap, and the
   /// new value is persisted (debounced) for the next app run.
   // TODO L10N: no user facing string added here, English only.
+  /// Re-apply speed/pitch to the live player after preferences were replaced
+  /// by a backup import (setters early-return when the value is unchanged).
+  Future<void> reapplyAudioSettings() async {
+    if (_disposed) return;
+    await _applySpeedPitch();
+  }
+
   Future<void> setPlaybackSpeed(double speed) async {
     if (_disposed) return;
     final clamped = speed.clamp(speedMin, speedMax).toDouble();
@@ -2321,6 +2338,8 @@ class PlayerService extends ChangeNotifier {
       debugPrint('Failed to dispose crossfade player: $e');
     });
     _crossfadePlayer = null;
+    _trimByPlayer.clear();
+    _lastEffectEmit.clear();
     unawaited(EqualizerService.instance.release());
     unawaited(LoudnessService.instance.release());
     // Everything above needed _disposed to be false. Set it last, right
