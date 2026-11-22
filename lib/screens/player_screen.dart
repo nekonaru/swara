@@ -1160,24 +1160,25 @@ class _PlayerScreenState extends State<PlayerScreen>
                   final isAdjusted = _player.playbackSpeed != 1.0 ||
                       _player.playbackPitch != 1.0;
                   final color = Theme.of(context).colorScheme.primary;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: ActionChip(
-                      avatar: Icon(Icons.speed,
-                          size: 14, color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant),
-                      label: Text(
-                        _player.playbackSpeedLabel,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant,
+                  return ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Center(
+                      child: ActionChip(
+                        avatar: Icon(Icons.speed,
+                            size: 14, color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant),
+                        label: Text(
+                          _player.playbackSpeedLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
+                        // The chip sits in a row of 48 dp icon buttons, so
+                        // give it the same hit height without changing look.
+                        tooltip: AppLocalizations.of(context)!.playerPlaybackSpeed,
+                        onPressed: hasSong ? _pickPlaybackSpeed : null,
                       ),
-                      // Keep the label compact, but leave the default 48 dp
-                      // tap target: it shares a row with six icon buttons
-                      // and Android users expect a full-size control.
-                      tooltip: AppLocalizations.of(context)!.playerPlaybackSpeed,
-                      onPressed: hasSong ? _pickPlaybackSpeed : null,
                     ),
                   );
                 },

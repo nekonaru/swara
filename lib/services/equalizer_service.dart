@@ -82,6 +82,16 @@ class EqualizerService {
 
   String get preset => _preset;
   bool get isReady => _ready;
+
+  /// Notifies the Settings UI when the DSP attaches or detaches, so the
+  /// Active/Unavailable label cannot go stale while Settings is open.
+  final ValueNotifier<bool> readyNotifier = ValueNotifier<bool>(false);
+
+  void _setReady(bool value) {
+    if (_ready == value) return;
+    _ready = value;
+    readyNotifier.value = value;
+  }
   int? get sessionId => _sessionId;
 
   final AudioEffectsService _native = AudioEffectsService.instance;
@@ -154,14 +164,14 @@ class EqualizerService {
     final attached = await _get<bool>(
         () => _native.attachEqualizer(sessionId), 'attach');
     if (attached != true) {
-      _ready = false;
+      _setReady(false);
       _sessionId = null;
       debugPrint('Equalizer: could not attach to the audio session. '
           'The device may not support the effect.');
       return false;
     }
     _sessionId = sessionId;
-    _ready = true;
+    _setReady(true);
     _scheduleApply();
     await _flushApply();
     return true;
@@ -219,7 +229,7 @@ class EqualizerService {
     _applyQueued = false;
     if (!_ready) return;
     _fire(_native.releaseEqualizer, 'release');
-    _ready = false;
+    _setReady(false);
     _sessionId = null;
   }
 

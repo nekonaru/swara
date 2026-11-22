@@ -114,7 +114,9 @@ class EmbeddedArtService {
         _missing.add(songId);
         return null;
       }
-      await file.writeAsBytes(bytes, flush: true);
+      // No flush: a thumbnail is rebuilt from the audio file if a crash
+      // loses it, while an fsync per cover stalled the first scroll.
+      await file.writeAsBytes(bytes);
       _knownPaths[songId] = file.path;
       return file.path;
     } catch (_) {

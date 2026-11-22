@@ -1164,17 +1164,17 @@ class AppLocalizationsId extends AppLocalizations {
       'Jelajahi lagu, susun playlist, dan cek statistik mendengarkan di dashboard. Ketuk Mulai untuk memulai.';
 
   @override
-  String get dataSection => 'Data';
+  String get dataSection => 'Data dan Cadangan';
 
   @override
-  String get dataExport => 'Export backup';
+  String get dataExport => 'Ekspor cadangan';
 
   @override
   String get dataExportSubtitle =>
       'Salin playlist, favorit, dan riwayat sebagai JSON';
 
   @override
-  String get dataImport => 'Import backup';
+  String get dataImport => 'Impor cadangan';
 
   @override
   String get dataImportSubtitle => 'Pulihkan dari JSON backup yang ditempel';
@@ -2092,6 +2092,13 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get settingsQuickTileSubtitle =>
       'Tambahkan Swara lewat mode edit Quick Settings untuk putar/jeda sekali geser';
+
+  @override
+  String get settingsUpdateInstallPermission =>
+      'Izinkan memasang aplikasi, lalu coba lagi';
+
+  @override
+  String get settingsUpdateRetryInstall => 'Coba lagi';
 
   @override
   String get playbackSettingsTitle => 'Pengaturan pemutaran';

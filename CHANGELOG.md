@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.1.1
+
+Optimization release: existing features start faster, scroll more smoothly and behave more natively, with no new features added.
+
+## Improvements
+
+- **Library loads with less memory.** Gzipped lyrics are decoded in an isolate from a compact id-to-text map instead of copying the whole song table across twice.
+- **Settings reacts narrowly.** The library scanning section now watches only the six fields it uses, so metadata scans no longer rebuild the entire settings tree.
+- **EQ status is live.** The Active/Unavailable label follows the actual DSP state while Settings stays open.
+- **Thumbnails write without fsync.** Cover extraction no longer forces a disk sync per song, reducing first-scroll jank.
+
+## Bug fixes
+
+- **Install permission no longer dead-ends.** After granting unknown-app installs, a Retry action installs the already downloaded APK; a successful install deletes the cached file.
+- **Cancel does not pop an extra route.** The update dialog's Cancel handler is guarded and no longer reports a user cancellation as a failure.
+- **Import errors are accurate.** A malformed backup no longer claims that no songs matched.
+- **Permission prompts wait for the intro crossfade.** They no longer overlay the splash handoff.
+- **Player speed chip meets the 48 dp target** and aligns with its sibling controls.
+
 ## v4.1.0
 
 Big update: per-song and per-folder playback tuning, plus a full preferences backup, backed by another deep native audit.

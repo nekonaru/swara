@@ -222,16 +222,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     switch (status) {
       case 'ok':
-        // The system installer is up; nothing to say here.
+        // The system installer is up; drop the cached APK so it does not
+        // linger in the temp directory forever.
+        try {
+          await File(path).delete();
+        } catch (_) {}
         break;
       case 'no_permission':
-        _showSnack(l10n.settingsUpdateInstallFailed);
+        // The user was sent to the grant screen. Keep the verified APK and
+        // offer to retry the install instead of forcing a re-download.
+        _showSnackWithAction(
+          l10n.settingsUpdateInstallPermission,
+          label: l10n.settingsUpdateRetryInstall,
+          onPressed: () => _retryInstall(path),
+        );
         break;
       default:
         // The installer would not start. Fall back to the GitHub releases
         // page so the user can still update by hand.
         await _openLink('https://github.com/nekonaru/swara/releases');
         break;
+    }
+  }
+
+  Future<void> _retryInstall(String path) async {
+    final status = await AudioEffectsService.instance.installApk(path);
+    if (!mounted) return;
+    if (status == 'ok') {
+      try {
+        await File(path).delete();
+      } catch (_) {}
+    } else {
+      _showSnack(AppLocalizations.of(context)!.settingsUpdateInstallFailed);
     }
   }
 
@@ -262,6 +284,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showSnackWithAction(String message,
+      {required String label, required VoidCallback onPressed}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(label: label, onPressed: onPressed),
+      ),
+    );
   }
 
   // Human readable byte count for the art cache row.
@@ -500,8 +533,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() => _busyData = false);
       debugPrint('Backup import failed: $e');
-      // Map known failure so the snackbar does not render a raw exception.
-      _showSnack(e is FormatException
+      final noMatch = e is FormatException &&
+          e.message.contains('no entries matching');
+      _showSnack(noMatch
           ? AppLocalizations.of(context)!.dataImportFailedNoMatch
           : AppLocalizations.of(context)!.dataImportFailedCheckJson);
     }
@@ -686,7 +720,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final languageProvider = context.watch<LanguageProvider>();
-    final lib = context.watch<LibraryProvider>();
+    final libView = context.select<LibraryProvider, (bool, bool, int, int, bool, int)>((lib) => (
+      lib.isScanning,
+      lib.isBulkScanningMetadata,
+      lib.bulkScanProgress,
+      lib.bulkScanTotal,
+      lib.bulkScanCancelRequested,
+      lib.totalCount,
+    ));
+    final lib = context.read<LibraryProvider>();
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -945,9 +987,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SectionHeader(l10n.settingsEqualizer),
           // Live state of the DSP. isReady is false until the device actually
           // reported usable bands, so this must not claim "Active" blindly.
-          Builder(builder: (context) {
-            final ready = EqualizerService.instance.isReady;
-            return Padding(
+          ValueListenableBuilder<bool>(
+            valueListenable: EqualizerService.instance.readyNotifier,
+            builder: (context, ready, _) => Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
               child: Row(
                 children: [
@@ -971,8 +1013,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
-            );
-          }),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Text(
@@ -1011,7 +1053,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // -- LIBRARY --
           _SectionHeader(l10n.settingsLibrary),
           ListTile(
-            leading: lib.isScanning
+            leading: libView.$1
                 ? const SizedBox(
                     width: 24,
                     height: 24,
@@ -1019,31 +1061,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 : const Icon(Icons.folder_open_outlined),
             title: Text(l10n.settingsScanFiles),
             subtitle: Text(l10n.settingsScanFilesSubtitle),
-            onTap: lib.isScanning ? null : () => lib.forceScanDevice(),
+            onTap: libView.$1 ? null : () => lib.forceScanDevice(),
           ),
           ListTile(
-            leading: lib.isBulkScanningMetadata
+            leading: libView.$2
                 ? const SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.cloud_sync_outlined),
             title: Text(l10n.settingsScanMissing),
-            subtitle: Text(lib.isBulkScanningMetadata
-                ? l10n.settingsScanProgress(lib.bulkScanProgress,
-                    lib.bulkScanTotal)
+            subtitle: Text(libView.$2
+                ? l10n.settingsScanProgress(libView.$3,
+                    libView.$4)
                 : l10n.settingsScanMissingSubtitle),
             // While a scan runs the tile itself cannot start another one, and
             // the button on the right ends the running one.
-            trailing: lib.isBulkScanningMetadata
+            trailing: libView.$2
                 ? TextButton(
-                    onPressed: lib.bulkScanCancelRequested
+                    onPressed: libView.$5
                         ? null
                         : () => stopBulkMetadataScan(context),
                     child: Text(l10n.settingsScanCancel),
                   )
                 : null,
-            onTap: lib.isBulkScanningMetadata
+            onTap: libView.$2
                 ? null
                 : () => lib.bulkScanMetadata(onlyMissing: true),
           ),
@@ -1051,17 +1093,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.refresh),
             title: Text(l10n.settingsRescanAll),
             subtitle: Text(l10n.settingsRescanAllSubtitle),
-            onTap: lib.isBulkScanningMetadata
+            onTap: libView.$2
                 ? null
                 : () => _confirmRescanAll(context, lib),
           ),
-          if (lib.isBulkScanningMetadata)
+          if (libView.$2)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: LinearProgressIndicator(
-                value: lib.bulkScanTotal == 0
+                value: libView.$4 == 0
                     ? null
-                    : lib.bulkScanProgress / lib.bulkScanTotal,
+                    : libView.$3 / libView.$4,
               ),
             ),
           const Divider(),

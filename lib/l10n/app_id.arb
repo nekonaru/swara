@@ -941,11 +941,11 @@
     "@onboardDesc3":  {
                            "description":  "Deskripsi onboarding halaman 3"
                        },
-    "dataSection":  "Data",
+    "dataSection":  "Data dan Cadangan",
     "@dataSection":  {
                           "description":  "Section pengaturan untuk backup dan cache"
                       },
-    "dataExport":  "Export backup",
+    "dataExport":  "Ekspor cadangan",
     "@dataExport":  {
                          "description":  "Judul baris export backup"
                      },
@@ -953,7 +953,7 @@
     "@dataExportSubtitle":  {
                                  "description":  "Subjudul baris export backup"
                              },
-    "dataImport":  "Import backup",
+    "dataImport":  "Impor cadangan",
     "@dataImport":  {
                          "description":  "Judul baris import backup"
                      },
@@ -2398,6 +2398,14 @@
     "@settingsQuickTileSubtitle":  {
                                        "description":  "Subjudul cara menambahkan ubin Quick Settings"
                                    },
+    "settingsUpdateInstallPermission":  "Izinkan memasang aplikasi, lalu coba lagi",
+    "@settingsUpdateInstallPermission":  {
+                                             "description":  "Pesan setelah layar izin pasang aplikasi dibuka"
+                                         },
+    "settingsUpdateRetryInstall":  "Coba lagi",
+    "@settingsUpdateRetryInstall":  {
+                                        "description":  "Aksi snackbar memasang ulang APK yang sudah terunduh"
+                                    },
     "playbackSettingsTitle":  "Pengaturan pemutaran",
     "@playbackSettingsTitle":  {
                                    "description":  "Judul sheet pengaturan pemutaran per lagu atau per folder"

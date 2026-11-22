@@ -3693,6 +3693,18 @@ abstract class AppLocalizations {
   /// **'Add Swara in the Quick Settings edit mode for one-swipe play and pause'**
   String get settingsQuickTileSubtitle;
 
+  /// Message after the install-unknown-apps grant screen was opened
+  ///
+  /// In en, this message translates to:
+  /// **'Allow installing apps, then retry'**
+  String get settingsUpdateInstallPermission;
+
+  /// Snackbar action that retries installing the already downloaded APK
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get settingsUpdateRetryInstall;
+
   /// Title of the per-song or per-folder playback settings sheet
   ///
   /// In en, this message translates to:

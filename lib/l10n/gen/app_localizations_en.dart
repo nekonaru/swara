@@ -2095,6 +2095,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add Swara in the Quick Settings edit mode for one-swipe play and pause';
 
   @override
+  String get settingsUpdateInstallPermission =>
+      'Allow installing apps, then retry';
+
+  @override
+  String get settingsUpdateRetryInstall => 'Retry';
+
+  @override
   String get playbackSettingsTitle => 'Playback settings';
 
   @override

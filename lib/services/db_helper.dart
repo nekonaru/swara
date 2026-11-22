@@ -617,13 +617,30 @@ class DBHelper {
         break;
       }
     }
-    final decodedRows = hasCompressedLyrics
-        ? await compute(_decodeLyricsInIsolate, rows)
-        : rows;
+    // Only the compressed lyric strings cross the isolate boundary. Sending
+    // every full row (title, tags, paths...) across and back doubled peak
+    // memory on large libraries at startup and after every scan.
+    Map<int, String?>? decoded;
+    if (hasCompressedLyrics) {
+      final payload = <int, String>{};
+      for (final row in rows) {
+        final raw = row['lyrics'];
+        if (raw is String && raw.startsWith('gz:')) {
+          payload[(row['id'] as num?)?.toInt() ?? -1] = raw;
+        }
+      }
+      decoded = await compute(_decodeLyricsInIsolate, payload);
+    }
     final songs = <Song>[];
-    for (final row in decodedRows) {
+    for (final row in rows) {
+      Map<String, Object?> effective = row;
+      final raw = row['lyrics'];
+      if (decoded != null && raw is String && raw.startsWith('gz:')) {
+        final id = (row['id'] as num?)?.toInt() ?? -1;
+        effective = <String, Object?>{...row, 'lyrics': decoded[id]};
+      }
       try {
-        songs.add(Song.fromMap(row));
+        songs.add(Song.fromMap(effective));
       } catch (e) {
         debugPrint('DBHelper: skipping corrupt songs row ${row['id']}: $e');
       }
@@ -631,23 +648,11 @@ class DBHelper {
     return songs;
   }
 
-  /// Decode the `gz:` lyrics of every row in a background isolate. Sent to
-  /// [compute], so it must stay a pure static function with only sendable
-  /// types in and out.
-  static List<Map<String, dynamic>> _decodeLyricsInIsolate(
-    List<Map<String, Object?>> rows,
-  ) {
-    final out = <Map<String, dynamic>>[];
-    for (final row in rows) {
-      final raw = row['lyrics'];
-      if (raw is String && raw.startsWith('gz:')) {
-        out.add(<String, dynamic>{...row, 'lyrics': decodeLyricsFromDb(raw)});
-      } else {
-        out.add(row);
-      }
-    }
-    return out;
-  }
+  /// Decode only the `gz:` lyric values in a background isolate. The input
+  /// and output are small id-to-string maps, so the whole song table is not
+  /// copied across the boundary.
+  static Map<int, String?> _decodeLyricsInIsolate(Map<int, String> encoded) =>
+      encoded.map((id, raw) => MapEntry(id, decodeLyricsFromDb(raw)));
 
   /// Delete from the DB the songs whose original files no longer exist on the
   /// phone (deleted/moved by the user outside the app). [existingIds] holds

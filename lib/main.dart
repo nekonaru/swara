@@ -510,9 +510,12 @@ class _BootGateState extends State<BootGate> {
         final onboardingDone = snapshot.data ?? false;
         if (ready && onboardingDone && !_permissionRequested) {
           _permissionRequested = true;
-          // Ask after the handoff, never while the splash is animating.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            unawaited(PermissionService.ensureEssentialPermissions());
+          // Ask only after the crossfade finishes so no dialog covers it.
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await Future<void>.delayed(reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 340));
+            await PermissionService.ensureEssentialPermissions();
           });
         }
         final Widget destination = onboardingDone

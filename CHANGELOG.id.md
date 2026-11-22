@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.1.1
+
+Rilis optimasi: fitur yang ada lebih cepat dimuat, lebih mulus digulir, dan lebih native, tanpa fitur baru.
+
+## Peningkatan
+
+- **Pustaka dimuat dengan memori lebih sedikit.** Lirik terkompresi didekode di isolate dari peta id-ke-teks ringkas, bukan dengan menyalin seluruh tabel lagu dua kali.
+- **Pengaturan bereaksi secukupnya.** Bagian pemindaian pustaka hanya memantau enam kolom yang dipakai, sehingga pemindaian metadata tidak membangun ulang seluruh pohon Pengaturan.
+- **Status EQ langsung.** Label Aktif/Tidak tersedia mengikuti kondisi DSP sebenarnya saat Pengaturan terbuka.
+- **Sampul ditulis tanpa fsync.** Ekstraksi sampul tidak lagi memaksa sinkronisasi disk per lagu, mengurangi tersendat saat gulir pertama.
+
+## Perbaikan bug
+
+- **Izin pemasangan tidak buntu lagi.** Setelah izin memasang aplikasi diberikan, aksi Coba lagi memasang APK yang sudah terunduh; pemasangan sukses menghapus berkas cache.
+- **Batal tidak menutup rute tambahan.** Handler Batal pada dialog pembaruan dijaga dan tidak lagi melaporkan pembatalan pengguna sebagai kegagalan.
+- **Error impor lebih tepat.** Backup rusak tidak lagi mengklaim tidak ada lagu yang cocok.
+- **Prompt izin menunggu transisi intro.** Tidak lagi menimpa perpindahan splash.
+- **Chip kecepatan pemutar memenuhi target 48 dp** dan sejajar dengan kontrol di sekitarnya.
+
 ## v4.1.0
 
 Update besar: pengaturan pemutaran per lagu dan per folder, plus backup preferensi lengkap, dengan audit native mendalam lain.

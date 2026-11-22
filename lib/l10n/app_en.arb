@@ -2398,6 +2398,14 @@
     "@settingsQuickTileSubtitle":  {
                                        "description":  "Subtitle explaining how to add the Quick Settings tile"
                                    },
+    "settingsUpdateInstallPermission":  "Allow installing apps, then retry",
+    "@settingsUpdateInstallPermission":  {
+                                             "description":  "Message after the install-unknown-apps grant screen was opened"
+                                         },
+    "settingsUpdateRetryInstall":  "Retry",
+    "@settingsUpdateRetryInstall":  {
+                                        "description":  "Snackbar action that retries installing the already downloaded APK"
+                                    },
     "playbackSettingsTitle":  "Playback settings",
     "@playbackSettingsTitle":  {
                                    "description":  "Title of the per-song or per-folder playback settings sheet"
