@@ -31,7 +31,7 @@ void main() {
 
   test('named EQ gains survive restart and restore', () {
     final theme = read('lib/providers/theme_provider.dart');
-    expect(theme.contains("activeEqGains = const <double>[]"), isTrue);
+    expect(theme.contains('activeEqGains = const <double>[]'), isTrue);
     final main = read('lib/main.dart');
     expect(main.contains('themeProvider.gainsForActivePreset()'), isTrue);
   });
