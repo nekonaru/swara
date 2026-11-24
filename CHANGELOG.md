@@ -4,6 +4,13 @@
 
 Stability release: fixes deep audit findings in playback, backup and performance, with no new features.
 
+## Improvements
+
+- **Art cache tools stay light.** Measuring and clearing covers no longer decompress every lyric, and clearing also drops remote cover references so the cache does not refill on the next scroll.
+- **Song lists keep a stable order.** Paged browsing no longer silently reorders after 60 seconds.
+- **Artwork probing shares one MediaStore client.** The first scroll through a large library does less native setup work.
+- **Quick Settings tile releases its controller callback** when the media session is suspended.
+
 ## Bug fixes
 
 - **Empty playback queues stop audio.** Play all on an empty list and deleting the last song now pause both players, so no orphaned track keeps playing.
@@ -14,13 +21,6 @@ Stability release: fixes deep audit findings in playback, backup and performance
 - **Playlist removals update immediately.** Removing a song no longer leaves the old tile on screen until the screen is reopened.
 - **Backup restores report honest results.** An already existing playlist is a valid no-op instead of a failure, and restored listening times no longer shift to the wrong hour.
 - **Failed scans stay retryable.** A denied or failed device scan no longer blocks automatic retry for 30 minutes.
-
-## Improvements
-
-- **Art cache tools stay light.** Measuring and clearing covers no longer decompress every lyric, and clearing also drops remote cover references so the cache does not refill on the next scroll.
-- **Song lists keep a stable order.** Paged browsing no longer silently reorders after 60 seconds.
-- **Artwork probing shares one MediaStore client.** The first scroll through a large library does less native setup work.
-- **Quick Settings tile releases its controller callback** when the media session is suspended.
 
 ## v4.3.1
 
