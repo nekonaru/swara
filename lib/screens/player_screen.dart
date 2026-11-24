@@ -104,6 +104,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _onLyricsRevision() {
     final song = _player.currentSong;
     if (song == null || !mounted) return;
+    // A nudge right before the edit must reach the DB before the reload
+    // reads the saved offset back.
+    _flushPendingLrcOffset();
     _lrcLoadGeneration++;
     _lrcLoading = false;
     _lrcSongId = -1;
@@ -466,6 +469,14 @@ class _PlayerScreenState extends State<PlayerScreen>
     // Leaving a song before the debounce fires must not lose the correction.
     if (_pendingOffsetSongId != null && _pendingOffsetSongId != song.id) {
       _flushPendingLrcOffset();
+    }
+    // If a different song asks for lyrics while an older load is in flight,
+    // invalidate that load before the early return. Otherwise the stale load
+    // keeps the current generation and wins when it finishes.
+    if (_lrcLoading && _lrcSongId != song.id) {
+      _lrcLoadGeneration++;
+      _lrcLoading = false;
+      _lrcSongId = -1;
     }
     if (_lrcSongId == song.id || _lrcLoading) return;
     final generation = ++_lrcLoadGeneration;

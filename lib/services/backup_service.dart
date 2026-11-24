@@ -428,8 +428,9 @@ class BackupService {
             '';
         final direct = byPath[normalizeBackupPath(path)];
         if (direct != null) return direct;
-        final basename =
-            backupBasename((raw['basename'] as String?) ?? path);
+        final storedBasename = (raw['basename'] as String?)?.trim() ?? '';
+        final basename = backupBasename(
+            storedBasename.isNotEmpty ? storedBasename : path);
         if (basename.isEmpty || basename == '/') return null;
         final duration = (raw['durationMs'] as num?)?.toInt() ?? 0;
         final candidates = <int>[];
@@ -885,13 +886,13 @@ class BackupService {
     // local value is never overwritten by a restore.
     if (versionNumber >= 3) {
       for (final (localId, raw) in resolvedV3Songs) {
-        songsMatched++;
         try {
           final localRows = await DBHelper.instance.querySongById(localId);
           if (localRows == null) {
             songsUnmatched++;
             continue;
           }
+          songsMatched++;
           bool isEmptyText(String? value) {
             if (value == null || value.trim().isEmpty) return true;
             return const {
@@ -984,7 +985,8 @@ class BackupService {
           // One bad song row must not abort the rest of the restore.
         }
       }
-      if (songsMatched == 0) songsUnmatched = resolvedV3Songs.isEmpty ? 0 : 1;
+      final unresolved = resolvedV3Songs.length - songsMatched - songsUnmatched;
+      if (unresolved > 0) songsUnmatched += unresolved;
     }
 
     // Preferences are additive: only keys the user has never set are filled
