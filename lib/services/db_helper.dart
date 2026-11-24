@@ -598,6 +598,20 @@ class DBHelper {
     return await _songsFromRows(rows);
   }
 
+  /// Distinct non-empty cover paths. Art cache maintenance only needs these
+  /// paths, so it avoids reading and decompressing every song's lyrics.
+  Future<List<String>> getAlbumArtPaths() async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      'SELECT DISTINCT albumArtPath FROM songs '
+      "WHERE albumArtPath IS NOT NULL AND albumArtPath != ''",
+    );
+    return rows
+        .map((r) => r['albumArtPath']?.toString().trim() ?? '')
+        .where((path) => path.isNotEmpty)
+        .toList();
+  }
+
   /// Convert raw DB rows into Songs, skipping any corrupt row instead of
   /// throwing. A single row with an empty or invalid filePath used to make
   /// the whole map() call throw a FormatException, which blanked the entire

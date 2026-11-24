@@ -1,6 +1,26 @@
 # Changelog
 
-## v4.3.1
+## v4.3.2
+
+Rilis stabilitas: perbaikan temuan audit mendalam pada pemutaran, backup, dan performa, tanpa fitur baru.
+
+## Perbaikan bug
+
+- **Antrean kosong benar-benar menghentikan audio.** Play all pada daftar kosong dan penghapusan lagu terakhir kini menghentikan kedua player, sehingga tidak ada lagu yatim yang tetap berbunyi.
+- **Lanjut putar setelah buka ulang mengembalikan suara.** Putaran pertama setelah aplikasi dibuka kembali memasang ulang equalizer dan loudness, tidak terdengar kering sampai lagu berikutnya.
+- **Seek dari notifikasi langsung tersimpan.** Seek dari notifikasi atau Android Auto kini menjaga crossfade dan menyimpan posisi seketika.
+- **Sesi media menyoroti lagu yang tepat.** Indeks antrean dibatasi saat jendela antrean masih diperbarui, dan aksi kustom mengirim satu pembaruan, bukan dua.
+- **Crossfade melepaskan callback efeknya.** Player siaga tidak menyimpan listener setelah dilepas, dan volume trim per lagu diterapkan kembali ke player yang benar setelah pengaturan dimuat ulang.
+- **Penghapusan lagu di playlist langsung terlihat.** Lagu yang dihapus tidak lagi tertinggal di layar sampai halaman dibuka ulang.
+- **Pemulihan backup melaporkan hasil yang benar.** Playlist yang sudah ada dianggap no-op yang sah, bukan kegagalan, dan waktu putar yang dipulihkan tidak bergeser ke jam yang salah.
+- **Scan gagal tetap bisa diulang.** Scan perangkat yang ditolak atau gagal tidak lagi memblokir scan otomatis selama 30 menit.
+
+## Peningkatan
+
+- **Alat cache cover tetap ringan.** Mengukur dan membersihkan cover tidak lagi mendekompresi semua lirik, dan pembersihan juga menghapus referensi cover jarak jauh agar cache tidak langsung penuh lagi saat digulir.
+- **Daftar lagu mempertahankan urutan stabil.** Penjelajahan per halaman tidak lagi mengubah urutan secara diam diam setelah 60 detik.
+- **Pencarian cover memakai satu klien MediaStore.** Guliran pertama pada pustaka besar melakukan lebih sedikit inisialisasi native.
+- **Tile Quick Settings melepaskan callback controller** ketika sesi media ditangguhkan.
 
 Rilis stabilitas: perbaikan regresi tampilan dan fungsi yang dilaporkan setelah v4.0, tanpa fitur baru.
 

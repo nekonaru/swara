@@ -22,6 +22,9 @@ class EmbeddedArtService {
   // Extracted files are cached forever: they only change when the user
   // edits a file's tags, and a stale thumbnail is harmless.
   static const String _dirName = 'embedded_art';
+  // One platform client for the whole app. Constructing it per artwork probe
+  // made the first scroll through a large library pay a setup cost per row.
+  static final OnAudioQuery _query = OnAudioQuery();
 
   String? _dirPath;
   // Memory first answer for already resolved files, so the build path
@@ -104,7 +107,7 @@ class EmbeddedArtService {
         _knownPaths[songId] = file.path;
         return file.path;
       }
-      final bytes = await OnAudioQuery().queryArtwork(
+      final bytes = await _query.queryArtwork(
         songId,
         ArtworkType.AUDIO,
         format: ArtworkFormat.JPEG,

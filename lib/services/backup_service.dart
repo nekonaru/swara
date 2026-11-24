@@ -306,6 +306,9 @@ class BackupService {
     }
 
     int playlistsCreated = 0;
+    // A playlist that already exists locally is a valid additive no-op, not
+    // a failed restore. Count it so the summary does not cry wolf.
+    int playlistsAlreadyPresent = 0;
     int membersAdded = 0;
     int favoritesRestored = 0;
     var favoritesAlreadyPresent = 0;
@@ -345,6 +348,7 @@ class BackupService {
           int playlistId;
           if (!isNew) {
             playlistId = idByName[name]!;
+            playlistsAlreadyPresent++;
           } else if (createdAt != null) {
             // Preserve the original ordering: insert with the export's
             // timestamp instead of "now".
@@ -508,15 +512,21 @@ class BackupService {
               : null;
           final tsRaw = item['timestamp']?.toString() ?? '';
           if (songId == null || listenedMs == null || tsRaw.isEmpty) continue;
-          if (DateTime.tryParse(tsRaw) == null) continue;
+          final parsedTs = DateTime.tryParse(tsRaw);
+          if (parsedTs == null) continue;
+          // Normalize before storing and before dedup. SQLite's date
+          // functions shift offset-bearing strings to UTC, which put the
+          // entry in the wrong hour bucket and made the dedup triple
+          // unstable across re-imports of the same backup.
+          final ts = parsedTs.toLocal().toIso8601String();
           // Clamp to a sane single-session range (0 to 24h in ms) so
           // corrupt or negative values cannot skew stats.
           listenedMs = listenedMs.clamp(0, 86400000);
-          final triple = '$songId|$tsRaw|$listenedMs';
+          final triple = '$songId|$ts|$listenedMs';
           if (!seenTriples.add(triple)) continue;
           parsedEntries.add({
             'songId': songId,
-            'timestamp': tsRaw,
+            'timestamp': ts,
             'listenedMs': listenedMs,
             'triple': triple,
           });
@@ -586,6 +596,7 @@ class BackupService {
     }
 
     if (playlistsCreated == 0 &&
+        playlistsAlreadyPresent == 0 &&
         membersAdded == 0 &&
         favoritesRestored == 0 &&
         favoritesAlreadyPresent == 0 &&
@@ -722,11 +733,8 @@ class BackupService {
     int bytes = 0;
     int files = 0;
     try {
-      final songs = await DBHelper.instance.getAllSongs();
-      final seen = <String>{};
-      for (final s in songs) {
-        final path = s.albumArtPath;
-        if (path == null || path.isEmpty || !seen.add(path)) continue;
+      final paths = await DBHelper.instance.getAlbumArtPaths();
+      for (final path in paths) {
         try {
           final f = File(path);
           if (await f.exists()) {
@@ -755,11 +763,8 @@ class BackupService {
   static Future<int> clearArtCache() async {
     int deleted = 0;
     try {
-      final songs = await DBHelper.instance.getAllSongs();
-      final seen = <String>{};
-      for (final s in songs) {
-        final path = s.albumArtPath;
-        if (path == null || path.isEmpty || !seen.add(path)) continue;
+      final paths = await DBHelper.instance.getAlbumArtPaths();
+      for (final path in paths) {
         try {
           final f = File(path);
           if (await f.exists()) {
@@ -774,8 +779,13 @@ class BackupService {
       // Null out references using the existing db getter.
       try {
         final database = await DBHelper.instance.db;
-        await database.update('songs', {'albumArtPath': null},
-            where: 'albumArtPath IS NOT NULL');
+        // Clear the remote reference too. Otherwise the next scroll simply
+        // downloads the same cover again and the cache is immediately full.
+        await database.update(
+          'songs',
+          {'albumArtPath': null, 'albumArtUrl': null},
+          where: "albumArtPath IS NOT NULL OR (albumArtUrl IS NOT NULL AND albumArtUrl != '')",
+        );
       } catch (_) {
         // File deletion already done; DB null-out is best effort here.
       }

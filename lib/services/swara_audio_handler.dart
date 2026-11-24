@@ -24,6 +24,9 @@ class SwaraAudioHandler extends BaseAudioHandler {
   // Fingerprint of the last queue pushed to the MediaSession.
   // Used to avoid re-sending a large queue on every tick.
   String? _lastQueueFingerprint;
+  // Size of the window actually published to the MediaSession. The player's
+  // full queue can be much larger, so the index must be bounded by this.
+  int _publishedQueueLength = 0;
 
   // Notification icon names. The off icons are plain glyphs while the on
   // icons carry a solid marker, so the active state stays clear in the
@@ -184,6 +187,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
     ];
     try {
       queue.add(items);
+      _publishedQueueLength = items.length;
       queueTitle.add('Swara Queue');
       // The active item index is relative to the published window; republish
       // it together with the window so it never points at the wrong song.
@@ -232,6 +236,15 @@ class SwaraAudioHandler extends BaseAudioHandler {
     mediaItem.add(currentItem);
 
     final playing = ps.player.playing;
+    // The window start is owned by the debounced _publishQueue. Until it
+    // catches up, clamp the relative index so a wrap or a fast jump cannot
+    // point at a negative slot or one beyond the published window.
+    final publishedLength = ps.queue.length;
+    final windowLength = _publishedQueueLength > 0 &&
+            _publishedQueueLength < publishedLength
+        ? _publishedQueueLength
+        : publishedLength;
+    final relativeIndex = currentIndex - _queueWindowStart;
     // Pick each icon from the live PlayerService state, so the notification
     // always shows whether shuffle and repeat are active. Five combinations
     // are possible: shuffle on/off crossed with repeat off/all/one.
@@ -281,8 +294,10 @@ class SwaraAudioHandler extends BaseAudioHandler {
         updatePosition: ps.player.position,
         speed: ps.player.speed,
         queueIndex:
-            (currentIndex >= 0 && currentIndex < ps.queueOrderLength)
-                ? currentIndex - _queueWindowStart
+            (currentIndex >= 0 &&
+                    currentIndex < ps.queueOrderLength &&
+                    publishedLength > 0)
+                ? relativeIndex.clamp(0, windowLength > 0 ? windowLength - 1 : 0)
                 : null,
       ),
     );
@@ -363,26 +378,23 @@ class SwaraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> seek(Duration position) =>
-      PlayerService.instance.player.seek(position);
+      PlayerService.instance.seekFromExternal(position);
 
   @override
   Future<dynamic> customAction(String name,
       [Map<String, dynamic>? extras]) async {
     switch (name) {
       case 'shuffle':
+        // Each action calls notifyListeners, which already invokes
+        // _syncState through the PlayerService listener. A second call here
+        // republished the whole session twice per tap.
         PlayerService.instance.toggleShuffle();
-        // Refresh right away so the notification icon flips without
-        // waiting for the next listener event.
-        _syncState();
         break;
       case 'repeat':
         PlayerService.instance.cycleRepeatMode();
-        // Same as above: show the new repeat icon immediately.
-        _syncState();
         break;
       case 'sleep15':
         PlayerService.instance.setSleepTimer(const Duration(minutes: 15));
-        _syncState();
         break;
       case 'favorite':
         // A notification tap can arrive before a cold-start resume finishes.
@@ -397,9 +409,9 @@ class SwaraAudioHandler extends BaseAudioHandler {
           PlayerService.instance.syncQueueSong(song);
           // syncQueueSong skips the current (identical) object, so force a
           // notify to refresh favorite icons in the app UI as well.
+          // syncUiState notifies the listener that publishes the session.
           PlayerService.instance.syncUiState();
         }
-        _syncState();
         break;
     }
   }

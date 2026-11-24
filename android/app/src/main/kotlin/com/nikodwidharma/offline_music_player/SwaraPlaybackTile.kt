@@ -36,13 +36,13 @@ class SwaraPlaybackTile : TileService() {
         }
 
         override fun onConnectionSuspended() {
-            controller = null
+            unregisterControllerCallback()
             updateTile()
             if (isListening) browser?.connect()
         }
 
         override fun onConnectionFailed() {
-            controller = null
+            unregisterControllerCallback()
             updateTile()
             // MediaBrowser does not retry on its own: re-arm while the tile
             // is visible so a restarted audio service recovers immediately.
@@ -73,14 +73,18 @@ class SwaraPlaybackTile : TileService() {
         if (browser?.isConnected == false) browser?.connect() else updateTile()
     }
 
-    override fun onStopListening() {
-        super.onStopListening()
-        isListening = false
+    private fun unregisterControllerCallback() {
         try {
             controller?.unregisterCallback(controllerCallback)
         } catch (_: Exception) {
         }
         controller = null
+    }
+
+    override fun onStopListening() {
+        super.onStopListening()
+        isListening = false
+        unregisterControllerCallback()
         try {
             browser?.disconnect()
         } catch (_: Exception) {

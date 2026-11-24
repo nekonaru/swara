@@ -144,7 +144,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       return;
     }
     if (!mounted) return;
-    setState(() => _songs.removeWhere((s) => s.id == song.id));
+    // Replace the list instead of mutating it: _displayed memoizes on the
+    // source list identity, so an in-place removal keeps serving the stale
+    // cached view until some unrelated rebuild replaces the source.
+    setState(() =>
+        _songs = _songs.where((s) => s.id != song.id).toList(growable: true));
     _scheduleArtRefresh();
   }
 

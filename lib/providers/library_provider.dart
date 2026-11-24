@@ -80,9 +80,6 @@ class LibraryProvider extends ChangeNotifier {
   // Auto scan only when more than 30 minutes have passed
   static const _scanIntervalMs = 1800000;
 
-  // Time of the last full loadFromDb, backing the fetchSongsPage fast path.
-  DateTime? _lastFullLoadAt;
-
   // Guard so notifyListeners never runs after dispose.
   bool _disposed = false;
 
@@ -147,7 +144,6 @@ class LibraryProvider extends ChangeNotifier {
     // Content may have changed while the length stayed the same (metadata
     // edits, one file removed and one added), so bump the version.
     _songsVersion++;
-    _lastFullLoadAt = DateTime.now();
     notifyListeners();
   }
 
@@ -174,6 +170,9 @@ class LibraryProvider extends ChangeNotifier {
 
     // Scan the device (no internet) in the background
     await scanDevice();
+    // A failed scan must not buy a 30 minute reprieve. Once the user grants
+    // permission the next cold start should try again.
+    if (scanError != null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_kLastDeviceScan, nowMs);
@@ -219,6 +218,7 @@ class LibraryProvider extends ChangeNotifier {
   /// Force a device scan and refresh the timestamp
   Future<void> forceScanDevice() async {
     await scanDevice();
+    if (scanError != null) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_kLastDeviceScan, DateTime.now().millisecondsSinceEpoch);
@@ -484,30 +484,16 @@ class LibraryProvider extends ChangeNotifier {
   /// stored excluded folders. Returns null when the paged query fails so
   /// the caller can fall back to the full in memory list.
   ///
-  /// Fast path: when the in memory [songs] list is fresh (a full loadFromDb
-  /// less than 60 seconds ago), the query is empty, and the sort is the
-  /// default title A-Z, the in memory order already matches the DB order
-  /// produced by querySongsPage for orderBy 'title ASC', so a plain slice
-  /// is returned with no DB hit. Fallback: any other sort, a non empty
-  /// query, stale data, or an out of range page falls through to the DB
-  /// query below (and a DB failure still returns null for the caller to
-  /// fall back to the full in memory list).
+  /// Always page from the DB. The in-memory title sort uses a symbol/digit/
+  /// letter tier order while the DB uses COLLATE NOCASE, so a time-limited
+  /// in-memory fast path made the list silently reorder after 60 seconds.
+  /// A DB failure still returns null for the caller to fall back to the
+  /// full in memory list.
   Future<List<Song>?> fetchSongsPage({
     required int limit,
     required int offset,
     String query = '',
   }) async {
-    final lastLoad = _lastFullLoadAt;
-    if (query.trim().isEmpty &&
-        sortOption == SortOption.titleAZ &&
-        lastLoad != null &&
-        DateTime.now().difference(lastLoad) < const Duration(seconds: 60)) {
-      final safeLimit = limit < 1 ? 50 : limit;
-      final safeOffset = offset < 0 ? 0 : offset;
-      if (safeOffset >= songs.length) return <Song>[];
-      final end = (safeOffset + safeLimit).clamp(0, songs.length);
-      return songs.sublist(safeOffset, end);
-    }
     try {
       final excluded = await DBHelper.instance.getExcludedFolders();
       final page = await DBHelper.instance.querySongsPage(

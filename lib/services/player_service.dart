@@ -25,6 +25,10 @@ class PlayerService extends ChangeNotifier {
   // global. Every volume write goes through _setVol, keeping all fade curves
   // intact while the trim multiplies the final level.
   final Map<int, double> _trimByPlayer = <int, double>{};
+  // Which song is loaded into each player. A settings reload must re-resolve
+  // the trim for both players, not copy the current song's value onto the
+  // standby player that is still holding the next song.
+  final Map<int, Song> _songByPlayer = <int, Song>{};
 
   Future<void> _setVol(AudioPlayer player, double base) =>
       player.setVolume((base * (_trimByPlayer[player.hashCode] ?? 1.0)).clamp(0.0, 1.0));
@@ -35,13 +39,19 @@ class PlayerService extends ChangeNotifier {
       final folders = await DBHelper.instance.getAllFolderPlaybackSettings();
       _songTrims = songs;
       _folderTrims = folders;
-      final settings = settingsFor(currentSong ??
+      final primarySong = _songByPlayer[_player.hashCode] ??
+          currentSong ??
           (_queue.isNotEmpty ? _queue.first : null) ??
-          Song(id: 0, filePath: '', title: '', artist: '', album: ''));
-      final trim = settings.volumeMultiplier;
-      _trimByPlayer[_player.hashCode] = trim;
+          Song(id: 0, filePath: '', title: '', artist: '', album: '');
+      _trimByPlayer[_player.hashCode] =
+          settingsFor(primarySong).volumeMultiplier;
       final standby = _crossfadePlayer;
-      if (standby != null) _trimByPlayer[standby.hashCode] = trim;
+      if (standby != null) {
+        final standbySong =
+            _songByPlayer[standby.hashCode] ?? currentSong ?? primarySong;
+        _trimByPlayer[standby.hashCode] =
+            settingsFor(standbySong).volumeMultiplier;
+      }
       // Apply the new trim to the audible player immediately, keeping fade
       // state intact by routing through the normal volume chain.
       unawaited(_vol(() => _setVol(_activePlayer, 1)));
@@ -64,6 +74,7 @@ class PlayerService extends ChangeNotifier {
 
   /// Apply the trim for the track loaded into [player], if any.
   void applyTrimToPlayer(AudioPlayer player, Song song) {
+    _songByPlayer[player.hashCode] = song;
     _trimByPlayer[player.hashCode] = settingsFor(song).volumeMultiplier;
   }
 
@@ -264,6 +275,28 @@ class PlayerService extends ChangeNotifier {
   bool _userSeeking = false;
 
   void setUserSeeking(bool value) => _userSeeking = value;
+
+  /// Seek requested by an external client (notification or Android Auto).
+  /// Route through here so the A-B/crossfade trigger is suppressed for the
+  /// jump and the new position is persisted immediately, not on the next
+  /// five second tick that a process kill can interrupt.
+  Future<void> seekFromExternal(Duration position) async {
+    if (_disposed) return;
+    // An in-app slider drag may be in flight. Restore its guard instead of
+    // clearing it, or crossfade and A-B ticks resume mid-drag.
+    final wasSeeking = _userSeeking;
+    setUserSeeking(true);
+    try {
+      await _activePlayer.seek(position);
+    } catch (e) {
+      debugPrint('External seek failed: $e');
+    } finally {
+      setUserSeeking(wasSeeking);
+    }
+    _restoredPositionMs = null;
+    unawaited(_saveResumeState());
+    notifyListeners();
+  }
 
   bool _completionHandled = false;
 
@@ -513,10 +546,15 @@ class PlayerService extends ChangeNotifier {
     if (_usingCrossfadePlayer) return;
     _crossfadeStateSub?.cancel();
     _crossfadeStateSub = null;
+    // The effect session listener belongs to this player too. Leaving it
+    // attached keeps a callback alive on a disposed player.
+    _effectCrossfadeSub?.cancel();
+    _effectCrossfadeSub = null;
     final standby = _crossfadePlayer;
     _crossfadePlayer = null;
     if (standby != null) {
       _trimByPlayer.remove(standby.hashCode);
+      _songByPlayer.remove(standby.hashCode);
       _lastEffectEmit.remove(standby.hashCode);
     }
     standby?.dispose().catchError((Object e) {
@@ -982,8 +1020,15 @@ class PlayerService extends ChangeNotifier {
     queueVersion++;
     if (nextOrder.isEmpty) {
       _posInOrder = 0;
-      await _vol(() => _player.pause());
+      // A completed crossfade leaves the standby player audible, so both
+      // players must be paused when the last song is removed.
+      await _vol(() async {
+        await _player.pause();
+        await (_crossfadePlayer?.pause() ?? Future<void>.value());
+      });
       await _unsubscribePosition();
+      _usingCrossfadePlayer = false;
+      _restoredPositionMs = null;
       notifyListeners();
       return;
     }
@@ -1027,6 +1072,10 @@ class PlayerService extends ChangeNotifier {
         try {
           await _player.setFilePath(next.filePath);
           await _syncSpeedPitch(_player);
+          // The old source's trim would otherwise stay cached for this
+          // player and be reused by the next settings reload.
+          applyTrimToPlayer(_player, next);
+          unawaited(_vol(() => _setVol(_player, 1)));
           await _player.seek(Duration.zero);
           _completionHandled = true;
         } catch (e) {
@@ -1103,6 +1152,15 @@ class PlayerService extends ChangeNotifier {
       _queue = const <Song>[];
       _playOrder = const <int>[];
       _posInOrder = 0;
+      // The audible player may be either one after a completed crossfade.
+      // Pause both so an empty queue never leaves an orphaned song playing.
+      await _vol(() async {
+        await _player.pause();
+        await (_crossfadePlayer?.pause() ?? Future<void>.value());
+      });
+      await _unsubscribePosition();
+      _restoredPositionMs = null;
+      _usingCrossfadePlayer = false;
       queueVersion++;
       notifyListeners();
       return;
@@ -1344,6 +1402,11 @@ class PlayerService extends ChangeNotifier {
         notifyListeners();
         return;
       }
+      // A cold restore loads the source while paused and the old effects
+      // were released on dispose. Without this the first resumed song plays
+      // dry until the next track change. Both services dedupe by session id.
+      unawaited(EqualizerService.instance.attach(target));
+      unawaited(LoudnessService.instance.attach(target));
       // Resume position updates for crossfade triggers.
       await _subscribePosition();
       // Watchdog: some devices report playing while staying silent or
@@ -2349,6 +2412,7 @@ class PlayerService extends ChangeNotifier {
     });
     _crossfadePlayer = null;
     _trimByPlayer.clear();
+    _songByPlayer.clear();
     _lastEffectEmit.clear();
     unawaited(EqualizerService.instance.release());
     unawaited(LoudnessService.instance.release());
