@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../utils/motion.dart';
 import '../utils/row_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1008,7 +1009,7 @@ class _SongTile extends StatelessWidget {
         child: Row(
           children: [
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+              duration: motionDuration(context, const Duration(milliseconds: 200)),
               child: isMultiSelect
                   ? Checkbox(
                       key: const ValueKey('cb'),

@@ -1,5 +1,29 @@
 # Changelog
 
+## v4.6.0
+
+Rilis besar untuk data dan penyempurnaan native: cadangan dengan identitas stabil, lokasi simpan yang terlihat pengguna, dan pendalaman aksesibilitas tanpa izin baru.
+
+## Fitur baru
+
+- **Format cadangan v3.** Tag manual, lirik biasa, lirik sinkron, koreksi waktu, favorit, dan penanda dicocokkan lewat jalur file ternormalisasi dengan cadangan nama file dan durasi, sehingga pemulihan bekerja di perangkat lain meski id MediaStore berubah.
+- **Simpan cadangan ke lokasi pilihan.** Tombol Simpan ke file kini membuka pemilih file sistem dan menulis ke lokasi yang Anda pilih, bukan folder privat aplikasi yang tidak terlihat di aplikasi Files.
+
+## Peningkatan
+
+- **Ringkasan cadangan melaporkan hasilnya.** Hasil impor kini menghitung lagu cocok, metadata, lirik, lirik sinkron, offset, dan penanda.
+- **Kurangi animasi dihormati lebih luas.** Gambar dan kontrol pemutar, batang EQ, mini player, sakelar daftar, dan gulir lirik mengikuti pengaturan OS.
+- **Peringkat album dashboard memakai indeks.** Indeks ekspresi julianday menghindari pemindaian seluruh riwayat pada setiap cache miss.
+- **Waktu lirik dan penanda lebih tangguh.** Koreksi yang tertunda ditulis saat keluar atau ganti lagu, pemuatan lirik memakai generasi, dan penanda tetap terikat pada lagu yang membuka sheet.
+
+## Perbaikan bug
+
+- **Waktu lirik tidak lagi hilang** saat keluar cepat dari pemutar atau saat edit masuk selama pemuatan.
+- **Edit lirik menyegarkan pemutar yang terbuka** sehingga tidak ada teks atau offset lama.
+- **Daftar penanda tidak berkedip kosong** setelah simpan atau hapus, dan pergantian lagu dari notifikasi tidak menempelkan penanda ke lagu yang salah.
+- **Mengimpor LRC yang sudah dikoreksi mempertahankan koreksi waktunya.**
+- **Baris waktu lirik dan pengaturan notifikasi muat di 320dp dengan teks besar.**
+
 ## v4.5.0
 
 Rilis fitur besar dan penyempurnaan native: waktu lirik tersimpan, file .lrc lokal, penanda lagu, dan statistik album, dengan dukungan aksesibilitas yang lebih dalam.

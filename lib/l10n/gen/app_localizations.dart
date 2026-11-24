@@ -3854,6 +3854,25 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No bookmarks yet'**
   String get playerBookmarkEmpty;
+
+  /// Confirmation after saving a backup through the system file picker
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved as {fileName}'**
+  String dataBackupSavedSaf(String fileName);
+
+  /// Summary of a v3 backup import with stable song identity
+  ///
+  /// In en, this message translates to:
+  /// **'Songs matched {songs}, metadata {metadata}, lyrics {lyrics}, synced {synced}, bookmarks {bookmarks}'**
+  String dataImportDoneV3(
+      int songs, int metadata, int lyrics, int synced, int bookmarks);
+
+  /// Skipped counts of a v3 backup import
+  ///
+  /// In en, this message translates to:
+  /// **'Unmatched songs {unmatched}, skipped bookmarks {bookmarks}'**
+  String dataImportSkippedV3(int unmatched, int bookmarks);
 }
 
 class _AppLocalizationsDelegate

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/song.dart';
 import '../providers/language_provider.dart';
 import '../services/art_cache_service.dart';
 import '../services/embedded_art_service.dart';
@@ -14,7 +15,8 @@ import '../services/db_helper.dart';
 import 'player_service.dart';
 
 // Backup format version. Bump when the JSON schema changes.
-const int kBackupFormatVersion = 2;
+const int kBackupFormatVersion = 3;
+const int kDurationToleranceMs = 1000;
 
 // Decode the backup payload off the main isolate; the import can be a
 // multi-megabyte JSON document and the parse must not block the UI.
@@ -29,6 +31,36 @@ Map<String, dynamic> _decodeBackup(String rawJson) {
 // Encode the export payload off the main isolate as well.
 String _encodeBackup(Map<String, dynamic> payload) => jsonEncode(payload);
 
+/// Canonical path key for cross-device matching. IDs from MediaStore are not
+/// stable, so the path (with a basename + duration fallback) is the identity.
+String normalizeBackupPath(String raw) {
+  var value = raw.replaceAll('\\', '/').trim();
+  try {
+    value = Uri.decodeFull(value);
+  } catch (_) {
+    // Keep the raw value when it is not a valid URI escape sequence.
+  }
+  while (value.contains('//')) {
+    value = value.replaceAll('//', '/');
+  }
+  while (value.length > 1 && value.endsWith('/')) {
+    value = value.substring(0, value.length - 1);
+  }
+  return value.toLowerCase();
+}
+
+String backupBasename(String raw) {
+  final normalized = normalizeBackupPath(raw);
+  final index = normalized.lastIndexOf('/');
+  return index < 0 ? normalized : normalized.substring(index + 1);
+}
+
+String backupFileName(DateTime now) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return 'swara-backup-${now.year}${two(now.month)}${two(now.day)}-'
+      '${two(now.hour)}${two(now.minute)}${two(now.second)}.json';
+}
+
 // Summary of an import operation. Counts only rows actually restored.
 class BackupImportResult {
   final int playlistsCreated;
@@ -42,6 +74,14 @@ class BackupImportResult {
   final int preferencesRestored;
   final int songSettingsRestored;
   final int folderSettingsRestored;
+  final int songsMatched;
+  final int songsUnmatched;
+  final int metadataRestored;
+  final int lyricsRestored;
+  final int syncedLyricsRestored;
+  final int lyricOffsetsRestored;
+  final int bookmarksRestored;
+  final int bookmarksSkipped;
 
   const BackupImportResult({
     this.playlistsCreated = 0,
@@ -54,6 +94,14 @@ class BackupImportResult {
     this.preferencesRestored = 0,
     this.songSettingsRestored = 0,
     this.folderSettingsRestored = 0,
+    this.songsMatched = 0,
+    this.songsUnmatched = 0,
+    this.metadataRestored = 0,
+    this.lyricsRestored = 0,
+    this.syncedLyricsRestored = 0,
+    this.lyricOffsetsRestored = 0,
+    this.bookmarksRestored = 0,
+    this.bookmarksSkipped = 0,
   });
 }
 
@@ -178,6 +226,61 @@ class BackupService {
     final favoriteIds = snapshot.$2;
     final entriesJson = snapshot.$3;
 
+    // v3 identity: stable path plus a basename + duration fallback. MediaStore
+    // ids stay in the file for v2 readers but are never trusted by v3.
+    final identityRows = await DBHelper.instance.getSongIdentityRows();
+    final identityById = <int, Map<String, Object?>>{
+      for (final row in identityRows) (row['id'] as int): row,
+    };
+    String identityKeyFor(int id) =>
+        normalizeBackupPath((identityById[id]?['filePath'] as String?) ?? '');
+    String basenameFor(int id) =>
+        backupBasename((identityById[id]?['filePath'] as String?) ?? '');
+    int durationFor(int id) =>
+        (identityById[id]?['durationMs'] as num?)?.toInt() ?? 0;
+
+    for (final playlist in playlistsJson) {
+      final ids = (playlist['songIds'] as List?) ?? const <int>[];
+      playlist['memberIdentities'] = [
+        for (final id in ids) identityKeyFor(id as int),
+      ];
+    }
+    for (final entry in entriesJson) {
+      entry['identityKey'] = identityKeyFor((entry['songId'] as num).toInt());
+    }
+
+    final songsJson = <Map<String, dynamic>>[];
+    for (final song in await DBHelper.instance.getAllSongs()) {
+      final lrc = await DBHelper.instance.getSyncedLyrics(song.id);
+      final offset = await DBHelper.instance.getSyncedLyricOffset(song.id);
+      final bookmarks = await DBHelper.instance.getBookmarks(song.id);
+      songsJson.add({
+        'identityKey': identityKeyFor(song.id),
+        'filePath': song.filePath,
+        'basename': basenameFor(song.id),
+        'durationMs': durationFor(song.id),
+        'legacySongId': song.id,
+        'title': song.title,
+        'artist': song.artist,
+        'album': song.album,
+        'genre': song.genre,
+        'region': song.region,
+        'lyrics': song.lyrics,
+        'metadataScanned': song.metadataScanned,
+        'syncedLyrics': lrc,
+        'lyricOffsetMs': offset,
+        'bookmarks': [
+          for (final b in bookmarks)
+            {
+              'positionMs': b['positionMs'],
+              'label': b['label'],
+              'createdAt': b['createdAt'],
+            },
+        ],
+        'isFavorite': song.isFavorite,
+      });
+    }
+
     final songSettings = await DBHelper.instance.getAllSongPlaybackSettings();
     final folderSettings = await DBHelper.instance.getAllFolderPlaybackSettings();
     final payload = {
@@ -190,18 +293,24 @@ class BackupService {
       'playback_settings': {
         'songs': songSettings.entries.map((e) => {
           'songId': e.key,
+          'identityKey': identityKeyFor(e.key),
+          'filePath': (identityById[e.key]?['filePath'] as String?) ?? '',
+          'basename': basenameFor(e.key),
+          'durationMs': durationFor(e.key),
           'gainDb': e.value['gainDb'],
           'skipStartMs': e.value['skipStartMs'],
           'skipEndMs': e.value['skipEndMs'],
         }).toList(),
         'folders': folderSettings.entries.map((e) => {
           'folderPath': e.key,
+          'folderKey': normalizeBackupPath(e.key),
           'gainDb': e.value['gainDb'],
           'skipStartMs': e.value['skipStartMs'],
           'skipEndMs': e.value['skipEndMs'],
         }).toList(),
       },
     };
+    payload['songs'] = songsJson;
     return compute(_encodeBackup, payload);
   }
 
@@ -229,34 +338,21 @@ class BackupService {
     }
   }
 
-  // Write the backup JSON to the Downloads folder (falling back to external
-  // storage or the temp dir) and return the file. The name carries a
-  // timestamp so repeated exports never overwrite each other.
-  static Future<File> saveBackupToFile(String content) async {
-    Directory? dir;
-    try {
-      dir = await getDownloadsDirectory();
-    } catch (_) {
-      dir = null;
-    }
-    if (dir == null) {
-      try {
-        dir = await getExternalStorageDirectory();
-      } catch (_) {
-        dir = null;
-      }
-    }
-    dir ??= await getTemporaryDirectory();
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    final now = DateTime.now();
-    String two(int n) => n.toString().padLeft(2, '0');
-    final stamp = '${now.year}${two(now.month)}${two(now.day)}-${two(now.hour)}${two(now.minute)}${two(now.second)}';
-    final file =
-        File('${dir.path}${Platform.pathSeparator}swara-backup-$stamp.json');
-    await file.writeAsString(content, flush: true);
-    return file;
+  // Ask the system file picker where to save the backup. The old
+  // getDownloadsDirectory() path was app-private on Android and invisible in
+  // the Files app. SAF needs no manifest change and no new permission.
+  // Returns null when the user cancels, otherwise the chosen file name.
+  static Future<String?> saveBackupToFile(String content,
+      {String? fileName}) async {
+    final name = fileName ?? backupFileName(DateTime.now());
+    final uri = await FilePicker.saveFile(
+      fileName: name,
+      bytes: utf8.encode(content),
+      mimeType: 'application/json',
+    );
+    // Android may hand back a content:// document URI with no usable path.
+    // Show the chosen name rather than a misleading filesystem path.
+    return uri == null ? null : name;
   }
 
   // Validate the JSON structure and write it back with a replace-safe
@@ -276,7 +372,7 @@ class BackupService {
       }
     }
     final playlistsRaw = decoded['playlists'];
-    final favoritesRaw = decoded['favorites'];
+    var favoritesRaw = decoded['favorites'];
     final entriesRaw = decoded['listening_entries'];
     final settingsRaw = decoded['settings'];
     final playbackRaw = decoded['playback_settings'];
@@ -305,6 +401,102 @@ class BackupService {
           'Invalid backup: listening_entries must be a list');
     }
 
+    // v3 identity remapping. MediaStore ids are not stable across devices,
+    // so translate every id-bearing v3 list to the local ids resolved from a
+    // normalized path, with a basename + duration fallback. The v2 id paths
+    // below then work unchanged on the corrected ids.
+    final resolvedV3Songs = <(int id, Map<String, dynamic> raw)>[];
+    final versionNumber = versionRaw is num ? versionRaw.toInt() : 0;
+    if (versionNumber >= 3) {
+      final songsRaw = decoded['songs'];
+      if (songsRaw is! List) {
+        throw const FormatException('Invalid backup: songs must be a list');
+      }
+      final localIdentityRows = await DBHelper.instance.getSongIdentityRows();
+      final byPath = <String, int>{};
+      for (final row in localIdentityRows) {
+        final id = (row['id'] as num?)?.toInt();
+        final path = row['filePath'] as String?;
+        if (id != null && path != null && path.isNotEmpty) {
+          byPath[normalizeBackupPath(path)] = id;
+        }
+      }
+
+      int? resolveIdentity(Map<String, dynamic> raw) {
+        final path = (raw['identityKey'] as String?) ??
+            (raw['filePath'] as String?) ??
+            '';
+        final direct = byPath[normalizeBackupPath(path)];
+        if (direct != null) return direct;
+        final basename =
+            backupBasename((raw['basename'] as String?) ?? path);
+        if (basename.isEmpty || basename == '/') return null;
+        final duration = (raw['durationMs'] as num?)?.toInt() ?? 0;
+        final candidates = <int>[];
+        for (final row in localIdentityRows) {
+          final localPath = row['filePath'] as String?;
+          if (localPath == null) continue;
+          if (backupBasename(localPath) != basename) continue;
+          final localDuration = (row['durationMs'] as num?)?.toInt() ?? 0;
+          if ((localDuration - duration).abs() <= kDurationToleranceMs) {
+            candidates.add((row['id'] as num).toInt());
+          }
+        }
+        return candidates.length == 1 ? candidates.first : null;
+      }
+
+      final idMap = <int, int>{};
+      for (final item in songsRaw) {
+        if (item is! Map) continue;
+        final raw = Map<String, dynamic>.from(item);
+        final localId = resolveIdentity(raw);
+        final legacyId = (raw['legacySongId'] as num?)?.toInt();
+        if (localId == null) continue;
+        if (legacyId != null) idMap[legacyId] = localId;
+        resolvedV3Songs.add((localId, raw));
+      }
+
+      int? remap(dynamic value) {
+        final id = (value as num?)?.toInt();
+        return id == null ? null : idMap[id];
+      }
+
+      List<int> remapAll(Iterable<dynamic> values) {
+        final out = <int>[];
+        for (final value in values) {
+          final mapped = remap(value);
+          if (mapped != null) out.add(mapped);
+        }
+        return out;
+      }
+
+      for (final item in (playlistsRaw as List? ?? [])) {
+        if (item is! Map) continue;
+        final ids = item['songIds'];
+        if (ids is List) {
+          item['songIds'] = remapAll(ids);
+        }
+      }
+      if (favoritesRaw is List) {
+        favoritesRaw = remapAll(favoritesRaw);
+      }
+      for (final item in (entriesRaw as List? ?? [])) {
+        if (item is! Map) continue;
+        final mapped = remap(item['songId']);
+        if (mapped != null) item['songId'] = mapped;
+      }
+      for (final item in (songsPlaybackRaw as List? ?? [])) {
+        if (item is! Map) continue;
+        final mapped = remap(item['songId']);
+        if (mapped != null) item['songId'] = mapped;
+      }
+      for (final item in (foldersPlaybackRaw as List? ?? [])) {
+        if (item is! Map) continue;
+        final key = item['folderKey'] as String?;
+        if (key != null && key.isNotEmpty) item['folderPath'] = key;
+      }
+    }
+
     int playlistsCreated = 0;
     // A playlist that already exists locally is a valid additive no-op, not
     // a failed restore. Count it so the summary does not cry wolf.
@@ -316,6 +508,14 @@ class BackupService {
     int entriesSkipped = 0;
     int membersSkipped = 0;
     int favoritesSkipped = 0;
+    int songsMatched = 0;
+    int songsUnmatched = 0;
+    int metadataRestored = 0;
+    int lyricsRestored = 0;
+    int syncedLyricsRestored = 0;
+    int lyricOffsetsRestored = 0;
+    int bookmarksRestored = 0;
+    int bookmarksSkipped = 0;
 
     final dbHelper = DBHelper.instance;
 
@@ -603,12 +803,17 @@ class BackupService {
         entriesRestored == 0 &&
         membersSkipped == 0 &&
         favoritesSkipped == 0 &&
-        entriesSkipped == 0) {
+        entriesSkipped == 0 &&
+        songsMatched == 0 &&
+        metadataRestored == 0 &&
+        syncedLyricsRestored == 0 &&
+        bookmarksRestored == 0) {
       // Still a valid file shape, but nothing could be restored either.
       // Throw so the UI can tell empty/incompatible apart from success.
       final hasAnyData = ((playlistsRaw as List? ?? []).isNotEmpty) ||
           ((favoritesRaw as List? ?? []).isNotEmpty) ||
-          ((entriesRaw as List? ?? []).isNotEmpty);
+          ((entriesRaw as List? ?? []).isNotEmpty) ||
+          ((decoded['songs'] as List? ?? []).isNotEmpty);
       if (hasAnyData) {
         throw const FormatException(
             'Backup contains no entries matching this library');
@@ -675,6 +880,113 @@ class BackupService {
       // A bad override must not fail the whole restore.
     }
 
+    // v3 song payload: manual tags, plain lyrics, synced LRC, timing offset
+    // and bookmarks. Conflict policy is additive and local wins: a customized
+    // local value is never overwritten by a restore.
+    if (versionNumber >= 3) {
+      for (final (localId, raw) in resolvedV3Songs) {
+        songsMatched++;
+        try {
+          final localRows = await DBHelper.instance.querySongById(localId);
+          if (localRows == null) {
+            songsUnmatched++;
+            continue;
+          }
+          bool isEmptyText(String? value) {
+            if (value == null || value.trim().isEmpty) return true;
+            return const {
+              'Unknown Title',
+              'Unknown Artist',
+              'Unknown Album',
+              'Unknown',
+              'Tidak diketahui',
+            }.contains(value.trim());
+          }
+
+          final title = raw['title'] as String?;
+          final artist = raw['artist'] as String?;
+          final album = raw['album'] as String?;
+          final genre = raw['genre'] as String?;
+          final region = raw['region'] as String?;
+          String? localLyrics = localRows['lyrics'] as String?;
+          if (localLyrics != null && localLyrics.startsWith('gz:')) {
+            localLyrics = decodeLyricsFromDb(localLyrics);
+          }
+          String? lyrics = raw['lyrics'] as String?;
+          // Stored lyrics from an older export may still be gzipped.
+          if (lyrics != null && lyrics.startsWith('gz:')) {
+            lyrics = decodeLyricsFromDb(lyrics);
+          }
+          final lrc = raw['syncedLyrics'] as String?;
+          final offset = (raw['lyricOffsetMs'] as num?)?.toInt() ?? 0;
+
+          await DBHelper.instance.applyBackupSongMetadata(
+            localId,
+            title: isEmptyText(localRows['title'] as String?) && !isEmptyText(title)
+                ? title
+                : null,
+            artist: isEmptyText(localRows['artist'] as String?) && !isEmptyText(artist)
+                ? artist
+                : null,
+            album: isEmptyText(localRows['album'] as String?) && !isEmptyText(album)
+                ? album
+                : null,
+            genre: isEmptyText(localRows['genre'] as String?) && !isEmptyText(genre)
+                ? genre
+                : null,
+            region: isEmptyText(localRows['region'] as String?) && !isEmptyText(region)
+                ? region
+                : null,
+            lyrics: isEmptyText(localLyrics) && !isEmptyText(lyrics)
+                ? lyrics
+                : null,
+          );
+          if (!isEmptyText(title) ||
+              !isEmptyText(artist) ||
+              !isEmptyText(album) ||
+              !isEmptyText(genre) ||
+              !isEmptyText(region)) {
+            metadataRestored++;
+          }
+          if (isEmptyText(localLyrics) && !isEmptyText(lyrics)) {
+            lyricsRestored++;
+          }
+
+          final hasLocalLrc =
+              await DBHelper.instance.getSyncedLyrics(localId) != null;
+          if (!hasLocalLrc && lrc != null && lrc.isNotEmpty) {
+            await DBHelper.instance.setSyncedLyrics(localId, lrc,
+                offsetMs: offset);
+            syncedLyricsRestored++;
+            if (offset != 0) lyricOffsetsRestored++;
+          }
+
+          if (raw['isFavorite'] == true) {
+            await DBHelper.instance.setFavorite(localId, true);
+          }
+
+          for (final item in (raw['bookmarks'] as List? ?? [])) {
+            if (item is! Map) continue;
+            final position = (item['positionMs'] as num?)?.toInt();
+            if (position == null || position < 0) continue;
+            final label = (item['label'] as String?) ?? '';
+            final createdAt = (item['createdAt'] as String?) ??
+                DateTime.now().toIso8601String();
+            final inserted = await DBHelper.instance.insertBookmarkWithDate(
+                localId, position, label, createdAt);
+            if (inserted) {
+              bookmarksRestored++;
+            } else {
+              bookmarksSkipped++;
+            }
+          }
+        } catch (_) {
+          // One bad song row must not abort the rest of the restore.
+        }
+      }
+      if (songsMatched == 0) songsUnmatched = resolvedV3Songs.isEmpty ? 0 : 1;
+    }
+
     // Preferences are additive: only keys the user has never set are filled
     // from a backup, so a restore cannot stomp current choices.
     var preferencesRestored = 0;
@@ -725,6 +1037,14 @@ class BackupService {
       preferencesRestored: preferencesRestored,
       songSettingsRestored: songSettingsRestored,
       folderSettingsRestored: folderSettingsRestored,
+      songsMatched: songsMatched,
+      songsUnmatched: songsUnmatched,
+      metadataRestored: metadataRestored,
+      lyricsRestored: lyricsRestored,
+      syncedLyricsRestored: syncedLyricsRestored,
+      lyricOffsetsRestored: lyricOffsetsRestored,
+      bookmarksRestored: bookmarksRestored,
+      bookmarksSkipped: bookmarksSkipped,
     );
   }
 

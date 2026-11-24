@@ -40,7 +40,9 @@ class LrcImportService {
     final text = utf8.decode(bytes, allowMalformed: true);
     final lines = parseLrc(text);
     if (lines.isEmpty) return 0;
-    await DBHelper.instance.setSyncedLyrics(song.id, text);
+    // An imported LRC must not wipe the user's saved timing correction.
+    final offset = await DBHelper.instance.getSyncedLyricOffset(song.id);
+    await DBHelper.instance.setSyncedLyrics(song.id, text, offsetMs: offset);
     // Keep the plain text view in step with the imported timed view.
     song.lyrics = lines.map((line) => line.text).join('\n');
     return lines.length;

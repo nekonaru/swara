@@ -52,7 +52,7 @@ void main() {
     expect(player.contains('_openBookmarks(song)'), isTrue);
     expect(player.contains('Icons.bookmark_border'), isTrue);
     expect(player.contains('addBookmark('), isTrue);
-    expect(player.contains('getBookmarks(song.id)'), isTrue);
+    expect(player.contains('getBookmarks(bookmarkSongId)'), isTrue);
     expect(player.contains('SingleChildScrollView('), isTrue);
     final queue = read('lib/screens/queue_screen.dart');
     expect(queue.contains('height: scaledRowHeight(context, _itemHeight)'), isTrue);

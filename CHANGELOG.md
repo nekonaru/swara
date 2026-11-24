@@ -1,5 +1,29 @@
 # Changelog
 
+## v4.6.0
+
+Large data and native polish release: stable-identity backup, a user-visible save location, and a deeper accessibility pass, with no new permission.
+
+## New features
+
+- **Backup format v3.** Manual tags, plain lyrics, synced LRC, timing corrections, favorites and bookmarks are matched by normalized file path with a basename and duration fallback, so a restore works on another device even when MediaStore ids change.
+- **Save backups where you choose.** Save to file now opens the system file picker and writes to the location you pick, instead of an app-private folder the Files app cannot reach.
+
+## Improvements
+
+- **Backup summaries report what was restored.** The import result now counts matched songs, metadata, lyrics, synced lines, offsets and bookmarks.
+- **Reduce animations is honoured across the app.** Player art and play controls, EQ bars, mini player, list switches and lyric scrolling now follow the OS setting.
+- **Dashboard album ranking is indexed.** A julianday expression index avoids a full listening-history scan on each cache miss.
+- **Lyric timing and bookmarks are more robust.** Pending corrections flush on exit or song change, lyric loads use generations, and bookmarks stay bound to the song that opened the sheet.
+
+## Bug fixes
+
+- **Lyric timing is no longer lost** when leaving the player quickly or when an edit arrives during a load.
+- **Lyric edits refresh an open player** instead of leaving stale text or a stale offset.
+- **Bookmark list no longer flashes empty** after a save or delete, and a notification track change cannot attach a bookmark to the wrong song.
+- **Importing a corrected LRC keeps the saved timing correction.**
+- **The lyric timing row and notification setting fit 320dp with large text.**
+
 ## v4.5.0
 
 Large feature and native polish release: persistent lyric timing, local LRC files, song bookmarks and album statistics, with deeper accessibility support.

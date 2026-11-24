@@ -2178,4 +2178,20 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get playerBookmarkEmpty => 'Belum ada penanda';
+
+  @override
+  String dataBackupSavedSaf(String fileName) {
+    return 'Cadangan tersimpan sebagai $fileName';
+  }
+
+  @override
+  String dataImportDoneV3(
+      int songs, int metadata, int lyrics, int synced, int bookmarks) {
+    return 'Lagu cocok $songs, metadata $metadata, lirik $lyrics, sinkron $synced, penanda $bookmarks';
+  }
+
+  @override
+  String dataImportSkippedV3(int unmatched, int bookmarks) {
+    return 'Lagu tidak cocok $unmatched, penanda dilewati $bookmarks';
+  }
 }

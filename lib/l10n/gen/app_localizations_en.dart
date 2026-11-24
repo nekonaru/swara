@@ -2179,4 +2179,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playerBookmarkEmpty => 'No bookmarks yet';
+
+  @override
+  String dataBackupSavedSaf(String fileName) {
+    return 'Backup saved as $fileName';
+  }
+
+  @override
+  String dataImportDoneV3(
+      int songs, int metadata, int lyrics, int synced, int bookmarks) {
+    return 'Songs matched $songs, metadata $metadata, lyrics $lyrics, synced $synced, bookmarks $bookmarks';
+  }
+
+  @override
+  String dataImportSkippedV3(int unmatched, int bookmarks) {
+    return 'Unmatched songs $unmatched, skipped bookmarks $bookmarks';
+  }
 }

@@ -343,12 +343,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () async {
                 try {
-                  final file = await BackupService.saveBackupToFile(json);
+                  final savedName =
+                      await BackupService.saveBackupToFile(json);
+                  if (savedName == null) return; // user cancelled the picker
                   await BackupService.recordExport();
                   if (!ctx.mounted) return;
                   if (mounted) setState(() => _lastExport = DateTime.now());
                   Navigator.pop(ctx);
-                  _showSnack(l10n.dataBackupSaved(file.path));
+                  _showSnack(l10n.dataBackupSavedSaf(savedName));
                 } catch (_) {
                   if (ctx.mounted) {
                     _showSnack(l10n.dataFailedGeneric);
@@ -547,6 +549,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             result.playlistMembersSkipped,
             result.favoritesSkipped,
             result.listeningEntriesSkipped));
+      }
+      if (result.songsMatched > 0 ||
+          result.songsUnmatched > 0 ||
+          result.bookmarksRestored > 0) {
+        _showSnack(l10nAfter.dataImportDoneV3(
+            result.songsMatched,
+            result.metadataRestored,
+            result.lyricsRestored,
+            result.syncedLyricsRestored,
+            result.bookmarksRestored));
+        if (result.songsUnmatched > 0 || result.bookmarksSkipped > 0) {
+          _showSnack(l10nAfter.dataImportSkippedV3(
+              result.songsUnmatched, result.bookmarksSkipped));
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -1080,17 +1096,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.notifications_none_outlined),
             title: Text(l10n.settingsNotifications),
-            subtitle: Text(l10n.settingsNotificationsSubtitle),
-            trailing: TextButton(
+            subtitle: Text(l10n.settingsNotificationsSubtitle,
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+            trailing: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: l10n.homeSettings,
               onPressed: () async {
                 final status = await Permission.notification.status;
-                if (status.isPermanentlyDenied) {
+                if (status.isPermanentlyDenied || status.isGranted) {
                   await openAppSettings();
-                } else if (!status.isGranted) {
+                } else {
                   await Permission.notification.request();
                 }
               },
-              child: Text(l10n.homeSettings),
             ),
           ),
           ListTile(

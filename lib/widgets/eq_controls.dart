@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/motion.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../providers/theme_provider.dart';
@@ -360,7 +361,7 @@ class EqVisualizer extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+                duration: motionDuration(context, const Duration(milliseconds: 300)),
                 curve: Curves.easeOut,
                 width: 24 * scale,
                 height: barHeight * scale,

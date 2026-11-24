@@ -459,6 +459,10 @@ class DBHelper {
         'idx_listening_song_ts ON listening_entries(songId, timestamp)',
     'idx_listening_ts': 'CREATE INDEX IF NOT EXISTS '
         'idx_listening_ts ON listening_entries(timestamp)',
+    // Dashboard range queries compare julianday(timestamp); a plain timestamp
+    // index cannot serve that expression and forces a full history scan.
+    'idx_listening_julianday': 'CREATE INDEX IF NOT EXISTS '
+        'idx_listening_julianday ON listening_entries(julianday(timestamp))',
     'idx_playlist_songs_pid_pos': 'CREATE INDEX IF NOT EXISTS '
         'idx_playlist_songs_pid_pos ON playlist_songs(playlistId, position)',
     // Partial indexes for the flag columns used by the favorites view and
@@ -1874,6 +1878,45 @@ class DBHelper {
     );
   }
 
+  // ---------- Backup identity helpers ----------
+  Future<Map<String, Object?>?> querySongById(int id) async {
+    final database = await db;
+    final rows = await database.query('songs',
+        where: 'id = ?', whereArgs: [id], limit: 1);
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<List<Map<String, Object?>>> getSongIdentityRows() async {
+    final database = await db;
+    return database.query('songs', columns: ['id', 'filePath', 'durationMs']);
+  }
+
+  /// Update only the fields a user may legitimately restore from a backup.
+  /// Never touches filePath, durationMs, isFavorite or addedAt.
+  Future<void> applyBackupSongMetadata(
+    int songId, {
+    String? title,
+    String? artist,
+    String? album,
+    String? genre,
+    String? region,
+    String? lyrics,
+    bool? metadataScanned,
+  }) async {
+    final values = <String, Object?>{};
+    if (title != null) values['title'] = title;
+    if (artist != null) values['artist'] = artist;
+    if (album != null) values['album'] = album;
+    if (genre != null) values['genre'] = genre;
+    if (region != null) values['region'] = region;
+    if (lyrics != null) values['lyrics'] = encodeLyricsForDb(lyrics);
+    if (metadataScanned != null) values['metadataScanned'] = metadataScanned ? 1 : 0;
+    if (values.isEmpty) return;
+    final database = await db;
+    await database.update('songs', values,
+        where: 'id = ?', whereArgs: [songId]);
+  }
+
   // ---------- Song bookmarks ----------
   static const int maxBookmarksPerSong = 20;
 
@@ -1897,6 +1940,30 @@ class DBHelper {
       'positionMs': positionMs,
       'label': label.trim(),
       'createdAt': DateTime.now().toIso8601String(),
+    });
+    return true;
+  }
+
+  /// Restore a bookmark with its original timestamp, deduped and capped at
+  /// [maxBookmarksPerSong]. Returns true when a row was inserted.
+  Future<bool> insertBookmarkWithDate(
+      int songId, int positionMs, String label, String createdAt) async {
+    final database = await db;
+    final existing = await database.query('song_bookmarks',
+        where: 'songId = ? AND positionMs = ? AND label = ?',
+        whereArgs: [songId, positionMs, label],
+        limit: 1);
+    if (existing.isNotEmpty) return false;
+    final count = Sqflite.firstIntValue(await database.rawQuery(
+            'SELECT COUNT(*) FROM song_bookmarks WHERE songId = ?',
+            [songId])) ??
+        0;
+    if (count >= maxBookmarksPerSong) return false;
+    await database.insert('song_bookmarks', {
+      'songId': songId,
+      'positionMs': positionMs,
+      'label': label,
+      'createdAt': createdAt,
     });
     return true;
   }

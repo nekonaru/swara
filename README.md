@@ -152,8 +152,8 @@
 
 | Feature | Description |
 |---------|-------------|
-| **Backup and restore** | Export and import playlists, favorites, and history as JSON |
-| **Save backup to file** | Write a timestamped JSON backup to Downloads and see the last export date in Settings |
+| **Backup and restore** | Export and import playlists, favorites and history, plus manual tags, plain lyrics, synced LRC, timing corrections and bookmarks matched by file path across devices |
+| **Save backup to file** | Save a timestamped JSON backup to a location you pick with the system file picker and see the last export date in Settings |
 | **History cleanup** | Optional, you-confirmed cleanup of old listening history in Settings |
 
 ### Appearance and Language

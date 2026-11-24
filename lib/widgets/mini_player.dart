@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/motion.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../widgets/song_art_image.dart';
@@ -27,7 +28,7 @@ class MiniPlayer extends StatelessWidget {
         return TweenAnimationBuilder<double>(
           key: ValueKey('mp_${song.id}'),
           tween: Tween(begin: 0.0, end: 1.0),
-          duration: const Duration(milliseconds: 280),
+          duration: motionDuration(context, const Duration(milliseconds: 280)),
           curve: Curves.easeOutCubic,
           builder: (context, value, child) => Transform.translate(
             offset: Offset(0, (1 - value) * 12),

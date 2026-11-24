@@ -2510,5 +2510,33 @@
     "playerBookmarkEmpty":  "No bookmarks yet",
     "@playerBookmarkEmpty":  {
                                    "description":  "Empty state for the bookmark sheet"
+                               },
+    "dataBackupSavedSaf":  "Backup saved as {fileName}",
+    "@dataBackupSavedSaf":  {
+                                   "description":  "Confirmation after saving a backup through the system file picker",
+                                   "placeholders": {
+                                     "fileName": {
+                                       "type": "String"
+                                     }
+                                   }
+                               },
+    "dataImportDoneV3":  "Songs matched {songs}, metadata {metadata}, lyrics {lyrics}, synced {synced}, bookmarks {bookmarks}",
+    "@dataImportDoneV3":  {
+                                   "description":  "Summary of a v3 backup import with stable song identity",
+                                   "placeholders": {
+                                     "songs": {"type": "int"},
+                                     "metadata": {"type": "int"},
+                                     "lyrics": {"type": "int"},
+                                     "synced": {"type": "int"},
+                                     "bookmarks": {"type": "int"}
+                                   }
+                               },
+    "dataImportSkippedV3":  "Unmatched songs {unmatched}, skipped bookmarks {bookmarks}",
+    "@dataImportSkippedV3":  {
+                                   "description":  "Skipped counts of a v3 backup import",
+                                   "placeholders": {
+                                     "unmatched": {"type": "int"},
+                                     "bookmarks": {"type": "int"}
+                                   }
                                }
 }

@@ -2510,5 +2510,33 @@
     "playerBookmarkEmpty":  "Belum ada penanda",
     "@playerBookmarkEmpty":  {
                                    "description":  "Keadaan kosong pada sheet penanda"
+                               },
+    "dataBackupSavedSaf":  "Cadangan tersimpan sebagai {fileName}",
+    "@dataBackupSavedSaf":  {
+                                   "description":  "Konfirmasi setelah menyimpan cadangan lewat pemilih file sistem",
+                                   "placeholders": {
+                                     "fileName": {
+                                       "type": "String"
+                                     }
+                                   }
+                               },
+    "dataImportDoneV3":  "Lagu cocok {songs}, metadata {metadata}, lirik {lyrics}, sinkron {synced}, penanda {bookmarks}",
+    "@dataImportDoneV3":  {
+                                   "description":  "Ringkasan impor cadangan v3 dengan identitas lagu stabil",
+                                   "placeholders": {
+                                     "songs": {"type": "int"},
+                                     "metadata": {"type": "int"},
+                                     "lyrics": {"type": "int"},
+                                     "synced": {"type": "int"},
+                                     "bookmarks": {"type": "int"}
+                                   }
+                               },
+    "dataImportSkippedV3":  "Lagu tidak cocok {unmatched}, penanda dilewati {bookmarks}",
+    "@dataImportSkippedV3":  {
+                                   "description":  "Jumlah yang dilewati saat impor cadangan v3",
+                                   "placeholders": {
+                                     "unmatched": {"type": "int"},
+                                     "bookmarks": {"type": "int"}
+                                   }
                                }
 }

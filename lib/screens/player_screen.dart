@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../utils/motion.dart';
 import 'package:flutter/material.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -53,6 +54,11 @@ class _PlayerScreenState extends State<PlayerScreen>
   int _lrcManualOffsetMs = 0;
   // Debounced save: nudges can arrive faster than a DB write per tap.
   Timer? _lrcOffsetSaveTimer;
+  int? _pendingOffsetSongId;
+  int _pendingOffsetMs = 0;
+  // Generations make an older lyric load harmless when lyrics are edited
+  // while that load is still in flight.
+  int _lrcLoadGeneration = 0;
   // Re-point the lyric follower when the audible player changes (repeat-one
   // crossfades keep the same song id but swap the AudioPlayer instance).
   int _lrcFlipCount = -1;
@@ -98,6 +104,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _onLyricsRevision() {
     final song = _player.currentSong;
     if (song == null || !mounted) return;
+    _lrcLoadGeneration++;
+    _lrcLoading = false;
     _lrcSongId = -1;
     _scheduleLyricsSync(song);
   }
@@ -132,6 +140,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _player.removeListener(_onPlayerForLyrics);
     _player.lyricsRevision.removeListener(_onLyricsRevision);
     _lrcOffsetSaveTimer?.cancel();
+    _flushPendingLrcOffset();
     _returnController.dispose();
     // If the slider is disposed mid-drag, release the seek guard so A-B
     // repeat and crossfade triggers are not suppressed for the rest of the
@@ -454,7 +463,12 @@ class _PlayerScreenState extends State<PlayerScreen>
   /// Load synced lyrics for [song] once per song from the DB and parse
   /// them into display lines. Safe to call from build: guarded by song id.
   Future<void> _maybeLoadSyncedLyrics(Song song) async {
+    // Leaving a song before the debounce fires must not lose the correction.
+    if (_pendingOffsetSongId != null && _pendingOffsetSongId != song.id) {
+      _flushPendingLrcOffset();
+    }
     if (_lrcSongId == song.id || _lrcLoading) return;
+    final generation = ++_lrcLoadGeneration;
     _lrcSongId = song.id;
     _lrcLoading = true;
     _lrcLines = [];
@@ -466,8 +480,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       // whenever the song changes. A DB error must still release _lrcLoading.
       _lrcManualOffsetMs =
           await DBHelper.instance.getSyncedLyricOffset(song.id);
+      if (generation != _lrcLoadGeneration) return;
       final lrc = await DBHelper.instance.getSyncedLyrics(song.id);
-      if (!mounted) return;
+      if (!mounted || generation != _lrcLoadGeneration) return;
       final hasLrc = lrc != null && lrc.isNotEmpty;
       final lines = hasLrc ? parseLrc(lrc) : <LrcLine>[];
       // Split once and reuse the lines for the offset scan instead of
@@ -486,7 +501,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       });
       if (lines.isNotEmpty && _showLyrics && _syncedMode) _startLrcFollow();
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || generation != _lrcLoadGeneration) return;
       setState(() {
         _lrcLoading = false;
         _lrcLines = const <LrcLine>[];
@@ -588,12 +603,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (songId != null) {
       _lrcOffsetSaveTimer?.cancel();
       final value = _lrcManualOffsetMs;
+      _pendingOffsetSongId = songId;
+      _pendingOffsetMs = value;
       _lrcOffsetSaveTimer = Timer(const Duration(milliseconds: 500), () {
-        DBHelper.instance
-            .setSyncedLyricOffset(songId, value)
-            .catchError((Object e) {
-          debugPrint('Lyric offset save failed: $e');
-        });
+        _flushPendingLrcOffset();
       });
     }
     final idx = _lrcIndexFor(_player.activePlayer.position.inMilliseconds);
@@ -601,11 +614,29 @@ class _PlayerScreenState extends State<PlayerScreen>
     _scrollToLrcLine(idx);
   }
 
+  /// Write a pending timing correction immediately. Safe to call more than
+  /// once; the pending state is cleared before the DB write.
+  void _flushPendingLrcOffset() {
+    final songId = _pendingOffsetSongId;
+    if (songId == null) return;
+    final value = _pendingOffsetMs;
+    _pendingOffsetSongId = null;
+    DBHelper.instance
+        .setSyncedLyricOffset(songId, value)
+        .catchError((Object e) {
+      debugPrint('Lyric offset save failed: $e');
+    });
+  }
+
   Future<void> _openBookmarks(Song song) async {
     final l10n = AppLocalizations.of(context)!;
+    // The sheet can stay open while a notification changes the track.
+    // Bookmarks always belong to the song that opened it.
+    final bookmarkSongId = song.id;
     // Keep one future per generation so a save or delete refreshes the list
     // without flashing the empty state for a frame.
-    var bookmarks = DBHelper.instance.getBookmarks(song.id);
+    var bookmarks = DBHelper.instance.getBookmarks(bookmarkSongId);
+    List<Map<String, Object?>> lastRows = const <Map<String, Object?>>[];
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -615,7 +646,9 @@ class _PlayerScreenState extends State<PlayerScreen>
           builder: (ctx, setSheetState) => FutureBuilder<List<Map<String, Object?>>>(
             future: bookmarks,
             builder: (ctx, snapshot) {
-              final rows = snapshot.data ?? const <Map<String, Object?>>[];
+              final data = snapshot.data;
+              if (data != null) lastRows = data;
+              final rows = data ?? lastRows;
               return ConstrainedBox(
                 constraints: BoxConstraints(
                     maxHeight: MediaQuery.sizeOf(ctx).height * 0.8),
@@ -633,17 +666,20 @@ class _PlayerScreenState extends State<PlayerScreen>
                           icon: const Icon(Icons.bookmark_add_outlined),
                           label: Text(l10n.playerBookmarkSave),
                           onPressed: () async {
+                            if (_player.currentSong?.id != bookmarkSongId) {
+                              return;
+                            }
                             final pos =
                                 _player.activePlayer.position.inMilliseconds;
                             final saved = await DBHelper.instance.addBookmark(
-                                song.id, pos, formatDuration(pos));
+                                bookmarkSongId, pos, formatDuration(pos));
                             if (!ctx.mounted) return;
                             ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                               content: Text(saved
                                   ? l10n.playerBookmarkSaved
                                   : l10n.playerBookmarkLimit),
                             ));
-                            bookmarks = DBHelper.instance.getBookmarks(song.id);
+                            bookmarks = DBHelper.instance.getBookmarks(bookmarkSongId);
                             setSheetState(() {});
                           },
                         ),
@@ -675,7 +711,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                     (row['id'] as num).toInt());
                                 if (!ctx.mounted) return;
                                 bookmarks =
-                                    DBHelper.instance.getBookmarks(song.id);
+                                    DBHelper.instance.getBookmarks(bookmarkSongId);
                                 setSheetState(() {});
                               },
                             ),
@@ -785,7 +821,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   ),
                   Expanded(
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
+                      duration: motionDuration(context, const Duration(milliseconds: 200)),
                       switchInCurve: Curves.easeOut,
                       switchOutCurve: Curves.easeIn,
                       transitionBuilder: (child, anim) => FadeTransition(
@@ -853,35 +889,40 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!_syncedMode || _lrcLines.isEmpty) return const SizedBox.shrink();
     final totalMs = _lrcTotalOffsetMs;
     final totalLabel = '${totalMs >= 0 ? '+' : '-'}${totalMs.abs()} ms';
+    final readoutWidth =
+        76 * MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 2.0);
     return Padding(
       padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             AppLocalizations.of(context)!.playerLyricTiming,
             style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
-          const SizedBox(width: 8),
           _buildOffsetButton(
             icon: Icons.remove,
             tooltip: AppLocalizations.of(context)!.playerLyricTimingEarlier,
             onPressed: () => _nudgeLrcOffset(-_kLrcOffsetStepMs),
           ),
-          const SizedBox(width: 8),
           SizedBox(
-            width: 76,
-            child: Text(
-              totalLabel,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
+            width: readoutWidth,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                totalLabel,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
           _buildOffsetButton(
             icon: Icons.add,
             tooltip: AppLocalizations.of(context)!.playerLyricTimingLater,
@@ -1206,7 +1247,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     iconSize: 40,
                     tooltip: AppLocalizations.of(context)!.playerPlayPause,
                     icon: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
+                      duration: motionDuration(context, const Duration(milliseconds: 200)),
                       transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
                       child: Icon(
                         playing ? Icons.pause_circle_filled : Icons.play_circle_filled,
