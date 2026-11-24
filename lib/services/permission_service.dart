@@ -16,11 +16,15 @@ class PermissionService {
       if (!await Permission.audio.isGranted) {
         await Permission.audio.request();
       }
-      if (!await Permission.notification.isGranted) {
+      // A denied notification permission must remain askable. Only a
+      // permanent denial is left to the Settings entry that opens the OS
+      // app settings.
+      final notifications = await Permission.notification.status;
+      if (!notifications.isGranted && !notifications.isPermanentlyDenied) {
         await Permission.notification.request();
       }
-      // Persist only after both requests returned: a throw must not suppress
-      // the prompts on every later launch.
+      // Audio is a one-time intro prompt. Notification is intentionally not
+      // part of this flag so a denial can be fixed later.
       await prefs.setBool(askedKey, true);
     } catch (e) {
       // Permission prompts are best effort; the app stays usable without.

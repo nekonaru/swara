@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/row_layout.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../models/song.dart';
@@ -15,7 +16,7 @@ enum _AlbumSortOption { titleAZ, titleZA, countDesc, countAsc }
 
 // Grid cell has a fixed aspect ratio while the app allows text scales up to
 // 2x, so the info text of a card is clamped to stay inside the cell.
-const double _kAlbumCardMaxTextScale = 1.5;
+const double _kAlbumCardMaxTextScale = 2.0;
 
 class AlbumsScreen extends StatefulWidget {
   const AlbumsScreen({super.key});
@@ -362,7 +363,7 @@ class _AlbumSongsScreen extends StatelessWidget {
             ),
           ),
           SliverFixedExtentList(
-            itemExtent: 72,
+            itemExtent: scaledRowHeight(context, 72),
             delegate: SliverChildBuilderDelegate(
               (context, i) => buildSongTile(context, songs[i], songs, i),
               childCount: songs.length,

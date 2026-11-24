@@ -3782,6 +3782,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Inherit'**
   String get playbackSettingsReset;
+
+  /// Settings entry for media notification access
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsNotifications;
+
+  /// Explanation of the notification permission setting
+  ///
+  /// In en, this message translates to:
+  /// **'Show playback controls in the notification shade'**
+  String get settingsNotificationsSubtitle;
+
+  /// Button that imports a local LRC sidecar file
+  ///
+  /// In en, this message translates to:
+  /// **'Import .lrc file'**
+  String get editLyricsImportLrc;
+
+  /// Button that shares the stored synced lyrics as an LRC file
+  ///
+  /// In en, this message translates to:
+  /// **'Share .lrc file'**
+  String get editLyricsShareLrc;
+
+  /// Confirmation after importing an LRC file
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {count} timed lines'**
+  String editLyricsLrcImported(int count);
+
+  /// Error when an imported LRC file exceeds the size cap
+  ///
+  /// In en, this message translates to:
+  /// **'The .lrc file is too large'**
+  String get editLyricsLrcTooLarge;
+
+  /// Dashboard section with albums ranked by listening time
+  ///
+  /// In en, this message translates to:
+  /// **'Top albums'**
+  String get dashboardTopAlbums;
+
+  /// Player button that opens saved positions for the current song
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarks'**
+  String get playerBookmarks;
+
+  /// Action that stores the current playhead as a bookmark
+  ///
+  /// In en, this message translates to:
+  /// **'Save current position'**
+  String get playerBookmarkSave;
+
+  /// Confirmation after saving a bookmark
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark saved'**
+  String get playerBookmarkSaved;
+
+  /// Message when the per song bookmark cap is reached
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark limit reached'**
+  String get playerBookmarkLimit;
+
+  /// Empty state for the bookmark sheet
+  ///
+  /// In en, this message translates to:
+  /// **'No bookmarks yet'**
+  String get playerBookmarkEmpty;
 }
 
 class _AppLocalizationsDelegate

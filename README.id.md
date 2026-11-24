@@ -57,6 +57,7 @@
 |-------|-----------|
 | **Pemutaran offline** | Pindai dan putar musik langsung dari penyimpanan ponsel |
 | **Resume pemutaran** | Melanjutkan lagu terakhir pada menit:detik yang sama saat aplikasi dibuka kembali |
+| **Penanda lagu** | Simpan hingga 20 posisi putar bernama per lagu dan lompat kembali ke posisi itu setelah restart |
 | **Cabut headset** | Pemutaran jeda otomatis saat headset dicabut atau rute Bluetooth terputus |
 | **Pemutaran di latar belakang** | Foreground service Android asli dengan MediaSession: kontrol notifikasi dan layar kunci (putar/jeda/berikutnya/sebelumnya) |
 | **Widget layar home** | Sampul album, kontrol sebelumnya/putar/berikutnya, dan chronometer waktu berjalan langsung di layar home |
@@ -100,7 +101,8 @@
 | **Lirik sesuai permintaan** | Diambil lewat lrclib dengan lyrics.ovh sebagai cadangan, bisa diedit manual, ada cadangan pencarian Google |
 | **Edit manual** | Perbaiki metadata dan lirik per lagu saat hasil pemindaian salah |
 | **Lirik tersinkron** | Lirik baris demi baris yang mengikuti lagu, dengan tampilan teks biasa sebagai cadangan |
-| **Penyelarasan lirik** | Membaca tag offset dari file .lrc dan memungkinkan menggeser lirik per 100 ms |
+| **Penyelarasan lirik** | Membaca tag offset dari file .lrc, memungkinkan menggeser lirik per 100 ms, dan menyimpan koreksi tersebut per lagu |
+| **File .lrc lokal** | Impor file lirik .lrc dari penyimpanan sendiri atau bagikan lirik sinkron yang tersimpan, sepenuhnya offline |
 
 ### Pustaka dan Pencarian
 
@@ -142,7 +144,7 @@
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| **Dashboard** | Grafik 7 hari terakhir, lagu dan artis teratas, distribusi genre dan wilayah |
+| **Dashboard** | Grafik 7 hari terakhir, lagu, artis, dan album teratas, distribusi genre dan wilayah |
 | **Rekap tahunan** | Lagu, artis, dan jam teratas tahun ini, bisa dibagikan sebagai gambar |
 | **Streak mendengarkan** | Streak hari dan genre teratas bulan ini di dashboard |
 

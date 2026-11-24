@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
+import '../utils/row_layout.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
 
-// Queue rows sit in a fixed 68dp extent; cap the text scale inside them so
-// a 2x accessibility setting cannot clip the title and subtitle.
-Widget _clampQueueRowText(BuildContext context, Widget child) {
-  final mq = MediaQuery.of(context);
-  final scaler = mq.textScaler.clamp(maxScaleFactor: 1.5);
-  if (scaler == mq.textScaler) return child;
-  return MediaQuery(data: mq.copyWith(textScaler: scaler), child: child);
-}
+// Queue rows keep the effective text scale; the list extent grows with it.
+Widget _clampQueueRowText(BuildContext context, Widget child) => child;
 
 class QueueScreen extends StatefulWidget {
   const QueueScreen({super.key});
@@ -51,7 +46,8 @@ class _QueueScreenState extends State<QueueScreen> {
       if (!mounted || !_scrollController.hasClients) return;
       final currentIndex = _player.currentIndex;
       // Show the currently playing song near the top of the screen (not flush with the very top)
-      final target = (currentIndex * _itemHeight - _itemHeight).clamp(0, _scrollController.position.maxScrollExtent);
+      final rowHeight = scaledRowHeight(context, _itemHeight);
+      final target = (currentIndex * rowHeight - rowHeight).clamp(0, _scrollController.position.maxScrollExtent);
       _scrollController.animateTo(
         target.toDouble(),
         duration: const Duration(milliseconds: 250),
@@ -318,7 +314,7 @@ class _QueueScreenState extends State<QueueScreen> {
                         // The list must know its extent without laying out
                         // rows; without this, jumping to the playing row in a
                         // huge queue builds it in one frame and ANRs.
-                        itemExtent: _itemHeight,
+                        itemExtent: scaledRowHeight(context, _itemHeight),
                         onReorderItem: (oldIndex, newIndex) => _player.reorderQueue(oldIndex, newIndex),
                         itemBuilder: (context, i) {
                           final song = queue[i];
@@ -326,7 +322,7 @@ class _QueueScreenState extends State<QueueScreen> {
                           final isPlaying = i == currentIndex;
                           return SizedBox(
                             key: ValueKey('queue_slot_$slotId'),
-                            height: _itemHeight,
+                            height: scaledRowHeight(context, _itemHeight),
                             child: Dismissible(
                               key: ValueKey('queue_dismiss_slot_$slotId'),
                               direction: isPlaying ? DismissDirection.none : DismissDirection.endToStart,

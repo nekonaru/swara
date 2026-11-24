@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../utils/row_layout.dart';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -28,6 +29,7 @@ class DashboardScreenState extends State<DashboardScreen> {
   Map<DateTime, int> _daily = {};
   List<MapEntry<int, int>> _topSongIds = [];
   List<MapEntry<String, int>> _topArtists = [];
+  List<MapEntry<String, int>> _topAlbums = [];
   Map<String, int> _genreDist = {};
   Map<int, Song> _songLookup = {};
   int _totalSongs = 0;
@@ -157,6 +159,7 @@ class DashboardScreenState extends State<DashboardScreen> {
           DBHelper.instance.getTopSongIdsSince(yearStart, limit: 5),
           DBHelper.instance.getTopArtistsSince(yearStart, limit: 3),
           DBHelper.instance.getListeningMsSince(yearStart),
+          DBHelper.instance.getTopAlbums(limit: 5),
         ],
         // Summary queries only run on a cache miss or forced refresh.
         useCache
@@ -187,6 +190,14 @@ class DashboardScreenState extends State<DashboardScreen> {
       final rawYearTopSongs = results[6] as List<MapEntry<int, int>>;
       final yearTopArtists = results[7] as List<MapEntry<String, int>>;
       final yearMs = results[8] as int;
+      final rawTopAlbums = results[9] as List<Map<String, Object?>>;
+      final topAlbums = <MapEntry<String, int>>[
+        for (final row in rawTopAlbums)
+          MapEntry(
+            (row['album'] as String?) ?? '',
+            (row['totalMs'] as num?)?.toInt() ?? 0,
+          ),
+      ].where((e) => e.key.isNotEmpty).toList();
       // Hidden folders must not show up in the dashboard either. The DB has
       // no idea they are hidden, so apply the same rule the library uses.
       // Otherwise the dashboard counts more songs than the library shows, and
@@ -257,6 +268,7 @@ class DashboardScreenState extends State<DashboardScreen> {
         _daily = daily;
         _topSongIds = topSongs;
         _topArtists = topArtists;
+        _topAlbums = topAlbums;
         _genreDist = genreDist;
         _songLookup = {for (final s in lookupSongs) s.id: s};
         _totalSongs = allSongs.length;
@@ -545,6 +557,29 @@ class DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           if (_topArtists.isNotEmpty) const SizedBox(height: 14),
+
+          // Top albums (last 30 days)
+          if (_topAlbums.isNotEmpty)
+            _SectionCard(
+              icon: Icons.album_outlined,
+              title: l.dashboardTopAlbums,
+              child: Column(
+                children: [
+                  for (int i = 0; i < _topAlbums.length; i++) ...[
+                    _RankTile(
+                      rank: i + 1,
+                      title: _topAlbums[i].key,
+                      trailing: l.dashboardHoursValue(
+                          (_topAlbums[i].value / 3600000).toStringAsFixed(1)),
+                      maxValue: _topAlbums.first.value,
+                      value: _topAlbums[i].value,
+                    ),
+                    if (i < _topAlbums.length - 1) const Divider(height: 1),
+                  ],
+                ],
+              ),
+            ),
+          if (_topAlbums.isNotEmpty) const SizedBox(height: 14),
 
           // Yearly recap: top songs and artists plus total hours this year.
           // Wrapped in RepaintBoundary so it can be shared as an image.
@@ -1013,7 +1048,7 @@ class DashboardScreenState extends State<DashboardScreen> {
               child: ListView.builder(
                 controller: controller,
                 itemCount: _neverPlayed.length,
-                itemExtent: 64,
+                itemExtent: scaledRowHeight(context, 64),
                 itemBuilder: (context, i) {
                   final s = _neverPlayed[i];
                   return ListTile(

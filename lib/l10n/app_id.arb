@@ -2457,5 +2457,58 @@
     "playbackSettingsReset":  "Warisi",
     "@playbackSettingsReset":  {
                                    "description":  "Tombol menghapus override dan memakai default"
+                               },
+    "settingsNotifications":  "Notifikasi",
+    "@settingsNotifications":  {
+                                   "description":  "Entree pengaturan untuk akses notifikasi media"
+                               },
+    "settingsNotificationsSubtitle":  "Tampilkan kontrol pemutaran di panel notifikasi",
+    "@settingsNotificationsSubtitle":  {
+                                   "description":  "Penjelasan pengaturan izin notifikasi"
+                               },
+    "editLyricsImportLrc":  "Impor file .lrc",
+    "@editLyricsImportLrc":  {
+                                   "description":  "Tombol untuk mengimpor file lirik sinkron lokal"
+                               },
+    "editLyricsShareLrc":  "Bagikan file .lrc",
+    "@editLyricsShareLrc":  {
+                                   "description":  "Tombol untuk membagikan lirik sinkron yang tersimpan sebagai file LRC"
+                               },
+    "editLyricsLrcImported":  "Mengimpor {count} baris berwaktu",
+    "@editLyricsLrcImported":  {
+                                   "description":  "Konfirmasi setelah mengimpor file LRC",
+                                   "placeholders": {
+                                     "count": {
+                                       "type": "int"
+                                     }
+                                   }
+                               },
+    "editLyricsLrcTooLarge":  "File .lrc terlalu besar",
+    "@editLyricsLrcTooLarge":  {
+                                   "description":  "Kesalahan saat file LRC melebihi batas ukuran"
+                               },
+    "dashboardTopAlbums":  "Album teratas",
+    "@dashboardTopAlbums":  {
+                                   "description":  "Bagian dashboard dengan album berdasarkan waktu dengar"
+                               },
+    "playerBookmarks":  "Penanda",
+    "@playerBookmarks":  {
+                                   "description":  "Tombol pemutar yang membuka posisi tersimpan untuk lagu saat ini"
+                               },
+    "playerBookmarkSave":  "Simpan posisi saat ini",
+    "@playerBookmarkSave":  {
+                                   "description":  "Aksi menyimpan posisi putar sebagai penanda"
+                               },
+    "playerBookmarkSaved":  "Penanda tersimpan",
+    "@playerBookmarkSaved":  {
+                                   "description":  "Konfirmasi setelah menyimpan penanda"
+                               },
+    "playerBookmarkLimit":  "Batas penanda tercapai",
+    "@playerBookmarkLimit":  {
+                                   "description":  "Pesan saat batas penanda per lagu tercapai"
+                               },
+    "playerBookmarkEmpty":  "Belum ada penanda",
+    "@playerBookmarkEmpty":  {
+                                   "description":  "Keadaan kosong pada sheet penanda"
                                }
 }

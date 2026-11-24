@@ -2139,4 +2139,43 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get playbackSettingsReset => 'Warisi';
+
+  @override
+  String get settingsNotifications => 'Notifikasi';
+
+  @override
+  String get settingsNotificationsSubtitle =>
+      'Tampilkan kontrol pemutaran di panel notifikasi';
+
+  @override
+  String get editLyricsImportLrc => 'Impor file .lrc';
+
+  @override
+  String get editLyricsShareLrc => 'Bagikan file .lrc';
+
+  @override
+  String editLyricsLrcImported(int count) {
+    return 'Mengimpor $count baris berwaktu';
+  }
+
+  @override
+  String get editLyricsLrcTooLarge => 'File .lrc terlalu besar';
+
+  @override
+  String get dashboardTopAlbums => 'Album teratas';
+
+  @override
+  String get playerBookmarks => 'Penanda';
+
+  @override
+  String get playerBookmarkSave => 'Simpan posisi saat ini';
+
+  @override
+  String get playerBookmarkSaved => 'Penanda tersimpan';
+
+  @override
+  String get playerBookmarkLimit => 'Batas penanda tercapai';
+
+  @override
+  String get playerBookmarkEmpty => 'Belum ada penanda';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/motion.dart';
 
 /// Text that stays still and centered when it fits, and auto-scrolls (marquee)
 /// back and forth when it is too long for the available width.
@@ -106,6 +107,15 @@ class _MarqueeTextState extends State<MarqueeText> {
           // Text fits: render still, centered as usual
           return Center(
             child: Text(widget.text, style: widget.style, maxLines: 1, overflow: TextOverflow.ellipsis),
+          );
+        }
+
+        // With the OS reduce-animations setting on, show a static ellipsized
+        // line instead of a never-ending scroll.
+        if (reduceMotion(context)) {
+          return Center(
+            child: Text(widget.text,
+                style: widget.style, maxLines: 1, overflow: TextOverflow.ellipsis),
           );
         }
 

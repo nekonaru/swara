@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1076,6 +1077,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // -- LIBRARY --
           _SectionHeader(l10n.settingsLibrary),
+          ListTile(
+            leading: const Icon(Icons.notifications_none_outlined),
+            title: Text(l10n.settingsNotifications),
+            subtitle: Text(l10n.settingsNotificationsSubtitle),
+            trailing: TextButton(
+              onPressed: () async {
+                final status = await Permission.notification.status;
+                if (status.isPermanentlyDenied) {
+                  await openAppSettings();
+                } else if (!status.isGranted) {
+                  await Permission.notification.request();
+                }
+              },
+              child: Text(l10n.homeSettings),
+            ),
+          ),
           ListTile(
             leading: libView.$1
                 ? const SizedBox(

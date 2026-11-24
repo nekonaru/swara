@@ -2457,5 +2457,58 @@
     "playbackSettingsReset":  "Inherit",
     "@playbackSettingsReset":  {
                                    "description":  "Button that removes the override and inherits defaults"
+                               },
+    "settingsNotifications":  "Notifications",
+    "@settingsNotifications":  {
+                                   "description":  "Settings entry for media notification access"
+                               },
+    "settingsNotificationsSubtitle":  "Show playback controls in the notification shade",
+    "@settingsNotificationsSubtitle":  {
+                                   "description":  "Explanation of the notification permission setting"
+                               },
+    "editLyricsImportLrc":  "Import .lrc file",
+    "@editLyricsImportLrc":  {
+                                   "description":  "Button that imports a local LRC sidecar file"
+                               },
+    "editLyricsShareLrc":  "Share .lrc file",
+    "@editLyricsShareLrc":  {
+                                   "description":  "Button that shares the stored synced lyrics as an LRC file"
+                               },
+    "editLyricsLrcImported":  "Imported {count} timed lines",
+    "@editLyricsLrcImported":  {
+                                   "description":  "Confirmation after importing an LRC file",
+                                   "placeholders": {
+                                     "count": {
+                                       "type": "int"
+                                     }
+                                   }
+                               },
+    "editLyricsLrcTooLarge":  "The .lrc file is too large",
+    "@editLyricsLrcTooLarge":  {
+                                   "description":  "Error when an imported LRC file exceeds the size cap"
+                               },
+    "dashboardTopAlbums":  "Top albums",
+    "@dashboardTopAlbums":  {
+                                   "description":  "Dashboard section with albums ranked by listening time"
+                               },
+    "playerBookmarks":  "Bookmarks",
+    "@playerBookmarks":  {
+                                   "description":  "Player button that opens saved positions for the current song"
+                               },
+    "playerBookmarkSave":  "Save current position",
+    "@playerBookmarkSave":  {
+                                   "description":  "Action that stores the current playhead as a bookmark"
+                               },
+    "playerBookmarkSaved":  "Bookmark saved",
+    "@playerBookmarkSaved":  {
+                                   "description":  "Confirmation after saving a bookmark"
+                               },
+    "playerBookmarkLimit":  "Bookmark limit reached",
+    "@playerBookmarkLimit":  {
+                                   "description":  "Message when the per song bookmark cap is reached"
+                               },
+    "playerBookmarkEmpty":  "No bookmarks yet",
+    "@playerBookmarkEmpty":  {
+                                   "description":  "Empty state for the bookmark sheet"
                                }
 }

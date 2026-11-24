@@ -57,6 +57,7 @@
 |---------|-------------|
 | **Offline playback** | Scan and play music directly from phone storage |
 | **Resume playback** | Picks up the last song at the same minute:second when the app opens again |
+| **Song bookmarks** | Save up to 20 named playhead positions per song and jump back to them after a restart |
 | **Headset unplug** | Playback pauses automatically when the headset is unplugged or the Bluetooth route is lost |
 | **Background playback** | Real Android foreground service with MediaSession: notification and lockscreen controls (play/pause/next/previous) |
 | **Home screen widget** | Album art, play/pause/prev/next controls, and a self-ticking elapsed-time chronometer right on the home screen |
@@ -100,7 +101,8 @@
 | **On-demand lyrics** | Fetched via lrclib with lyrics.ovh as fallback, editable manually, Google search fallback |
 | **Manual editing** | Fix metadata and lyrics per song when the scan gets it wrong |
 | **Synced lyrics** | Line-by-line lyrics that follow the song, with plain view fallback |
-| **Lyric timing** | Reads the offset tag from .lrc files and lets you nudge lyrics by 100 ms |
+| **Lyric timing** | Reads the offset tag from .lrc files, lets you nudge lyrics by 100 ms, and remembers the correction for each song |
+| **Local .lrc files** | Import a sidecar .lrc file from your own storage or share the stored synced lyrics back out, fully offline |
 
 ### Library and Search
 
@@ -142,7 +144,7 @@
 
 | Feature | Description |
 |---------|-------------|
-| **Dashboard** | Last-7-days chart, top songs and artists, genre and region distribution |
+| **Dashboard** | Last-7-days chart, top songs, artists and albums, genre and region distribution |
 | **Yearly recap** | Top songs, artists, and hours of the current year, shareable as an image |
 | **Listening streaks** | Day streak and top genre of the month on the dashboard |
 

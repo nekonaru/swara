@@ -39,7 +39,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 13,
+      version: 14,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -122,9 +122,23 @@ class DBHelper {
           CREATE TABLE synced_lyrics(
             songId INTEGER PRIMARY KEY,
             lrc TEXT,
-            fetchedAt TEXT
+            fetchedAt TEXT,
+            offsetMs INTEGER DEFAULT 0
           )
         ''');
+        // Persistent playhead bookmarks, created with the table so a fresh
+        // install never has to wait for the v14 migration branch.
+        await db.execute('''
+          CREATE TABLE song_bookmarks(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            songId INTEGER,
+            positionMs INTEGER,
+            label TEXT DEFAULT '',
+            createdAt TEXT
+          )
+        ''');
+        await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_bookmarks_song ON song_bookmarks(songId)');
         // Per-track and per-folder playback overrides. Separate tables keep
         // rescans from overwriting user settings on the songs table.
         await db.execute('''
@@ -327,6 +341,33 @@ class DBHelper {
               await db.execute(sql);
             } catch (e) {
               debugPrint('DBHelper: v13 table migration failed: $e');
+            }
+          }
+        }
+        if (oldVersion < 14) {
+          // Synced lyric timing correction and persistent song bookmarks.
+          if (!await _hasColumn(db, 'synced_lyrics', 'offsetMs')) {
+            try {
+              await db.execute(
+                  'ALTER TABLE synced_lyrics ADD COLUMN offsetMs INTEGER DEFAULT 0');
+            } catch (e) {
+              debugPrint('DBHelper: v14 offset column migration failed: $e');
+            }
+          }
+          for (final sql in <String>[
+            '''CREATE TABLE IF NOT EXISTS song_bookmarks(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              songId INTEGER,
+              positionMs INTEGER,
+              label TEXT DEFAULT '',
+              createdAt TEXT
+            )''',
+            'CREATE INDEX IF NOT EXISTS idx_bookmarks_song ON song_bookmarks(songId)',
+          ]) {
+            try {
+              await db.execute(sql);
+            } catch (e) {
+              debugPrint('DBHelper: v14 bookmark migration failed: $e');
             }
           }
         }
@@ -718,6 +759,7 @@ class DBHelper {
       batch.delete('playlist_songs', where: 'songId = ?', whereArgs: [id]);
       batch.delete('listening_entries', where: 'songId = ?', whereArgs: [id]);
       batch.delete('synced_lyrics', where: 'songId = ?', whereArgs: [id]);
+      batch.delete('song_bookmarks', where: 'songId = ?', whereArgs: [id]);
       batch.delete('song_playback_settings', where: 'songId = ?', whereArgs: [id]);
     }
     await batch.commit(noResult: true);
@@ -835,6 +877,7 @@ class DBHelper {
       await txn
           .delete('listening_entries', where: 'songId = ?', whereArgs: [id]);
       await txn.delete('synced_lyrics', where: 'songId = ?', whereArgs: [id]);
+      await txn.delete('song_bookmarks', where: 'songId = ?', whereArgs: [id]);
       await txn.delete('song_playback_settings',
           where: 'songId = ?', whereArgs: [id]);
     });
@@ -1035,6 +1078,23 @@ class DBHelper {
       result[songId] = stamp;
     }
     return result;
+  }
+
+  /// Albums ranked by listening time in the last 30 days. Reads only the
+  /// existing history and song tables, with no new schema or dependency.
+  Future<List<Map<String, Object?>>> getTopAlbums({int limit = 5}) async {
+    final database = await db;
+    final since = DateTime.now()
+        .subtract(const Duration(days: 29))
+        .toIso8601String();
+    return database.rawQuery(
+      'SELECT COALESCE(NULLIF(s.album, \'\'), ?) AS album, '
+      'SUM(l.listenedMs) AS totalMs, COUNT(*) AS plays '
+      'FROM listening_entries l JOIN songs s ON s.id = l.songId '
+      'WHERE julianday(l.timestamp) >= julianday(?) '
+      'GROUP BY album ORDER BY totalMs DESC LIMIT ?',
+      ['Unknown Album', since, limit],
+    );
   }
 
   /// Total ms listened per day for the last 7 days (for the dashboard chart)
@@ -1775,7 +1835,8 @@ class DBHelper {
   }
 
   /// Insert or replace the synced lyrics (LRC text) for [songId].
-  Future<void> setSyncedLyrics(int songId, String lrc) async {
+  Future<void> setSyncedLyrics(int songId, String lrc,
+      {int offsetMs = 0}) async {
     final database = await db;
     await database.insert(
       'synced_lyrics',
@@ -1783,8 +1844,66 @@ class DBHelper {
         'songId': songId,
         'lrc': lrc,
         'fetchedAt': DateTime.now().toIso8601String(),
+        'offsetMs': offsetMs,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  /// Saved user timing correction in milliseconds for [songId].
+  Future<int> getSyncedLyricOffset(int songId) async {
+    final database = await db;
+    final rows = await database.query('synced_lyrics',
+        columns: ['offsetMs'],
+        where: 'songId = ?',
+        whereArgs: [songId],
+        limit: 1);
+    if (rows.isEmpty) return 0;
+    return (rows.first['offsetMs'] as num?)?.toInt() ?? 0;
+  }
+
+  /// Persist a timing correction without changing the stored LRC text or
+  /// pretending it was fetched again.
+  Future<void> setSyncedLyricOffset(int songId, int offsetMs) async {
+    final database = await db;
+    await database.update(
+      'synced_lyrics',
+      {'offsetMs': offsetMs},
+      where: 'songId = ?',
+      whereArgs: [songId],
+    );
+  }
+
+  // ---------- Song bookmarks ----------
+  static const int maxBookmarksPerSong = 20;
+
+  Future<List<Map<String, Object?>>> getBookmarks(int songId) async {
+    final database = await db;
+    return database.query('song_bookmarks',
+        where: 'songId = ?',
+        whereArgs: [songId],
+        orderBy: 'positionMs ASC');
+  }
+
+  Future<bool> addBookmark(int songId, int positionMs, String label) async {
+    final database = await db;
+    final existing = await database.query('song_bookmarks',
+        columns: ['id'],
+        where: 'songId = ?',
+        whereArgs: [songId]);
+    if (existing.length >= maxBookmarksPerSong) return false;
+    await database.insert('song_bookmarks', {
+      'songId': songId,
+      'positionMs': positionMs,
+      'label': label.trim(),
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+    return true;
+  }
+
+  Future<void> deleteBookmark(int bookmarkId) async {
+    final database = await db;
+    await database.delete('song_bookmarks',
+        where: 'id = ?', whereArgs: [bookmarkId]);
   }
 }

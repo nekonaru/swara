@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.5.0
+
+Rilis fitur besar dan penyempurnaan native: waktu lirik tersimpan, file .lrc lokal, penanda lagu, dan statistik album, dengan dukungan aksesibilitas yang lebih dalam.
+
+## Fitur baru
+
+- **Koreksi waktu lirik tersimpan.** Geseran 100 ms disimpan per lagu, bertahan setelah restart, dan dihapus saat lirik baru diambil.
+- **File .lrc lokal berfungsi offline.** Impor file sidecar dari editor lirik atau bagikan lirik sinkron yang tersimpan.
+- **Penanda lagu.** Simpan hingga 20 posisi putar per lagu dan lompat ke posisi itu dari pemutar.
+- **Album teratas di dashboard.** Album diurutkan berdasarkan waktu dengar 30 hari terakhir dari data riwayat yang sudah ada.
+
+## Peningkatan
+
+- **Teks aksesibilitas tidak lagi diperkecil di daftar.** Tinggi baris mengikuti skala teks efektif, bukan membatasi teks baris di 1.5x.
+- **Kontrol pemutar muat di layar kecil.** Baris tombol membungkus dan memakai target sentuh 44dp di perangkat sempit.
+- **Kontrol EQ muat dengan teks besar.** Label pita dan pembacaan gain mengikuti skala teks, dan visualizer ikut tumbuh.
+- **Kurangi animasi lebih luas dihormati.** Teks marquee dan indikator berhenti beranimasi saat OS meminta animasi dikurangi.
+- **Akses notifikasi bisa diperbaiki kemudian.** Penolakan tetap bisa diminta lagi dan Settings membuka pengaturan sistem bila diperlukan.
+
+## Perbaikan bug
+
+- **Widget layar home tidak lagi menunjukkan jam putar palsu** setelah aplikasi dimatikan, karena mulai ulang kini memaksa status jeda yang sebenarnya ke widget.
+
 ## v4.4.0
 
 Rilis performa dan kualitas tampilan: mulai lebih cepat, teks default lebih mudah dibaca, dan kontras baik di kedua tema, tanpa fitur baru.

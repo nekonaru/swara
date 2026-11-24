@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../utils/row_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -23,13 +24,11 @@ import 'bulk_edit_screen.dart';
 // (and once per build) by the A-Z index and the A-Z jumps.
 final RegExp _leadingLetterReg = RegExp(r'^[a-zA-Z]');
 
-// Rows sit in a fixed 72 px box while the app allows text scales up to 2x, so
-// the text inside a row is clamped to keep the two lines inside that box.
-const double _kRowMaxTextScale = 1.5;
-
-/// Clamped text scale for the text of a fixed height list row.
-TextScaler _rowTextScaler(BuildContext context) => MediaQuery.textScalerOf(context)
-    .clamp(maxScaleFactor: _kRowMaxTextScale);
+// Row height grows with the effective text scale so accessibility sizes
+// are never silently reduced.
+/// Rows keep the effective text scale; their height grows with it.
+TextScaler _rowTextScaler(BuildContext context) =>
+    MediaQuery.textScalerOf(context);
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -228,7 +227,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (!_scrollController.hasClients) return;
     final index = azIndex[letter];
     if (index == null) return;
-    final offset = (index * _itemHeight)
+    final offset = (index * scaledRowHeight(context, _itemHeight))
         .clamp(0.0, _scrollController.position.maxScrollExtent);
     _scrollController.animateTo(
       offset,
@@ -747,7 +746,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         // viewport are never built, so the cost per frame is
                         // the same regardless of the library size.
                         SliverFixedExtentList(
-                          itemExtent: _itemHeight,
+                          itemExtent: scaledRowHeight(context, _itemHeight),
                           delegate: SliverChildBuilderDelegate(
                             (context, i) {
                               final song = songs[i];
@@ -1005,7 +1004,7 @@ class _SongTile extends StatelessWidget {
                 ? cs.primaryContainer.withValues(alpha: 0.25)
                 : null,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        height: 72,
+        height: scaledRowHeight(context, 72),
         child: Row(
           children: [
             AnimatedSwitcher(
@@ -1031,8 +1030,7 @@ class _SongTile extends StatelessWidget {
                   Text(song.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      // Clamped: the row has a fixed 72 px extent, so the two
-                      // line text must not grow past it at large app scales.
+                      // Row height scales with the accessibility setting.
                       textScaler: _rowTextScaler(context),
                       style: TextStyle(
                           fontSize: 16,

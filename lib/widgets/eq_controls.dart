@@ -199,8 +199,12 @@ class _EqControlsState extends State<EqControls> {
                 return Row(
                   children: [
                     SizedBox(
-                      width: 52,
-                      child: Text(kBandLabels[i], style: const TextStyle(fontSize: 12)),
+                      width: 52 * MediaQuery.textScalerOf(context).scale(1.0),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(kBandLabels[i], style: const TextStyle(fontSize: 12)),
+                      ),
                     ),
                     Expanded(
                       child: Slider(
@@ -229,11 +233,14 @@ class _EqControlsState extends State<EqControls> {
                       ),
                     ),
                     SizedBox(
-                      width: 56,
-                      child: Text(
-                        '${gains[i].toStringAsFixed(1)} dB',
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(fontSize: 12),
+                      width: 56 * MediaQuery.textScalerOf(context).scale(1.0),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${gains[i].toStringAsFixed(1)} dB',
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
                   ],
@@ -333,8 +340,9 @@ class EqVisualizer extends StatelessWidget {
     final normalizer = max < 1 ? 1.0 : max;
     final color = Theme.of(context).colorScheme.primary;
 
+    final scale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 2.0);
     return Container(
-      height: 80,
+      height: 80 * scale,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHigh,
@@ -354,8 +362,8 @@ class EqVisualizer extends StatelessWidget {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOut,
-                width: 24,
-                height: barHeight,
+                width: 24 * scale,
+                height: barHeight * scale,
                 decoration: BoxDecoration(
                   color: gain > 0
                       ? color

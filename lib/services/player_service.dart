@@ -500,6 +500,10 @@ class PlayerService extends ChangeNotifier {
     return _player;
   }
 
+  /// Incremented whenever lyrics change outside the player screen so an open
+  /// Now Playing view reloads the stored text and its saved timing offset.
+  final ValueNotifier<int> lyricsRevision = ValueNotifier<int>(0);
+
   /// Public, context-free notification for external MediaSession actions.
   void syncUiState() => notifyListeners();
 
@@ -2426,6 +2430,7 @@ class PlayerService extends ChangeNotifier {
     _trimByPlayer.clear();
     _songByPlayer.clear();
     _lastEffectEmit.clear();
+    lyricsRevision.dispose();
     unawaited(EqualizerService.instance.release());
     unawaited(LoudnessService.instance.release());
     // Everything above needed _disposed to be false. Set it last, right

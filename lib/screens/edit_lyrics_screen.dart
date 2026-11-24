@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
+import '../services/lrc_import_service.dart';
+import '../services/player_service.dart';
 
 class EditLyricsScreen extends StatefulWidget {
   final Song song;
@@ -103,6 +105,43 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
     setState(() => _controller.clear());
   }
 
+  Future<void> _importLrc() async {
+    final l = AppLocalizations.of(context)!;
+    try {
+      final count = await LrcImportService.pickAndApply(widget.song);
+      if (!mounted || count == 0) return;
+      if (count < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l.editLyricsLrcTooLarge)),
+        );
+        return;
+      }
+      await context.read<LibraryProvider>().updateMetadata(widget.song);
+      PlayerService.instance.lyricsRevision.value++;
+      if (!mounted) return;
+      setState(() => _controller.text = widget.song.lyrics ?? '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.editLyricsLrcImported(count))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.editLyricsSaveFailed(e.toString()))),
+      );
+    }
+  }
+
+  Future<void> _shareLrc() async {
+    try {
+      await LrcImportService.share(widget.song);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.editLyricsSaveFailed(e.toString()))),
+      );
+    }
+  }
+
   Future<void> _save() async {
     var text = _controller.text.trim();
     var truncated = false;
@@ -142,6 +181,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
       return;
     }
     s.lyrics = newLyrics;
+    PlayerService.instance.lyricsRevision.value++;
     if (!mounted) return;
     // ScaffoldMessenger lives above the route, so the snackbar still shows
     // on the previous screen even though this page is popped immediately.
@@ -181,6 +221,16 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
                   onPressed: _searchOnWeb,
                   icon: const Icon(Icons.search),
                   label: Text(l.editLyricsSearchWeb),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _importLrc,
+                  icon: const Icon(Icons.file_open_outlined),
+                  label: Text(l.editLyricsImportLrc),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _shareLrc,
+                  icon: const Icon(Icons.ios_share),
+                  label: Text(l.editLyricsShareLrc),
                 ),
                 OutlinedButton.icon(
                   onPressed: _clear,

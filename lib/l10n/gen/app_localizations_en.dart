@@ -2140,4 +2140,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playbackSettingsReset => 'Inherit';
+
+  @override
+  String get settingsNotifications => 'Notifications';
+
+  @override
+  String get settingsNotificationsSubtitle =>
+      'Show playback controls in the notification shade';
+
+  @override
+  String get editLyricsImportLrc => 'Import .lrc file';
+
+  @override
+  String get editLyricsShareLrc => 'Share .lrc file';
+
+  @override
+  String editLyricsLrcImported(int count) {
+    return 'Imported $count timed lines';
+  }
+
+  @override
+  String get editLyricsLrcTooLarge => 'The .lrc file is too large';
+
+  @override
+  String get dashboardTopAlbums => 'Top albums';
+
+  @override
+  String get playerBookmarks => 'Bookmarks';
+
+  @override
+  String get playerBookmarkSave => 'Save current position';
+
+  @override
+  String get playerBookmarkSaved => 'Bookmark saved';
+
+  @override
+  String get playerBookmarkLimit => 'Bookmark limit reached';
+
+  @override
+  String get playerBookmarkEmpty => 'No bookmarks yet';
 }

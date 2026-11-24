@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/motion.dart';
 
 /// "Now playing" indicator with 3 animated bars moving up and down,
 /// placed next to the active song in lists.
@@ -13,6 +14,24 @@ class PlayingIndicator extends StatefulWidget {
 
 class _PlayingIndicatorState extends State<PlayingIndicator> with TickerProviderStateMixin {
   late final List<AnimationController> _controllers;
+  bool _reducedMotion = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduced = reduceMotion(context);
+    if (reduced == _reducedMotion) return;
+    _reducedMotion = reduced;
+    for (final c in _controllers) {
+      if (reduced) {
+        c
+          ..stop()
+          ..reset();
+      } else if (widget.isPlaying) {
+        c.repeat(reverse: true);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -38,7 +57,11 @@ class _PlayingIndicatorState extends State<PlayingIndicator> with TickerProvider
     super.didUpdateWidget(oldWidget);
     if (widget.isPlaying == oldWidget.isPlaying) return;
     for (final c in _controllers) {
-      if (widget.isPlaying) {
+      if (_reducedMotion) {
+        c
+          ..stop()
+          ..reset();
+      } else if (widget.isPlaying) {
         // Always restart on a false-to-true transition: a pause animation
         // may still be running and isAnimating would skip the restart.
         c.stop();

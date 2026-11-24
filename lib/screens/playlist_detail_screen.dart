@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../utils/row_layout.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
@@ -357,7 +358,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     }
     if (index == -1) return;
     _scrollController.animateTo(
-      index * _itemHeight,
+      index * scaledRowHeight(context, _itemHeight),
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
@@ -534,14 +535,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             ? ReorderableListView.builder(
                             scrollController: _scrollController,
                             itemCount: displayed.length,
-                            itemExtent: _itemHeight,
+                            itemExtent: scaledRowHeight(context, _itemHeight),
                             onReorderItem: _onReorder,
                             itemBuilder: (context, i) => _buildTile(displayed, i, reorderable: true),
                           )
                             : ListView.builder(
                             controller: _scrollController,
                             itemCount: displayed.length,
-                            itemExtent: _itemHeight,
+                            itemExtent: scaledRowHeight(context, _itemHeight),
                             itemBuilder: (context, i) => _buildTile(displayed, i, reorderable: false),
                           ),
                             if (showAzBar)

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../utils/row_layout.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,9 +24,7 @@ final RegExp _lrcStampPattern = RegExp(r'\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]');
 
 const int _kLyricsHaystackLimit = 4000;
 
-// Result rows keep a fixed 72 px extent while the app allows text scales up to
-// 2x, so the text of a row is clamped to stay inside that box.
-const double _kRowMaxTextScale = 1.5;
+// Result rows grow with the effective text scale.
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -658,15 +657,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  // Clamp the text scale of a fixed height row. ListTile has no textScaler
-  // parameter, so the whole tile subtree gets a clamped MediaQuery instead.
-  Widget _clampRowText(BuildContext context, Widget child) {
-    final scaler =
-        MediaQuery.textScalerOf(context).clamp(maxScaleFactor: _kRowMaxTextScale);
-    final mq = MediaQuery.of(context);
-    if (scaler == mq.textScaler) return child;
-    return MediaQuery(data: mq.copyWith(textScaler: scaler), child: child);
-  }
+  Widget _clampRowText(BuildContext context, Widget child) => child;
 
   // One result row. Mirrors the library_screen tile: the row is wrapped in a
   // per row Selector, so a track change, a play or pause toggle rebuilds only
@@ -861,9 +852,9 @@ class _SearchScreenState extends State<SearchScreen> {
       // track change or a play and pause toggle no longer rebuilds the list.
       return ListView.builder(
         itemCount: results.length,
-        itemExtent: 72,
+        itemExtent: scaledRowHeight(context, 72),
         itemBuilder: (context, i) => SizedBox(
-            height: 72, child: _buildSongTile(results[i], results, i)),
+            height: scaledRowHeight(context, 72), child: _buildSongTile(results[i], results, i)),
       );
     }
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.5.0
+
+Large feature and native polish release: persistent lyric timing, local LRC files, song bookmarks and album statistics, with deeper accessibility support.
+
+## New features
+
+- **Lyric timing correction is remembered.** The 100 ms nudge is saved per song, survives a restart, and clears when fresh lyrics are fetched.
+- **Local .lrc files work offline.** Import a sidecar file from the lyrics editor or share the stored synced lyrics back out.
+- **Song bookmarks.** Save up to 20 playhead positions per song and jump to them from the player.
+- **Top albums on the dashboard.** Albums are ranked by listening time over the last 30 days using existing history data.
+
+## Improvements
+
+- **Accessibility text is no longer reduced in lists.** Row heights now grow with the effective text scale instead of capping row text at 1.5x.
+- **Player controls fit small screens.** The transport row wraps and uses 44dp touch targets on narrow devices.
+- **EQ controls fit large text.** Band labels and gain readouts scale and the visualizer grows with the text scale.
+- **Reduce animations is honoured more widely.** Marquee text and the playing indicator stop animating when the OS requests reduced motion.
+- **Notification access can be fixed later.** A denied prompt remains askable and Settings opens the system app settings when needed.
+
+## Bug fixes
+
+- **The home widget no longer keeps a fake playing clock** after the app is killed, because cold start now forces the real paused state to the widget.
+
 ## v4.4.0
 
 Performance and visual quality release: faster startup, readable default text and contrast in both themes, with no new features.

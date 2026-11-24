@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../utils/row_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,23 +30,12 @@ const int _kFullListLimit = 100000;
 // the A-Z rails and the A-Z jumps of the folder and favorites screens.
 final RegExp _leadingLetterReg = RegExp(r'^[a-zA-Z]');
 
-// Rows below sit in a fixed height box (itemExtent 72 or 64) while the app
-// allows text scales up to 2x, so the text of a row is clamped to stay inside
-// that box instead of overflowing at large scales.
-const double _kRowMaxTextScale = 1.5;
-
-/// Clamped text scale for text inside a fixed height row.
+// Row extents grow with the effective text scale, so rows keep the full
+// accessibility size instead of silently shrinking their text.
 TextScaler _rowTextScaler(BuildContext context) =>
-    MediaQuery.textScalerOf(context).clamp(maxScaleFactor: _kRowMaxTextScale);
+    MediaQuery.textScalerOf(context);
 
-/// Clamp the text scale of a fixed height row built from a ListTile. ListTile
-/// has no textScaler parameter, so the tile subtree gets a clamped MediaQuery.
-Widget _clampRowText(BuildContext context, Widget child) {
-  final scaler = _rowTextScaler(context);
-  final mq = MediaQuery.of(context);
-  if (scaler == mq.textScaler) return child;
-  return MediaQuery(data: mq.copyWith(textScaler: scaler), child: child);
-}
+Widget _clampRowText(BuildContext context, Widget child) => child;
 
 // ------------------------------------------------------------------------
 // SHARED WIDGET: consistent song list tile used on every screen
@@ -632,7 +622,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             // Fixed extent matches the two line tile height, no visual change.
-            itemExtent: 72,
+            itemExtent: scaledRowHeight(context, 72),
             itemCount: visibleFolders.length,
             itemBuilder: (context, i) {
               final folder = visibleFolders[i];
@@ -847,7 +837,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
         ? songs.indexWhere((s) => !_leadingLetterReg.hasMatch(s.title))
         : songs.indexWhere((s) => s.title.toUpperCase().startsWith(letter));
     if (index == -1) return;
-    _scrollController.animateTo(index * _itemHeight,
+    _scrollController.animateTo(index * scaledRowHeight(context, _itemHeight),
         duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
@@ -1020,7 +1010,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
                             ),
                           ),
                           SliverFixedExtentList(
-                            itemExtent: _itemHeight,
+                            itemExtent: scaledRowHeight(context, _itemHeight),
                             delegate: SliverChildBuilderDelegate(
                               (context, i) => buildSongTile(context, displayed[i], displayed, i),
                               childCount: displayed.length,
@@ -1159,7 +1149,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 // Fixed extent matches the two line tile height, no visual change.
-                itemExtent: 72,
+                itemExtent: scaledRowHeight(context, 72),
                 itemCount: artists.length,
                 itemBuilder: (context, i) {
                   final artist = artists[i];
@@ -1232,7 +1222,7 @@ class _ArtistSongsScreen extends StatelessWidget {
             ),
           ),
           SliverFixedExtentList(
-            itemExtent: 72,
+            itemExtent: scaledRowHeight(context, 72),
             delegate: SliverChildBuilderDelegate(
               (context, i) => buildSongTile(context, songs[i], songs, i),
               childCount: songs.length,
@@ -1315,7 +1305,7 @@ class _GenresScreenState extends State<GenresScreen> {
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 // Fixed extent matches the two line tile height, no visual change.
-                itemExtent: 72,
+                itemExtent: scaledRowHeight(context, 72),
                 itemCount: genres.length,
                 itemBuilder: (context, i) {
                   final genre = genres[i];
@@ -1390,7 +1380,7 @@ class _GenreSongsScreen extends StatelessWidget {
             child: CustomScrollView(
               slivers: [
                 SliverFixedExtentList(
-                  itemExtent: 72,
+                  itemExtent: scaledRowHeight(context, 72),
                   delegate: SliverChildBuilderDelegate(
                     (context, i) => buildSongTile(context, songs[i], songs, i),
                     childCount: songs.length,
@@ -1697,7 +1687,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         ? songs.indexWhere((s) => !_leadingLetterReg.hasMatch(s.title))
         : songs.indexWhere((s) => s.title.toUpperCase().startsWith(letter));
     if (index == -1) return;
-    _scrollController.animateTo(index * _itemHeight,
+    _scrollController.animateTo(index * scaledRowHeight(context, _itemHeight),
         duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
   }
 
@@ -1824,7 +1814,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       controller: _scrollController,
                       slivers: [
                         SliverFixedExtentList(
-                          itemExtent: _itemHeight,
+                          itemExtent: scaledRowHeight(context, _itemHeight),
                           delegate: SliverChildBuilderDelegate(
                             (context, i) => _FavSongTile(
                               song: favs[i],
@@ -1959,7 +1949,7 @@ class _FavSongTile extends StatelessWidget {
                       ? cs.primaryContainer.withValues(alpha: 0.25)
                       : null,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              height: 72,
+              height: scaledRowHeight(context, 72),
               child: Row(
                 children: [
                   if (isMultiSelect)
@@ -2134,7 +2124,7 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
                 songs: _songs),
           ),
           SliverFixedExtentList(
-            itemExtent: 72,
+            itemExtent: scaledRowHeight(context, 72),
             delegate: SliverChildBuilderDelegate(
               (context, i) {
                 final song = _songs[i];
@@ -2235,7 +2225,7 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
                 songs: _songs),
           ),
           SliverFixedExtentList(
-            itemExtent: 72,
+            itemExtent: scaledRowHeight(context, 72),
             delegate: SliverChildBuilderDelegate(
               (context, i) => buildSongTile(
                   context, _songs[i], _songs, i,
