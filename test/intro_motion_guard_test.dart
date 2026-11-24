@@ -13,7 +13,8 @@ void main() {
       expect(main.contains('class StartupGate'), isFalse);
       expect(main.contains('Future<bool> bootFuture'), isTrue);
       expect(main.contains("const SplashScreen(key: ValueKey('splash'))"), isTrue);
-      expect(main.contains('Duration(milliseconds: 600)'), isTrue);
+      expect(main.contains('Duration(milliseconds: 600)'), isFalse);
+      expect(main.contains('No artificial floor here'), isTrue);
     });
 
     test('permissions are asked after the intro', () {

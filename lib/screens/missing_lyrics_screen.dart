@@ -45,12 +45,36 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
     return _missingCache;
   }
 
+  // Fetch lyrics without letting the metadata response rewrite user edited
+  // title, artist, album or artwork. enrichSong still owns the rate-limit
+  // contract, so only those identity fields are restored afterwards.
+  Future<bool> _fetchLyricsKeepingMetadata(Song song) async {
+    final title = song.title;
+    final artist = song.artist;
+    final album = song.album;
+    final genre = song.genre;
+    final artUrl = song.albumArtUrl;
+    final region = song.region;
+    try {
+      return await MetadataService.instance.enrichSong(song, bypassCache: true);
+    } finally {
+      song.title = title;
+      song.artist = artist;
+      song.album = album;
+      song.genre = genre;
+      song.albumArtUrl = artUrl;
+      song.region = region;
+    }
+  }
+
   Future<void> _refreshOne(Song song) async {
     if (_refreshingIds.contains(song.id)) return;
     setState(() => _refreshingIds.add(song.id));
+    final library = context.read<LibraryProvider>();
     try {
-      // Single song enrich via the existing provider API, which reloads the DB.
-      await context.read<LibraryProvider>().rescanSingleMetadata(song);
+      final limited = await _fetchLyricsKeepingMetadata(song);
+      if (!limited) await DBHelper.instance.applyEnrichedMetadata(song);
+      await library.loadFromDb();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -90,8 +114,8 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
     var stoppedEarly = false;
     var cancelled = false;
     try {
-      // Sequential enrich in small batches. enrichSong returns true on 429
-      // (or active backoff), so stop at once and keep leftovers for later.
+      // Sequential lyrics fetch in small batches. The helper returns true
+      // on 429 (or active backoff), so stop at once and keep leftovers.
       const batchSize = 5;
       for (var i = 0; i < targets.length; i += batchSize) {
         final end =
@@ -104,9 +128,9 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
             cancelled = true;
             break;
           }
-          final limited = await MetadataService.instance.enrichSong(song);
-          // enrichSong only upserts file facts; persist the filled fields,
-          // otherwise the list reverts on the next reload.
+          final limited = await _fetchLyricsKeepingMetadata(song);
+          // The fetch fills the in-memory song; persist it so the list does
+          // not revert on the next reload.
           try {
             await DBHelper.instance.applyEnrichedMetadata(song);
           } catch (e) {

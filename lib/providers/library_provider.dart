@@ -311,6 +311,9 @@ class LibraryProvider extends ChangeNotifier {
         if (MetadataService.instance.isRateLimited) {
           await Future<void>.delayed(const Duration(seconds: 2));
           if (_bulkScanCancelRequested) break;
+          // A continue still runs the for-loop increment. Without stepping
+          // back, every backoff tick silently discarded one whole batch.
+          i -= batchSize;
           continue;
         }
         final batch = targets.skip(i).take(batchSize).toList();

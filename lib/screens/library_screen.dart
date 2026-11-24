@@ -1035,7 +1035,7 @@ class _SongTile extends StatelessWidget {
                       // line text must not grow past it at large app scales.
                       textScaler: _rowTextScaler(context),
                       style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           fontWeight: isPlaying
                               ? FontWeight.bold
                               : FontWeight.normal,

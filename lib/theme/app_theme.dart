@@ -98,18 +98,13 @@ ThemeData _buildSwaraTheme({
     surface: black ? Colors.black : null,
   );
   final Color background = black ? Colors.black : scheme.surface;
-  final TextTheme baseType = isDark
-      ? Typography.material2021().black
-      : Typography.material2021().white;
-  // Use the full Material 3 type scale. The earlier compact override shrank
-  // headlines and made the UI look cramped, so headings keep their native
-  // sizes and screens only override a style when they truly need to.
-  final TextTheme swaraType = baseType;
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    textTheme: swaraType,
+    // Let ThemeData build the Material 3 text theme from the active color
+    // scheme. A hand-built Typography once inverted black and white, which
+    // painted dark theme text in near-black on a dark surface.
     scaffoldBackgroundColor: background,
     // Read directly by a few Material widgets, so these follow the black
     // surface as well instead of leaving a grey edge in an AMOLED theme.
@@ -216,8 +211,8 @@ ThemeData _buildSwaraTheme({
     tabBarTheme: TabBarThemeData(
       labelColor: scheme.onSurface,
       unselectedLabelColor: scheme.onSurfaceVariant,
-      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: const TextStyle(fontSize: 13),
+      labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: const TextStyle(fontSize: 14),
       indicatorColor: scheme.primary,
       dividerColor: Colors.transparent,
     ),

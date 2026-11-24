@@ -1,5 +1,29 @@
 # Changelog
 
+## v4.4.0
+
+Rilis performa dan kualitas tampilan: mulai lebih cepat, teks default lebih mudah dibaca, dan kontras baik di kedua tema, tanpa fitur baru.
+
+## Peningkatan
+
+- **Mulai aplikasi tanpa tunggu buatan.** Floor boot 600 ms dan transisi yang lebih panjang dihapus, sehingga layar pertama lebih cepat muncul.
+- **Pemulihan sesi dingin tidak memblokir frame pertama.** Antrean dan sumber audio dipulihkan setelah gate boot, sementara aksi eksternal tetap menunggu kesiapan.
+- **Pekerjaan koleksi menunggu tabnya.** Layar koleksi tidak lagi menyinkronkan playlist otomatis dan mendekode kolase di frame pertama.
+- **Database dibuka sekali.** Future inisialisasi yang di-memoisasi menghilangkan pekerjaan buka dan migrasi ganda saat mulai.
+- **Skala teks mengikuti baseline normal.** Kecil 0.85, normal 1.0, dan besar 1.15, dengan migrasi sekali saat pembaruan yang mempertahankan pilihan lama.
+- **Teks utama dan tab lebih mudah dibaca.** Judul lagu, album, koleksi, label grafik, label EQ, dan label tab kini memakai ukuran native yang lebih besar.
+- **Tombol dan grafik kosong mengikuti tema.** Radius khusus dihapus dan cincin grafik kosong memakai warna netral di kedua tema.
+
+## Perbaikan bug
+
+- **Teks tema gelap tidak lagi hitam.** ThemeData kini mengambil warna teks dari skema warna aktif, bukan tema kustom yang terbalik.
+- **Pembaruan lirik mempertahankan metadata manual.** Judul, artis, album, dan cover yang diedit pengguna tetap tersimpan setelah ambil lirik.
+- **Backoff metadata tidak membuang satu batch.** Saat menunggu batas laju, batch yang sama dicoba lagi, bukan dilewati.
+- **Impor M3U menyelesaikan jalur relatif.** Segmen titik dinormalisasi dan nama playlist ganda mendapat akhiran angka.
+- **Slider EQ mengikuti preset aktif.** Membuka equalizer dari layar lain tidak lagi menampilkan kurva lama.
+- **Angka dashboard ikut diperbarui.** Entri putar baru langsung membatalkan cache agregat.
+- **Pesan lirik diterima untuk baris sinkron.** Hasil yang hanya memiliki lirik sinkron tidak lagi dilaporkan tidak ditemukan.
+
 ## v4.3.2
 
 Rilis stabilitas: perbaikan temuan audit mendalam pada pemutaran, backup, dan performa, tanpa fitur baru.

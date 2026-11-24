@@ -19,15 +19,19 @@ class DBHelper {
 
   DBHelper._();
   static final DBHelper instance = DBHelper._();
-  Database? _db;
+  // Memoize the in-flight Future, not the completed Database. Cold-start
+  // callers race here; without this they each run a full open and migration.
+  Future<Database>? _dbFuture;
 
-  Future<Database> get db async {
-    _db ??= await _init();
-    final database = _db;
-    if (database == null) {
-      throw StateError('Database failed to initialize.');
-    }
-    return database;
+  Future<Database> get db {
+    final pending = _dbFuture;
+    if (pending != null) return pending;
+    // A failed open must not poison every later call until restart.
+    final created = _init().catchError((Object e) {
+      _dbFuture = null;
+      throw e;
+    });
+    return _dbFuture = created;
   }
 
   Future<Database> _init() async {
@@ -541,6 +545,16 @@ class DBHelper {
   /// Prefs key of the dashboard aggregate cache. Owned here because a history
   /// prune changes those numbers from outside the dashboard screen.
   static const String _dashboardCacheKey = 'dashboard_aggregate_cache_v1';
+
+  /// Drop the dashboard summary cache when a new listening entry changes it.
+  static Future<void> invalidateDashboardCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_dashboardCacheKey);
+    } catch (_) {
+      // Best effort: the numbers self heal on the next full reload.
+    }
+  }
 
   // ---------- Songs ----------
   Future<void> upsertSong(Song s) async {

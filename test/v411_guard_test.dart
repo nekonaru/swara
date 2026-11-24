@@ -40,7 +40,7 @@ void main() {
 
   test('permission prompt waits for the intro crossfade', () {
     final main = read('lib/main.dart');
-    expect(main.contains('Duration(milliseconds: 340)'), isTrue);
+    expect(main.contains('Duration(milliseconds: 240)'), isTrue);
   });
 
   test('thumbnails do not fsync and controls meet 48dp', () {

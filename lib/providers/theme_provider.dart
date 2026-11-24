@@ -18,16 +18,26 @@ const List<Color> kAccentColors = [
   Color(0xFF558B2F), // Light Green
 ];
 
-// Allowed app text scale factors shown in Settings.
-// 0.8 is the smallest (a bit smaller than normal), 0.85 is the default
-// "normal" size, 1.0 is "large". Extra-large is intentionally gone.
-const List<double> kTextScales = [0.8, 0.85, 1.0];
+// Allowed app text scale factors shown in Settings. They multiply the OS
+// accessibility scale, so normal stays at the platform baseline.
+const double kTextScaleSmall = 0.85;
+const double kTextScaleNormal = 1.0;
+const double kTextScaleLarge = 1.15;
+const List<double> kTextScales = [
+  kTextScaleSmall,
+  kTextScaleNormal,
+  kTextScaleLarge,
+];
 
 class ThemeProvider extends ChangeNotifier {
   static const _prefsKey = 'themeMode';
   static const _accentKey = 'accentColorIndex';
   static const _equalizerPresetKey = 'equalizerPreset';
   static const _textScaleKey = 'textScale';
+  // Authoritative saved value for the small / normal / large scale set.
+  // Its presence also marks a completed migration, so a partial upgrade can
+  // never be read back with the old meanings.
+  static const _textScaleV2Key = 'textScaleV2';
   static const _customEqGainsKey = 'custom_eq_gains';
   static const _eqPresetsKey = 'custom_eq_presets';
   static const _amoledBlackKey = 'amoledBlack';
@@ -36,9 +46,8 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.system;
   int accentColorIndex = 0;
   String equalizerPreset = 'Flat';
-  // App text scale factor. 0.85 (small) is the default so the app feels
-  // lighter on screen and fits more rows without scrolling.
-  double textScale = 0.85;
+  // App text scale factor. Normal follows the platform baseline.
+  double textScale = kTextScaleNormal;
   // Custom 5-band EQ gains (low to high). Used only with the Custom preset.
   List<double> customEqGains = [0, 0, 0, 0, 0];
   // Gains of the active named preset ('user:<id>'), kept separate so the
@@ -94,9 +103,23 @@ class ThemeProvider extends ChangeNotifier {
       accentColorIndex = (prefs.getInt(_accentKey) ?? 0)
           .clamp(0, kAccentColors.length - 1);
       equalizerPreset = prefs.getString(_equalizerPresetKey) ?? 'Flat';
-      // Fall back to normal (0.85) when nothing is stored or the value is unknown.
-      final savedScale = prefs.getDouble(_textScaleKey) ?? 0.85;
-      textScale = kTextScales.contains(savedScale) ? savedScale : 0.85;
+      final savedV2 = prefs.getDouble(_textScaleV2Key);
+      if (savedV2 != null) {
+        textScale = kTextScales.contains(savedV2) ? savedV2 : kTextScaleNormal;
+      } else {
+        // One authoritative write finishes the migration. If the process dies
+        // before it lands, the legacy key is still intact and is mapped again
+        // the same way on the next launch.
+        final rawScale = prefs.getDouble(_textScaleKey);
+        final migrated = switch (rawScale) {
+          0.8 => kTextScaleSmall,
+          0.85 => kTextScaleNormal,
+          1.0 => kTextScaleLarge,
+          _ => kTextScaleNormal,
+        };
+        textScale = migrated;
+        await prefs.setDouble(_textScaleV2Key, textScale);
+      }
       customEqGains = _readCustomGains(prefs);
       final storedPresets = prefs.getString(_eqPresetsKey);
       if (storedPresets != null) eqPresets = decodeEqPresets(storedPresets);
@@ -135,9 +158,9 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> setTextScale(double scale) async {
     // Validate against the same whitelist load() uses, so a value that is
     // not an offered option cannot be stored and then silently reset later.
-    textScale = kTextScales.contains(scale) ? scale : 0.85;
+    textScale = kTextScales.contains(scale) ? scale : kTextScaleNormal;
     notifyListeners();
-    await _write((prefs) => prefs.setDouble(_textScaleKey, textScale));
+    await _write((prefs) => prefs.setDouble(_textScaleV2Key, textScale));
   }
 
   // Read the stored custom gains, falling back to flat on bad data.

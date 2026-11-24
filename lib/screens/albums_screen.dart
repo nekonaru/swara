@@ -297,12 +297,12 @@ class _AlbumCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textScaler: scaler,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13)),
+                          fontWeight: FontWeight.bold, fontSize: 15)),
                   const SizedBox(height: 2),
                   Text(l.librarySongCount(songs.length),
                       textScaler: scaler,
                       style: TextStyle(
-                          fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),

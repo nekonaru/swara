@@ -29,7 +29,7 @@ void main() {
     final settings = read('lib/screens/settings_screen.dart');
     expect(settings.contains('SingleChildScrollView'), isTrue);
     final theme = read('lib/theme/app_theme.dart');
-    expect(theme.contains('final TextTheme swaraType = baseType;'), isTrue);
+    expect(theme.contains('Typography.material2021()'), isFalse);
     expect(theme.contains('minimumSize: const Size'), isFalse);
   });
 

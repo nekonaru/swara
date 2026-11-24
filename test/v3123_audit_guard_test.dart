@@ -90,10 +90,11 @@ void main() {
   });
 
   group('design tokens', () {
-    test('shared type scale is defined', () {
+    test('Material 3 type scale comes from the active color scheme', () {
       final theme = read('lib/theme/app_theme.dart');
-      expect(theme.contains('textTheme: swaraType'), isTrue);
-      expect(theme.contains('final TextTheme swaraType = baseType;'), isTrue);
+      expect(theme.contains('textTheme: swaraType'), isFalse);
+      expect(theme.contains('Typography.material2021()'), isFalse);
+      expect(theme.contains('Let ThemeData build the Material 3 text theme'), isTrue);
     });
 
     test('card radii and rank width are consistent', () {

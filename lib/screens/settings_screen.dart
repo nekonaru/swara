@@ -908,15 +908,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SegmentedButton<double>(
                   segments: [
                     ButtonSegment(
-                        value: 0.8,
+                        value: kTextScaleSmall,
                         label: Text(
                             AppLocalizations.of(context)!.dispSmall)),
                     ButtonSegment(
-                        value: 0.85,
+                        value: kTextScaleNormal,
                         label: Text(
                             AppLocalizations.of(context)!.dispNormal)),
                     ButtonSegment(
-                        value: 1.0,
+                        value: kTextScaleLarge,
                         label: Text(
                             AppLocalizations.of(context)!.dispLarge)),
                   ],

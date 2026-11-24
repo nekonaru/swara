@@ -1,5 +1,29 @@
 # Changelog
 
+## v4.4.0
+
+Performance and visual quality release: faster startup, readable default text and contrast in both themes, with no new features.
+
+## Improvements
+
+- **Startup drops the artificial wait.** The 600 ms boot floor and a longer crossfade are gone, so the first usable screen arrives sooner.
+- **Cold restore no longer blocks the first frame.** Queue and audio source restore now runs after the boot gate while external actions still wait for readiness.
+- **Collection work waits for its tab.** The collection screen no longer syncs auto playlists and decodes collages on the first frame.
+- **Database opens once.** A memoized init future removes duplicate open and migration work during cold start.
+- **Text scale follows a normal baseline.** Small is 0.85, normal is 1.0 and large is 1.15, with an upgrade migration that preserves the previous choice.
+- **Primary text and tabs are easier to read.** Song, album and collection titles, chart labels, EQ labels and tab labels now use larger native sizes.
+- **Buttons and empty charts follow the theme.** Bespoke corner radii are gone and the empty chart ring uses a neutral tone in both themes.
+
+## Bug fixes
+
+- **Dark theme text is no longer black.** ThemeData now derives the text colors from the active color scheme instead of an inverted custom theme.
+- **Lyrics refresh keeps manual metadata.** Titles, artists, albums and artwork edited by the user survive a lyrics fetch.
+- **Metadata backoff no longer drops a batch.** A rate limit wait retries the same batch instead of skipping it.
+- **M3U imports resolve relative paths.** Dot segments are canonicalized and duplicate playlist names get a numeric suffix.
+- **EQ sliders follow the active preset.** Opening the equalizer from another surface no longer shows a stale curve.
+- **Dashboard totals refresh.** New listening entries invalidate the aggregate cache immediately.
+- **Lyrics found message accepts synced lines.** A synced only result is no longer reported as not found.
+
 ## v4.3.2
 
 Stability release: fixes deep audit findings in playback, backup and performance, with no new features.

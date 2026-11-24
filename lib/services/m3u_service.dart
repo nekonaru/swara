@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 // Requires the `file_picker` package (to be added to pubspec.yaml
@@ -166,7 +167,7 @@ class M3uService {
   // Lowercase with forward slashes and no trailing slash so
   // comparisons work across Windows and POSIX style paths.
   static String _normalizePath(String value) {
-    var out = value.replaceAll('\\', '/');
+    var out = p.posix.normalize(value.replaceAll('\\', '/'));
     while (out.endsWith('/') && out.length > 1) {
       out = out.substring(0, out.length - 1);
     }

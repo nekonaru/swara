@@ -44,6 +44,9 @@ class _EqControlsState extends State<EqControls> {
   // finger is up.
   final List<double> _eqDraft = [0, 0, 0, 0, 0];
   bool _eqDraftReady = false;
+  // The preset can change from another surface (Settings sheet, backup
+  // import). Track its token so the sliders follow the active DSP curve.
+  String? _lastPresetToken;
 
   // Lazily seeds the drag draft from the persisted gains.
   List<double> _eqDraftFrom(ThemeProvider theme) {
@@ -161,6 +164,10 @@ class _EqControlsState extends State<EqControls> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    if (_lastPresetToken != themeProvider.equalizerPreset) {
+      _lastPresetToken = themeProvider.equalizerPreset;
+      _resetEqDraft();
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -361,7 +368,7 @@ class EqVisualizer extends StatelessWidget {
               const SizedBox(height: 4),
               Text(kBandLabels[i],
                   style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 11,
                       color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           );

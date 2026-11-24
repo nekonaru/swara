@@ -369,8 +369,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       : list),
             ),
 
-            // Collection - single screen (cards + playlists)
-            const CollectionsScreen(),
+            // Collection - build only when opened. IndexedStack would
+            // otherwise sync auto-playlists and decode collages on the very
+            // first frame, stealing CPU and SQLite time from the library.
+            _groupIndex == 1 ? const CollectionsScreen() : const SizedBox.shrink(),
 
             // Dashboard (lazy: no load until the tab is first opened)
             DashboardScreen(key: _dashboardKey, autoLoad: false),
@@ -578,10 +580,6 @@ class _TabSettingsSheetState extends State<_TabSettingsSheet> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24)),
-                        padding: const EdgeInsets.symmetric(vertical: 12)),
                     child: Text(l.cancel),
                   ),
                 ),
@@ -592,10 +590,6 @@ class _TabSettingsSheetState extends State<_TabSettingsSheet> {
                       widget.onApply(_defs);
                       Navigator.pop(context);
                     },
-                    style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24)),
-                        padding: const EdgeInsets.symmetric(vertical: 12)),
                     child: Text(l.homeApply),
                   ),
                 ),

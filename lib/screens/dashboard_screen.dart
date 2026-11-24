@@ -783,7 +783,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.clip,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: h == peakIndex
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -1510,7 +1510,7 @@ class _GenreDonutPainter extends CustomPainter {
     if (total <= 0) {
       paint.color = colors.isNotEmpty
           ? colors.first.withValues(alpha: 0.25)
-          : const Color(0xFFE0E0E0);
+          : const Color(0x33888888);
       canvas.drawCircle(center, radius - 11, paint);
       return;
     }

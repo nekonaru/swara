@@ -400,8 +400,9 @@ Future<bool> _bootApp({
         return true;
       }
     }(),
-    // Keep the brand moment long enough to be seen even on a warm boot.
-    Future<void>.delayed(const Duration(milliseconds: 600)),
+    // No artificial floor here. The native splash and SplashScreen's own
+    // entrance already carry the brand moment; waiting 600 ms on every warm
+    // launch only delayed the first usable screen.
   ]);
   return results[6] as bool? ?? true;
 }
@@ -518,7 +519,7 @@ class _BootGateState extends State<BootGate> {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             await Future<void>.delayed(reduceMotion
                 ? Duration.zero
-                : const Duration(milliseconds: 340));
+                : const Duration(milliseconds: 240));
             await PermissionService.ensureEssentialPermissions();
           });
         }
@@ -528,7 +529,7 @@ class _BootGateState extends State<BootGate> {
         return AnimatedSwitcher(
           duration: reduceMotion
               ? Duration.zero
-              : const Duration(milliseconds: 320),
+              : const Duration(milliseconds: 220),
           switchInCurve: const Cubic(0.23, 1.0, 0.32, 1.0),
           switchOutCurve: const Cubic(0.23, 1.0, 0.32, 1.0),
           transitionBuilder: (child, animation) => FadeTransition(

@@ -743,20 +743,31 @@ class PlayerService extends ChangeNotifier {
     // without draining battery while paused.
     await _subscribePosition();
     // Cold start: rebuild the last session paused at the saved minute:second.
-    // Runs once per process; after user actions the queue is theirs again.
-    await _restoreResumeState();
-    // Persist every 5 seconds while anything is playing, so a force kill
-    // loses at most a few seconds of progress.
-    _resumeSaveTimer?.cancel();
-    _resumeSaveTimer = Timer.periodic(_resumeSaveInterval, (_) {
-      if (player.playing && _playOrder.isNotEmpty) {
-        unawaited(_saveResumeState());
-      }
-    });
-    // Everything is loaded now. Notify once so any UI built before init
-    // finished (crossfade seconds, smart shuffle, sleep schedule, speed and
-    // pitch) shows the persisted values instead of the defaults.
-    if (!_disposed) notifyListeners();
+    // Do it outside the boot gate: opening an audio source and decoding the
+    // saved queue must not hold the first useful frame. External actions
+    // still wait on [ready], which completes when this restore finishes.
+    unawaited(_restoreAfterBoot());
+  }
+
+  Future<void> _restoreAfterBoot() async {
+    try {
+      await _restoreResumeState();
+    } catch (e) {
+      debugPrint('Resume restore failed: $e');
+    }
+    if (!_disposed) {
+      // Persist every 5 seconds while anything is playing, so a force kill
+      // loses at most a few seconds of progress.
+      _resumeSaveTimer?.cancel();
+      _resumeSaveTimer = Timer.periodic(_resumeSaveInterval, (_) {
+        if (player.playing && _playOrder.isNotEmpty) {
+          unawaited(_saveResumeState());
+        }
+      });
+      // UI built before restore finishes needs the persisted speed, pitch,
+      // crossfade seconds, smart shuffle and sleep schedule values.
+      notifyListeners();
+    }
     if (!_readyCompleter.isCompleted) _readyCompleter.complete();
   }
 
@@ -2363,6 +2374,7 @@ class PlayerService extends ChangeNotifier {
         timestamp: DateTime.now(),
         listenedMs: _accumulatedListenedMs,
       ))
+          .then((_) => DBHelper.invalidateDashboardCache())
           .catchError((e) {
         debugPrint('Failed to save listening history: $e');
       });

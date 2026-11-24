@@ -412,6 +412,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     _lrcSongId = null;
     await _maybeLoadSyncedLyrics(song);
     if (!mounted) return;
+    // A lookup can succeed with only synced LRC lines and leave plain
+    // lyrics empty, so the "not found" message must consider both views.
+    if (_lrcLines.isNotEmpty) found = true;
     final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

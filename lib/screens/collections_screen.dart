@@ -529,24 +529,23 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       if (base.isEmpty) {
         base = AppLocalizations.of(context)!.m3uImportedDefault;
       }
+      // The playlists table has no UNIQUE constraint, so the old catch of a
+      // duplicate error never fired. Pick a free name up front instead.
+      final existingNames =
+          prov.playlists.map((p) => (p['name'] as String?) ?? '').toSet();
       var name = base;
       var suffix = 2;
-      var playlistId = -1;
-      while (playlistId < 0) {
-        try {
-          await prov.create(name);
-          if (!mounted) return;
-          final found = prov.playlists.firstWhere(
-            (p) => (p['name'] as String) == name,
-          );
-          playlistId = found['id'] as int;
-        } catch (e) {
-          // Retry with a suffix only on duplicate name errors.
-          if (!e.toString().contains('UNIQUE')) rethrow;
-          name = '$base ($suffix)';
-          suffix++;
-        }
+      while (existingNames.contains(name)) {
+        name = '$base ($suffix)';
+        suffix++;
       }
+      await prov.create(name);
+      if (!mounted) return;
+      await prov.load();
+      final found = prov.playlists.firstWhere(
+        (p) => (p['name'] as String) == name,
+      );
+      final playlistId = found['id'] as int;
 
       var added = 0;
       // One transaction for the whole import instead of one write per song.
@@ -1255,7 +1254,7 @@ class _QuickCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold),
                     ),
                     if (subtitle.isNotEmpty) ...[
@@ -1264,8 +1263,8 @@ class _QuickCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 11)),
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 12)),
                     ],
                   ],
                 ),
