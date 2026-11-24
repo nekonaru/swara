@@ -395,6 +395,9 @@ class SwaraAudioHandler extends BaseAudioHandler {
           await DBHelper.instance.setFavorite(song.id, next);
           song.isFavorite = next;
           PlayerService.instance.syncQueueSong(song);
+          // syncQueueSong skips the current (identical) object, so force a
+          // notify to refresh favorite icons in the app UI as well.
+          PlayerService.instance.syncUiState();
         }
         _syncState();
         break;

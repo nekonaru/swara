@@ -71,7 +71,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final saved = prefs.getInt(_kOnboardingPageKey) ?? 0;
       if (!mounted || saved <= 0 || saved >= _pageCount) return;
       setState(() => _index = saved);
-      _controller.jumpToPage(saved);
+      // Jump after the PageView attaches; jumping before it builds asserts.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _controller.jumpToPage(saved);
+      });
     } catch (_) {
       // Page progress is optional; start at the first page.
     }
@@ -182,7 +185,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final widget = AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final position = _controller.page ?? _index.toDouble();
+        final position = _controller.hasClients
+            ? (_controller.page ?? _index.toDouble())
+            : _index.toDouble();
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(_pageCount, (i) {
@@ -245,11 +250,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         setState(() => _index = i);
                         _rememberPage(i);
                       },
-                      itemBuilder: (context, i) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Center(
-                          child: _page(pages[i], cs, reduceMotion,
-                              constraints.maxHeight),
+                      itemBuilder: (context, i) => LayoutBuilder(
+                        builder: (context, pageConstraints) =>
+                            SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                                minHeight: pageConstraints.maxHeight),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 12),
+                              child: Center(
+                                child: _page(pages[i], cs, reduceMotion,
+                                    pageConstraints.maxHeight),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),

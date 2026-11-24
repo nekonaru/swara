@@ -93,7 +93,7 @@ void main() {
     test('shared type scale is defined', () {
       final theme = read('lib/theme/app_theme.dart');
       expect(theme.contains('textTheme: swaraType'), isTrue);
-      expect(theme.contains('titleMedium: baseType.titleMedium'), isTrue);
+      expect(theme.contains('final TextTheme swaraType = baseType;'), isTrue);
     });
 
     test('card radii and rank width are consistent', () {

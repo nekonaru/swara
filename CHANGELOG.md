@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.3.1
+
+Stability release: fixes visual and functional regressions reported after v4.0, with no new features.
+
+## Bug fixes
+
+- **Splash no longer shows two different marks.** The Flutter splash now uses the same flat cream panpipe as the native splash, so the handoff is one continuous glyph.
+- **The brand glyph is no longer painted behind the whole app.** A splash-only background keeps the window background plain navy after startup and on legacy devices.
+- **Onboarding no longer crashes on first frame.** The page indicator now guards the controller before the PageView attaches, and restored page jumps are deferred until it is ready.
+- **Onboarding text scrolls at large accessibility sizes** instead of being clipped on small screens.
+- **In-app equalizer sheet scrolls.** All presets, sliders and the save button are reachable on ordinary phones.
+- **Loudness and favorite state refresh correctly** after a backup restore and from the notification action.
+- **Native typography and button sizing are restored.** Material 3 text sizes and default button heights replace the compact overrides that made the UI look cramped.
+
 ## v4.3.0
 
 Android Auto is completed with real browse playback, plus a new offline search mode and audit fixes.

@@ -510,6 +510,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await theme.load();
       await LoudnessService.instance.load();
       await PlayerService.instance.loadPreferences();
+      if (mounted) {
+        setState(() =>
+            _loudnessEnabled = LoudnessService.instance.enabled);
+      }
       // Pushed preferences must reach the live DSP and playback rate now.
       final preset = theme.equalizerPreset;
       if (preset == 'Flat') {
@@ -673,12 +677,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.88),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
                 child: Column(
@@ -699,6 +707,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const EqControls(),
             ],
           ),
+        ),
+        ),
         ),
       ),
     );

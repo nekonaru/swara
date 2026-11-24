@@ -467,6 +467,9 @@ class PlayerService extends ChangeNotifier {
     return _player;
   }
 
+  /// Public, context-free notification for external MediaSession actions.
+  void syncUiState() => notifyListeners();
+
   /// Public view of the audible player for UI stream subscriptions: during a
   /// crossfade the primary player is paused, so binding progress/state to it
   /// would freeze the mini player and lyrics.

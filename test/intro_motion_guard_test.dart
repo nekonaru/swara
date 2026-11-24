@@ -32,10 +32,15 @@ void main() {
           'android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/MainActivity.kt');
       expect(activity.contains('setOnExitAnimationListener'), isTrue);
       final legacy =
-          read('android/app/src/main/res/drawable/launch_background.xml');
+          read('android/app/src/main/res/drawable/splash_background.xml');
       expect(legacy.contains('@drawable/ic_splash_icon'), isTrue);
+      final plain =
+          read('android/app/src/main/res/drawable/launch_background.xml');
+      expect(plain.contains('@drawable/ic_splash_icon'), isFalse);
+      final splash = read('lib/screens/splash_screen.dart');
+      expect(splash.contains('assets/swara_splash_glyph.png'), isTrue);
       final night = read('android/app/src/main/res/values-night/styles.xml');
-      expect(night.contains('@drawable/launch_background'), isTrue);
+      expect(night.contains('@drawable/splash_background'), isTrue);
     });
   });
 

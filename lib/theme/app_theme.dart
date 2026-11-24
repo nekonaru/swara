@@ -101,24 +101,10 @@ ThemeData _buildSwaraTheme({
   final TextTheme baseType = isDark
       ? Typography.material2021().black
       : Typography.material2021().white;
-  // One small, shared type scale. Screens that still need a bespoke size can
-  // override it locally, but headings and captions now have canonical roles.
-  final TextTheme swaraType = baseType.copyWith(
-    displaySmall: baseType.displaySmall?.copyWith(
-        fontSize: 20, fontWeight: FontWeight.w700),
-    headlineSmall: baseType.headlineSmall?.copyWith(
-        fontSize: 18, fontWeight: FontWeight.w700),
-    titleLarge: baseType.titleLarge?.copyWith(
-        fontSize: 18, fontWeight: FontWeight.w600),
-    titleMedium: baseType.titleMedium?.copyWith(
-        fontSize: 15, fontWeight: FontWeight.w700),
-    titleSmall: baseType.titleSmall?.copyWith(
-        fontSize: 14, fontWeight: FontWeight.w700),
-    labelMedium: baseType.labelMedium?.copyWith(
-        fontSize: 12, fontWeight: FontWeight.w600),
-    labelSmall: baseType.labelSmall?.copyWith(
-        fontSize: 11, fontWeight: FontWeight.w500),
-  );
+  // Use the full Material 3 type scale. The earlier compact override shrank
+  // headlines and made the UI look cramped, so headings keep their native
+  // sizes and screens only override a style when they truly need to.
+  final TextTheme swaraType = baseType;
 
   return ThemeData(
     useMaterial3: true,
@@ -187,7 +173,6 @@ ThemeData _buildSwaraTheme({
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         shape: const StadiumBorder(),
-        minimumSize: const Size(88, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
@@ -195,7 +180,6 @@ ThemeData _buildSwaraTheme({
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         shape: const StadiumBorder(),
-        minimumSize: const Size(88, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
@@ -203,7 +187,6 @@ ThemeData _buildSwaraTheme({
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         shape: const StadiumBorder(),
-        minimumSize: const Size(64, 48),
         textStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
     ),

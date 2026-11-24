@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Splash-only background: navy tile plus the brand glyph, so the
+         window background of the rest of the app stays plain navy. -->
+    <item android:drawable="@color/ic_launcher_background" />
+    <item
+        android:drawable="@drawable/ic_splash_icon"
+        android:gravity="center"
+        android:width="112dp"
+        android:height="112dp" />
+</layer-list>

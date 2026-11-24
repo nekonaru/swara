@@ -13,7 +13,7 @@
     <style name="LaunchTheme" parent="Theme.AppCompat.NoActionBar">
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
-        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
     <!-- Theme applied to the Android Window as soon as the process has started.
          This theme determines the color of the Android Window while your
@@ -22,8 +22,7 @@
 
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Navy behind the Flutter UI so the pre-first-frame window never
-             flashes white; matches the splash and the icon tile. -->
-        <item name="android:windowBackground">@drawable/launch_background</item>
+        <!-- Plain navy behind Flutter; the glyph belongs to the splash only. -->
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
     </style>
 </resources>

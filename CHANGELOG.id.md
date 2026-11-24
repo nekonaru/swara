@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.3.1
+
+Rilis stabilitas: perbaikan regresi tampilan dan fungsi yang dilaporkan setelah v4.0, tanpa fitur baru.
+
+## Perbaikan bug
+
+- **Splash tidak lagi menampilkan dua logo berbeda.** Splash Flutter kini memakai glyph panpipe krem polos yang sama dengan splash native, jadi pergantiannya mulus.
+- **Glyph tidak lagi tergambar di seluruh aplikasi.** Background khusus splash menjaga background jendela tetap navy polos setelah mulai dan di perangkat lawas.
+- **Onboarding tidak crash di frame pertama.** Indikator halaman kini menjaga controller sebelum PageView terpasang, dan lompat ke halaman tersimpan ditunda sampai siap.
+- **Teks onboarding bisa digulir** pada ukuran aksesibilitas besar, tidak terpotong di layar kecil.
+- **Sheet equalizer dalam aplikasi bisa digulir.** Semua preset, slider, dan tombol simpan bisa dijangkau di HP biasa.
+- **Status loudness dan favorit diperbarui** setelah pulih backup dan dari aksi notifikasi.
+- **Tipografi dan ukuran tombol native dikembalikan.** Ukuran teks Material 3 dan tinggi tombol bawaan menggantikan override ringkas yang membuat tampilan terasa sempit.
+
 ## v4.3.0
 
 Android Auto lengkap dengan pemutaran dari daftar, plus mode pencarian offline baru dan perbaikan audit.

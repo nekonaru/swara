@@ -95,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
                   right: 0,
                   child: Center(
                     child: Image.asset(
-                      'assets/swara-mark.png',
+                      'assets/swara_splash_glyph.png',
                       width: _markSide,
                       height: _markSide,
                       cacheWidth: 224,
