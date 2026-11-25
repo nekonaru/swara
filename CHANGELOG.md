@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.13.0
+
+Large browse and playlist reliability release: full Android Auto paging with voice playback, and fixes that make built-in smart playlists dependable, with no new dependency.
+
+## New features
+
+- **Android Auto recent category and paging.** Large libraries load 50 items per page, and voice commands such as "play artist" start a matching song without replacing the current queue.
+
+## Improvements
+
+- **Built-in smart playlists always exist.** Fresh installs and deleted built-ins are recreated, and a renamed built-in keeps its editable rule.
+- **Smart membership respects hidden folders and limits.** A rule with a limit returns the requested number of visible songs.
+- **Smart playlist art refreshes** after a rule edit, manual refresh, or library change.
+- **Backup restore applies the backed-up rule** to an existing same-named smart playlist before rebuilding members.
+
+## Bug fixes
+
+- **Forgotten Favorites includes never-played favorites** again.
+- **Smart rule editing rejects invalid numeric conditions** instead of silently storing zero.
+- **A failed smart rebuild during playback is logged** instead of raising an unhandled error.
+- **Actionable snackbars stay available** until their own snackbar closes.
+- **An empty-library snapshot names the real cause** instead of saying there are no snapshots.
+
 ## v4.12.0
 
 Large playlist and reliability release: editable rule-based smart playlists, plus fixes from the latest native audit, with no new dependency.

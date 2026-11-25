@@ -4269,6 +4269,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playlist name'**
   String get smartRuleName;
+
+  /// Message when a snapshot is requested on an empty library
+  ///
+  /// In en, this message translates to:
+  /// **'There are no songs to snapshot yet'**
+  String get dataSnapshotLibraryEmpty;
+
+  /// Android Auto browse category for recently played songs
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get autoBrowseRecent;
 }
 
 class _AppLocalizationsDelegate

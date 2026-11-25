@@ -43,10 +43,27 @@ class SwaraBrowseCatalog {
     }
   }
 
-  static Future<List<MediaItem>> childrenFor(String parentId) async {
+  static (int page, int pageSize) pageOf(Map<String, dynamic>? options) {
+    final rawPage = options?['page'] ??
+        options?['android.media.browse.extra.PAGE'];
+    final rawSize = options?['pageSize'] ??
+        options?['android.media.browse.extra.PAGE_SIZE'];
+    final page = (rawPage is num ? rawPage.toInt() : 0).clamp(0, 1 << 20);
+    final size = (rawSize is num ? rawSize.toInt() : maxChildren).clamp(1, 100);
+    return (page, size);
+  }
+
+  static Future<List<MediaItem>> childrenFor(
+    String parentId, [
+    Map<String, dynamic>? options,
+  ]) async {
     final l = lookupAppLocalizations(LanguageProvider.instance.locale);
+    final (page, pageSize) = pageOf(options);
+    final offset = page * pageSize;
     if (parentId == root) {
       return [
+        MediaItem(id: recent, title: l.autoBrowseRecent,
+            artist: '', album: '', playable: false),
         MediaItem(id: catPlaylists, title: l.autoBrowsePlaylists,
             artist: '', album: '', playable: false),
         MediaItem(id: catFolders, title: l.homeTabFolders,
@@ -58,11 +75,13 @@ class SwaraBrowseCatalog {
       ];
     }
     if (parentId == recent) {
-      final rows = await DBHelper.instance.getRecentlyPlayed(limit: 1);
+      final rows = await DBHelper.instance.getRecentlyPlayed(
+          limit: pageSize, offset: offset);
       return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catPlaylists) {
-      final rows = await DBHelper.instance.getPlaylists();
+      final rows = await DBHelper.instance.getPlaylistsPage(
+          limit: pageSize, offset: offset);
       return [
         for (final row in rows)
           if ((row['name'] as String?)?.isNotEmpty == true)
@@ -78,21 +97,19 @@ class SwaraBrowseCatalog {
     if (parentId.startsWith('cat_playlist_')) {
       final id = int.tryParse(parentId.substring('cat_playlist_'.length));
       if (id == null) return const <MediaItem>[];
-      final songs = await DBHelper.instance.getSongsInPlaylist(id);
-      return [
-        for (final song in songs.take(maxChildren)) _leaf(song),
-      ];
+      final songs = await DBHelper.instance.getSongsInPlaylistPage(id,
+          limit: pageSize, offset: offset);
+      return [for (final song in songs) _leaf(song)];
     }
     if (parentId == catFolders) {
       final excluded = await DBHelper.instance.getExcludedFolders();
-      final folders = <String>{};
-      for (final song in await DBHelper.instance.getSongSummaries()) {
-        final folder = folderOf(song.filePath);
-        if (folder.isEmpty || excluded.contains(folder)) continue;
-        folders.add(folder);
-      }
+      final folders = await DBHelper.instance.getMusicFoldersPage(
+        limit: pageSize,
+        offset: offset,
+        excludedFolders: excluded,
+      );
       return [
-        for (final folder in folders.take(maxChildren))
+        for (final folder in folders)
           MediaItem(
             id: _category('folder_${Uri.encodeQueryComponent(folder)}'),
             title: folder.split('/').last,
@@ -110,27 +127,30 @@ class SwaraBrowseCatalog {
       } catch (_) {
         return const <MediaItem>[];
       }
-      return [
-        for (final song in (await DBHelper.instance.getSongSummaries())
-            .where((s) => folderOf(s.filePath) == folder)
-            .take(maxChildren))
-          _leaf(song),
-      ];
+      final rows = (await DBHelper.instance.getSongSummaries())
+          .where((s) => folderOf(s.filePath) == folder)
+          .skip(offset)
+          .take(pageSize);
+      return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catSongs) {
       final excluded = await DBHelper.instance.getExcludedFolders();
-      return [
-        for (final song in (await DBHelper.instance.getSongSummaries())
-            .where((s) => !excluded.contains(folderOf(s.filePath)))
-            .take(maxChildren))
-          _leaf(song),
-      ];
+      final rows = await DBHelper.instance.querySongsPage(
+        query: '',
+        limit: pageSize,
+        offset: offset,
+        excludedFolders: excluded,
+        orderBy: 'title ASC',
+      );
+      return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catQueue) {
       final service = PlayerService.instance;
       final queue = service.queue;
       final out = <MediaItem>[];
-      for (var i = 0; i < queue.length && i < maxChildren; i++) {
+      for (var i = offset;
+          i < queue.length && out.length < pageSize;
+          i++) {
         final song = queue[i];
         final slot = service.queueSlotIdAt(i);
         out.add(_leaf(song,
@@ -141,12 +161,13 @@ class SwaraBrowseCatalog {
     return const <MediaItem>[];
   }
 
-  static Future<List<MediaItem>> search(String query) async {
+  static Future<List<MediaItem>> search(String query,
+      [int limit = maxChildren]) async {
     if (query.trim().isEmpty) return const <MediaItem>[];
     final excluded = await DBHelper.instance.getExcludedFolders();
     final rows = await DBHelper.instance.querySongsPage(
       query: query,
-      limit: maxChildren,
+      limit: limit,
       offset: 0,
       excludedFolders: excluded,
       orderBy: 'title ASC',

@@ -960,7 +960,11 @@ class PlayerService extends ChangeNotifier {
       _crossfadeActiveGeneration = -1;
       _markSongPlayed(nextSong);
       await DBHelper.instance.markPlayed(nextSong.id);
-      unawaited(SmartPlaylistService.instance.rebuildAll(playStatsOnly: true));
+      unawaited(SmartPlaylistService.instance
+          .rebuildAll(playStatsOnly: true)
+          .catchError((Object e) {
+        debugPrint('Smart playlist rebuild failed: $e');
+      }));
       unawaited(_saveResumeState());
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
 
@@ -1340,7 +1344,11 @@ class PlayerService extends ChangeNotifier {
     _accumulatedListenedMs = 0;
     _markSongPlayed(song);
     await DBHelper.instance.markPlayed(song.id);
-      unawaited(SmartPlaylistService.instance.rebuildAll(playStatsOnly: true));
+      unawaited(SmartPlaylistService.instance
+          .rebuildAll(playStatsOnly: true)
+          .catchError((Object e) {
+        debugPrint('Smart playlist rebuild failed: $e');
+      }));
     if (playGen != _playGeneration || _disposed) return;
     lastError = null;
     _consecutiveLoadFailures = 0;

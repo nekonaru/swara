@@ -2827,5 +2827,13 @@
     "smartRuleName":  "Playlist name",
     "@smartRuleName":  {
                                    "description":  "English locale string"
+                               },
+    "dataSnapshotLibraryEmpty":  "There are no songs to snapshot yet",
+    "@dataSnapshotLibraryEmpty":  {
+                                   "description":  "Message when a snapshot is requested on an empty library"
+                               },
+    "autoBrowseRecent":  "Recent",
+    "@autoBrowseRecent":  {
+                                   "description":  "Android Auto browse category for recently played songs"
                                }
 }

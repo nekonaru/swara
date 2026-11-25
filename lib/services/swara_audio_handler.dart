@@ -401,12 +401,29 @@ class SwaraAudioHandler extends BaseAudioHandler {
   @override
   Future<List<MediaItem>> getChildren(String parentMediaId,
       [Map<String, dynamic>? options]) =>
-      SwaraBrowseCatalog.childrenFor(parentMediaId);
+      SwaraBrowseCatalog.childrenFor(parentMediaId, options);
 
   @override
   Future<List<MediaItem>> search(String query,
           [Map<String, dynamic>? extras]) =>
       SwaraBrowseCatalog.search(query);
+
+  @override
+  Future<void> playFromSearch(String query,
+      [Map<String, dynamic>? extras]) async {
+    try {
+      await PlayerService.instance.ready
+          .timeout(const Duration(seconds: 3))
+          .catchError((Object _) {});
+      final text = query.trim();
+      if (text.isEmpty) return;
+      final hits = await SwaraBrowseCatalog.search(text, 1);
+      if (hits.isEmpty) return;
+      await _playMediaItem(hits.first.id);
+    } catch (e) {
+      debugPrint('playFromSearch failed: $e');
+    }
+  }
 
   @override
   Future<void> seek(Duration position) =>

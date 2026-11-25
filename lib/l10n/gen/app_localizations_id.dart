@@ -2409,4 +2409,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get smartRuleName => 'Nama daftar putar';
+
+  @override
+  String get dataSnapshotLibraryEmpty => 'Belum ada lagu untuk dibuat snapshot';
+
+  @override
+  String get autoBrowseRecent => 'Terakhir';
 }

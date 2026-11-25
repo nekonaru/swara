@@ -399,6 +399,12 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     // built-in rules seeded in the database migration.
     await prov.refreshAllSmart();
     if (!mounted) return;
+    for (final row in prov.playlists) {
+      if ((row['rule'] as String?)?.isNotEmpty == true &&
+          (row['id'] as num?) != null) {
+        _scheduleArtRefresh(prov, (row['id'] as num).toInt());
+      }
+    }
     setState(() {
       _autoSyncing = false;
       _autoSynced = true;
@@ -467,13 +473,17 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
         const SmartRule();
     final edited = await showSmartRuleEditor(context, initial);
     if (edited == null || !mounted) return;
-    await context.read<PlaylistProvider>().updateRule(id, edited);
+    final prov = context.read<PlaylistProvider>();
+    await prov.updateRule(id, edited);
+    _scheduleArtRefresh(prov, id);
   }
 
   Future<void> _refreshSmart(Map<String, dynamic> playlist) async {
     final id = (playlist['id'] as num?)?.toInt();
     if (id == null) return;
-    await context.read<PlaylistProvider>().refreshSmart(id);
+    final prov = context.read<PlaylistProvider>();
+    await prov.refreshSmart(id);
+    _scheduleArtRefresh(prov, id);
   }
 
   Future<void> _importM3u() async {

@@ -590,13 +590,9 @@ class BackupService {
           if (!isNew) {
             playlistId = idByName[name]!;
             playlistsAlreadyPresent++;
-            final local = existingRows.firstWhere(
-              (row) => (row['id'] as num?)?.toInt() == playlistId,
-              orElse: () => const <String, dynamic>{},
-            );
-            if ((local['rule'] as String?)?.isNotEmpty != true &&
-                backupRule != null &&
-                backupRule.isNotEmpty) {
+            // A backup restore is explicit: its rule wins over a stale local
+            // one, and members are rebuilt from it at the end of the import.
+            if (backupRule != null && backupRule.isNotEmpty) {
               await dbHelper.setPlaylistRule(playlistId, backupRule);
             }
           } else if (createdAt != null) {

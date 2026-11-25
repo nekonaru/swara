@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.13.0
+
+Rilis besar untuk jelajah dan keandalan daftar putar: Android Auto lengkap dengan halaman dan pemutaran suara, plus perbaikan agar playlist pintar bawaan selalu dapat diandalkan tanpa dependensi baru.
+
+## Fitur baru
+
+- **Kategori terakhir dan halaman Android Auto.** Pustaka besar memuat 50 item per halaman, dan perintah suara seperti "putar artis" memutar lagu yang cocok tanpa mengganti antrean.
+
+## Peningkatan
+
+- **Playlist pintar bawaan selalu ada.** Instal baru dan playlist bawaan yang dihapus dibuat ulang, dan playlist bawaan yang diganti nama tetap mempertahankan aturannya.
+- **Anggota playlist pintar mematuhi folder tersembunyi dan batas.** Aturan dengan batas mengembalikan jumlah lagu terlihat yang diminta.
+- **Sampul playlist pintar diperbarui** setelah aturan diubah, segarkan manual, atau pustaka berubah.
+- **Pemulihan cadangan menerapkan aturan dari cadangan** ke playlist pintar bernama sama sebelum anggota dibangun ulang.
+
+## Perbaikan bug
+
+- **Forgotten Favorites memasukkan lagi favorit yang belum pernah diputar.**
+- **Editor aturan pintar menolak kondisi angka yang tidak valid**, bukan menyimpan nol diam-diam.
+- **Gagal membangun ulang playlist saat pemutaran dicatat**, bukan memicu error tak tertangani.
+- **Snackbar dengan aksi tetap tersedia** sampai snackbarnya sendiri ditutup.
+- **Snapshot di pustaka kosong menyebut penyebab yang sebenarnya**, bukan mengatakan belum ada snapshot.
+
 ## v4.12.0
 
 Rilis besar untuk daftar putar dan keandalan: playlist pintar berbasis aturan yang bisa diedit, plus perbaikan audit native terbaru tanpa dependensi baru.

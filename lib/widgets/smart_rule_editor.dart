@@ -96,6 +96,14 @@ Future<SmartRule?> showSmartRuleEditor(
               child: Text(AppLocalizations.of(ctx)!.cancel)),
           FilledButton(
             onPressed: () {
+              if (rows.any((row) => !row.isValid)) {
+                ScaffoldMessenger.of(ctx)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                    content: Text(AppLocalizations.of(ctx)!.smartRuleInvalid),
+                  ));
+                return;
+              }
               final limit = int.tryParse(limitController.text.trim());
               Navigator.pop(
                 ctx,
@@ -164,7 +172,16 @@ class _CriterionRow {
 
   bool get isValid {
     if (!supportedOps(field).contains(op)) return false;
-    if (_needsValue.contains(op)) return value.trim().isNotEmpty;
+    if (!_needsValue.contains(op)) return true;
+    final text = value.trim();
+    if (text.isEmpty) return false;
+    if (field == SmartField.playCount ||
+        field == SmartField.duration ||
+        field == SmartField.lastPlayed ||
+        field == SmartField.addedAt) {
+      final number = int.tryParse(text);
+      return number != null && number >= 0;
+    }
     return true;
   }
 

@@ -2411,4 +2411,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get smartRuleName => 'Playlist name';
+
+  @override
+  String get dataSnapshotLibraryEmpty => 'There are no songs to snapshot yet';
+
+  @override
+  String get autoBrowseRecent => 'Recent';
 }

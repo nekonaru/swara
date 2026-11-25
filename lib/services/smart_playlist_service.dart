@@ -11,6 +11,23 @@ class SmartPlaylistService {
   SmartPlaylistService._();
   static final SmartPlaylistService instance = SmartPlaylistService._();
 
+  /// Built-in rules. The name is only a display default: renamed built-ins
+  /// are recognized by isAuto with no rule, so their rule survives a rename.
+  static const builtInSeeds = <(String name, String rule)>[
+    (
+      'Unplayed',
+      '{"schema":1,"match":"all","criteria":[{"field":"lastPlayed","op":"isNull","value":null}],"order":"title_asc","limit":null,"salt":0}',
+    ),
+    (
+      'Forgotten Favorites',
+      '{"schema":1,"match":"all","criteria":[{"field":"favorite","op":"isTrue","value":null},{"field":"lastPlayed","op":"beforeDays","value":90}],"order":"lastPlayed_asc","limit":null,"salt":0}',
+    ),
+    (
+      'Daily Mix',
+      '{"schema":1,"match":"all","criteria":[],"order":"random_daily","limit":25,"salt":0}',
+    ),
+  ];
+
   static const String _textFields = 'title artist album genre';
 
   static String _expression(SmartField field) => switch (field) {
@@ -65,7 +82,9 @@ class SmartPlaylistService {
         if (days == null || days < 0) return null;
         args.add(days);
         if (c.op == SmartOp.beforeDays) {
-          return "julianday($expr) < julianday('now', '-' || ? || ' days')";
+          // Never-played items must count as forgotten too.
+          return '($expr IS NULL OR julianday($expr) < '
+              "julianday('now', '-' || ? || ' days'))";
         }
         if (c.op == SmartOp.afterDays) {
           return "julianday($expr) > julianday('now', '-' || ? || ' days')";
@@ -108,19 +127,22 @@ class SmartPlaylistService {
       sql.write(' WHERE ${where.join(rule.match == 'any' ? ' OR ' : ' AND ')}');
     }
     sql.write(' ORDER BY $order');
-    if (rule.limit != null && rule.order != 'random_daily') {
-      sql.write(' LIMIT ?');
-      args.add(rule.limit);
-    }
+    // No SQL LIMIT: hidden-folder filtering happens in Dart, so truncating
+    // earlier would return fewer members than the rule allows.
     final rows = await database.rawQuery(sql.toString(), args);
     final excluded = await DBHelper.instance.getExcludedFolders();
     var ids = rows
         .where((r) {
           final path = r['filePath'] as String? ?? '';
-          return path.isEmpty || !excluded.contains(folderOf(path));
+          return path.isNotEmpty && !excluded.contains(folderOf(path));
         })
         .map((r) => (r['id'] as num).toInt())
         .toList();
+    if (rule.limit != null &&
+        rule.order != 'random_daily' &&
+        ids.length > rule.limit!) {
+      ids = ids.sublist(0, rule.limit!);
+    }
     if (rule.order == 'random_daily') {
       final seed = DateTime.now().year * 10000 +
           DateTime.now().month * 100 +
@@ -142,18 +164,51 @@ class SmartPlaylistService {
     );
     final rule = SmartRule.tryParse(row['rule'] as String?);
     if (rule == null) return 0;
+    return _rebuildWithRule(playlistId, rule);
+  }
+
+  Future<int> _rebuildWithRule(int playlistId, SmartRule rule) async {
     final ids = await evaluate(rule);
     await DBHelper.instance.replacePlaylistSongs(playlistId, ids);
     return ids.length;
   }
 
+  /// Make sure the three built-ins exist, including on a fresh database and
+  /// after a user deletes one. A renamed built-in is recognized by isAuto with
+  /// no rule, so its new rule survives the rename.
+  Future<void> ensureBuiltIns() async {
+    final rows = await DBHelper.instance.getPlaylists();
+    final unassigned = rows
+        .where((p) =>
+            (p['isAuto'] as num?) == 1 &&
+            (p['rule'] as String?)?.isNotEmpty != true)
+        .toList();
+    var cursor = 0;
+    for (final (name, ruleText) in builtInSeeds) {
+      final exists = rows.any((p) =>
+          (p['rule'] as String?) == ruleText ||
+          (p['name'] as String?) == name);
+      if (exists) continue;
+      if (cursor < unassigned.length) {
+        await DBHelper.instance.setPlaylistRule(
+            (unassigned[cursor]['id'] as num).toInt(), ruleText);
+        cursor++;
+      } else {
+        await DBHelper.instance.createPlaylist(name,
+            isAuto: true, rule: ruleText);
+      }
+    }
+  }
+
   Future<void> rebuildAll({bool playStatsOnly = false}) async {
-    for (final row in await DBHelper.instance.getPlaylists()) {
+    await ensureBuiltIns();
+    final rows = await DBHelper.instance.getPlaylists();
+    for (final row in rows) {
       final id = (row['id'] as num?)?.toInt();
       final rule = SmartRule.tryParse(row['rule'] as String?);
       if (id == null || rule == null) continue;
       if (playStatsOnly && !rule.needsPlayStats) continue;
-      await rebuild(id);
+      await _rebuildWithRule(id, rule);
     }
   }
 

@@ -2827,5 +2827,13 @@
     "smartRuleName":  "Nama daftar putar",
     "@smartRuleName":  {
                                    "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotLibraryEmpty":  "Belum ada lagu untuk dibuat snapshot",
+    "@dataSnapshotLibraryEmpty":  {
+                                   "description":  "Message when a snapshot is requested on an empty library"
+                               },
+    "autoBrowseRecent":  "Terakhir",
+    "@autoBrowseRecent":  {
+                                   "description":  "Android Auto browse category for recently played songs"
                                }
 }

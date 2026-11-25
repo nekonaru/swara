@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 import '../utils/backup_paths.dart';
+import '../utils/format.dart';
 
 class DBHelper {
   // True when [table] already has [column]. Used by the migrations to
@@ -1116,13 +1117,56 @@ class DBHelper {
     }
   }
 
-  Future<List<Song>> getRecentlyPlayed({int limit = 50}) async {
+  Future<List<Song>> getRecentlyPlayed({int limit = 50, int offset = 0}) async {
     final database = await db;
-    final rows = await database.query('songs',
-        where: 'lastPlayedAt IS NOT NULL',
-        orderBy: 'lastPlayedAt DESC',
-        limit: limit);
+    final rows = await database.rawQuery(
+      'SELECT * FROM songs WHERE lastPlayedAt IS NOT NULL '
+      'ORDER BY lastPlayedAt DESC LIMIT ? OFFSET ?',
+      [limit, offset < 0 ? 0 : offset],
+    );
     return await _songsFromRows(rows);
+  }
+
+  Future<List<Map<String, dynamic>>> getPlaylistsPage({
+    required int limit,
+    required int offset,
+  }) async {
+    final database = await db;
+    return database.rawQuery(
+      'SELECT * FROM playlists ORDER BY createdAt DESC LIMIT ? OFFSET ?',
+      [limit, offset < 0 ? 0 : offset],
+    );
+  }
+
+  Future<List<Song>> getSongsInPlaylistPage(int playlistId,
+      {required int limit, required int offset}) async {
+    final database = await db;
+    final rows = await database.rawQuery('''
+      SELECT s.* FROM songs s
+      JOIN playlist_songs ps ON ps.songId = s.id
+      WHERE ps.playlistId = ?
+      ORDER BY ps.position ASC, ps.addedAt ASC
+      LIMIT ? OFFSET ?
+    ''', [playlistId, limit, offset < 0 ? 0 : offset]);
+    return await _songsFromRows(rows);
+  }
+
+  Future<List<String>> getMusicFoldersPage({
+    required int limit,
+    required int offset,
+    required Set<String> excludedFolders,
+  }) async {
+    final folders = <String>{};
+    for (final song in await getSongSummaries()) {
+      final folder = folderOf(song.filePath);
+      if (folder.isEmpty || excludedFolders.contains(folder)) continue;
+      folders.add(folder);
+    }
+    final sorted = folders.toList()..sort();
+    final safeOffset = offset < 0 ? 0 : offset;
+    if (safeOffset >= sorted.length) return const <String>[];
+    final end = (safeOffset + limit).clamp(0, sorted.length).toInt();
+    return sorted.sublist(safeOffset, end);
   }
 
   // ---------- Listening history (for the dashboard) ----------

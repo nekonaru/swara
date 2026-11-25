@@ -47,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<SnapshotInfo> _snapshots = const <SnapshotInfo>[];
   bool _restoringSnapshot = false;
   bool _actionableSnackVisible = false;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _actionableSnackHandle;
   bool _loudnessEnabled = false;
   // App version shown in About, loaded once from package info.
   String _appVersion = '';
@@ -86,7 +87,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } else {
         final empty = await DBHelper.instance.getSongCount() == 0;
         _showSnack(empty
-            ? l10n.dataSnapshotEmpty
+            ? l10n.dataSnapshotLibraryEmpty
             : l10n.dataSnapshotFailed('unknown'));
       }
       await _loadSnapshots();
@@ -425,8 +426,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     // Reset on timeout or swipe as well, otherwise later messages would
     // keep queueing behind an already closed actionable snackbar.
+    _actionableSnackHandle = handle;
     handle.closed.then((_) {
-      if (mounted) _actionableSnackVisible = false;
+      if (mounted && identical(_actionableSnackHandle, handle)) {
+        _actionableSnackVisible = false;
+        _actionableSnackHandle = null;
+      }
     });
   }
 
