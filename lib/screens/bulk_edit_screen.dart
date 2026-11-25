@@ -40,7 +40,9 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     // Reject when both fields are empty since nothing would change.
     if (genre.isEmpty && artist.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
             content:
                 Text(AppLocalizations.of(context)!.bulkEditValidate)),
@@ -98,7 +100,9 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     }
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
       SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .bulkEditSummary(ok, failed))),

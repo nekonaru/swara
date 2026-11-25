@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.10.0
+
+Rilis besar untuk performa dan keandalan: isolate pencarian permanen, cache dashboard lengkap, cadangan yang mengenal nama baru, dan jalur native yang lebih aman tanpa izin atau dependensi baru.
+
+## Peningkatan
+
+- **Pencarian memakai satu isolate permanen.** Haystack disiapkan sekali per versi pustaka dan filter; setiap ketikan hanya mengirim teks kueri, sehingga mengetik tetap ringan di pustaka besar.
+- **Kunjungan ulang dashboard memakai cache.** Ringkasan, grafik, daftar peringkat, filter lagu tersembunyi, dan entri lagu ringkas di-cache sepuluh menit dan dibatalkan dengan epoch pada setiap perubahan data.
+- **Cadangan mengingat jalur lama hasil rename.** Skema v15 menyimpan identitas file sebelumnya sehingga cadangan sebelum rename tetap memulihkan tag, lirik, playlist, dan riwayat.
+- **Snackbar tidak lagi menumpuk di mana pun.** Setiap pesan menggantikan pesan sebelumnya, berlangsung dua detik, dan bisa ditutup langsung.
+- **CI menolak secret penandatanganan yang tidak lengkap.** Konfigurasi kunci sebagian menggagalkan build, bukan diam-diam menerbitkan APK bertanda tangan debug.
+
+## Perbaikan bug
+
+- **Rename di Android 10 tidak lagi memanggil metode API 30**, sehingga tidak crash atau menggantung saat diminta.
+- **Gagal memperbarui pustaka setelah rename kini memuat ulang pustaka** dan melaporkan bahwa file tersebut sudah diganti nama.
+- **Sampul lokal yang ada tetapi gagal dibaca jatuh ke sampul tersemat**, bukan membiarkan baris kosong.
+- **Izin penyimpanan hanya diminta di Android 10 ke bawah**, sehingga pengguna scoped storage tetap mendapat permintaan persetujuan MediaStore yang benar.
+- **Petunjuk pembaruan kini menjelaskan langkah cadangkan, hapus, pasang ulang, dan pulihkan** untuk berpindah dari instal bertanda tangan debug lama.
+
 ## v4.9.0
 
 Rilis besar untuk kenyamanan dan keandalan: umpan balik singkat yang bisa ditutup, penggantian nama file nyata bila OS mengizinkan, dan tanda tangan rilis tetap agar pembaruan langsung berhasil.

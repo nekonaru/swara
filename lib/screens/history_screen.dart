@@ -108,7 +108,9 @@ class HistoryScreenState extends State<HistoryScreen> {
                     .setQueueAndPlay(_history, i);
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                   SnackBar(duration: const Duration(seconds: 2),
                     content: Text(AppLocalizations.of(context)!
                         .historyPlayFailed(e.toString())),

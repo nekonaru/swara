@@ -27,7 +27,7 @@ void main() {
 
     test('database v12 marks auto playlists explicitly', () {
       final db = read('lib/services/db_helper.dart');
-      expect(db.contains('version: 14'), isTrue);
+      expect(db.contains('version: 15'), isTrue);
       expect(db.contains('ALTER TABLE playlists ADD COLUMN isAuto'), isTrue);
       expect(db.contains('getForgottenFavorites'), isTrue);
     });
@@ -84,7 +84,7 @@ void main() {
       expect(backup.contains('saveBackupToFile'), isTrue);
       expect(backup.contains('kLastExportPrefKey'), isTrue);
       expect(backup.contains('Unsupported backup version'), isTrue);
-      expect(backup.contains('dashboard_aggregate_cache_v1'), isTrue);
+      expect(backup.contains('DBHelper.invalidateDashboardCache()'), isTrue);
       final settings = read('lib/screens/settings_screen.dart');
       expect(settings.contains('dataSaveToFile'), isTrue);
       expect(settings.contains('dataLastExport'), isTrue);

@@ -2211,10 +2211,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateSignatureOnceHint =>
-      'If the installer reports a signature conflict, uninstall once; later updates will install directly';
+      'Back up your data first, uninstall this app, install the current release from GitHub Releases, then restore your backup. Later in-app updates will install directly';
 
   @override
   String songOptionsRenameFileOnlyTitle(String error) {
     return 'Only the title was changed: $error';
   }
+
+  @override
+  String get songOptionsRenameRepairFailed =>
+      'The file was renamed but the library update failed; the library was reloaded to repair it';
 }

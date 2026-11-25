@@ -2555,7 +2555,7 @@
     "@autoBrowsePlaylists":  {
                                    "description":  "Kategori jelajah Android Auto untuk daftar putar"
                                },
-    "updateSignatureOnceHint":  "Jika pemasang melaporkan konflik tanda tangan, hapus aplikasi sekali; pembaruan berikutnya akan langsung terpasang",
+    "updateSignatureOnceHint":  "Cadangkan data Anda dulu, hapus aplikasi ini, pasang rilis terbaru dari GitHub Releases, lalu pulihkan cadangan. Pembaruan berikutnya akan langsung terpasang",
     "@updateSignatureOnceHint":  {
                                    "description":  "Catatan sekali pakai sebelum pembaruan saat pengguna berpindah ke kunci tanda tangan tetap"
                                },
@@ -2567,5 +2567,9 @@
                                        "type": "String"
                                      }
                                    }
+                               },
+    "songOptionsRenameRepairFailed":  "File sudah diganti nama tetapi pembaruan pustaka gagal; pustaka dimuat ulang untuk memperbaikinya",
+    "@songOptionsRenameRepairFailed":  {
+                                   "description":  "Pesan setelah penggantian nama file yang gagal memperbarui database tetapi pustaka dimuat ulang"
                                }
 }

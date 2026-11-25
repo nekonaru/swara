@@ -28,8 +28,12 @@ void main() {
 
   test('search matching runs in an isolate, not on the UI thread', () {
     final search = read('lib/screens/search_screen.dart');
-    expect(search.contains('compute(filterSongsIsolate'), isTrue,
+    expect(search.contains('_searchIsolate.search('), isTrue,
         reason: 'the fuzzy pass must stay off the UI thread');
+    expect(search.contains('_searchIsolate.prepare('), isTrue);
+    final support = read('lib/services/search_isolate.dart');
+    expect(support.contains('Isolate.spawn(searchIsolateEntry'), isTrue);
+    expect(support.contains('filterSongsIsolate('), isTrue);
     // Direct in method calls would put the normalization regexes and the
     // edit distance pass back on the frame that the user is typing on.
     expect(search.contains('fuzzyMatch('), isFalse,

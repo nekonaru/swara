@@ -250,6 +250,7 @@ class BackupService {
     }
 
     final allSongs = await DBHelper.instance.getAllSongs();
+    final aliasById = await DBHelper.instance.getPathAliases();
     final songExtras = await DBHelper.instance
         .getBackupSongExtras(allSongs.map((s) => s.id).toList());
     final songsJson = <Map<String, dynamic>>[];
@@ -260,6 +261,7 @@ class BackupService {
       final bookmarks = (extras['bookmarks'] as List<Object?>?) ?? const [];
       songsJson.add({
         'identityKey': identityKeyFor(song.id),
+        'aliases': aliasById[song.id] ?? <String>[],
         'filePath': song.filePath,
         'basename': basenameFor(song.id),
         'durationMs': durationFor(song.id),
@@ -315,6 +317,14 @@ class BackupService {
         }).toList(),
       },
     };
+    final identityAliases = <String, String>{};
+    for (final song in allSongs) {
+      final current = identityKeyFor(song.id);
+      for (final alias in aliasById[song.id] ?? const <String>[]) {
+        identityAliases[alias] = current;
+      }
+    }
+    payload['identityAliases'] = identityAliases;
     payload['songs'] = songsJson;
     return compute(_encodeBackup, payload);
   }
@@ -435,11 +445,31 @@ class BackupService {
             .add((duration, id));
       }
 
+      final rawAliases = decoded['identityAliases'];
+      final aliasMap = rawAliases is Map
+          ? Map<String, dynamic>.from(rawAliases)
+          : <String, dynamic>{};
+
       int? resolveIdentity(Map<String, dynamic> raw) {
         final path = (raw['identityKey'] as String?) ??
             (raw['filePath'] as String?) ??
             '';
-        final direct = byPath[normalizeBackupPath(path)];
+        final key = normalizeBackupPath(path);
+        var direct = byPath[key];
+        if (direct == null) {
+          final canonical = aliasMap[key];
+          if (canonical is String) direct = byPath[normalizeBackupPath(canonical)];
+        }
+        if (direct == null) {
+          for (final alias in (raw['aliases'] as List? ?? const [])) {
+            if (alias is! String) continue;
+            final found = byPath[normalizeBackupPath(alias)];
+            if (found != null) {
+              direct = found;
+              break;
+            }
+          }
+        }
         if (direct != null) return direct;
         final storedBasename = (raw['basename'] as String?)?.trim() ?? '';
         final basename = backupBasename(
@@ -1051,12 +1081,7 @@ class BackupService {
 
     // A restore changed the listening history, so the dashboard aggregate
     // cache must not survive to show pre-restore numbers.
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('dashboard_aggregate_cache_v1');
-    } catch (_) {
-      // Best effort: the numbers self-heal on the next full reload.
-    }
+    await DBHelper.invalidateDashboardCache();
 
     return BackupImportResult(
       playlistsCreated: playlistsCreated,

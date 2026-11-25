@@ -3901,7 +3901,7 @@ abstract class AppLocalizations {
   /// One-time note shown before an in-app update while users move to the pinned signing key
   ///
   /// In en, this message translates to:
-  /// **'If the installer reports a signature conflict, uninstall once; later updates will install directly'**
+  /// **'Back up your data first, uninstall this app, install the current release from GitHub Releases, then restore your backup. Later in-app updates will install directly'**
   String get updateSignatureOnceHint;
 
   /// Message when the OS refuses a real file rename and only the database title is updated
@@ -3909,6 +3909,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only the title was changed: {error}'**
   String songOptionsRenameFileOnlyTitle(String error);
+
+  /// Message after a file rename whose database update failed but the library was reloaded
+  ///
+  /// In en, this message translates to:
+  /// **'The file was renamed but the library update failed; the library was reloaded to repair it'**
+  String get songOptionsRenameRepairFailed;
 }
 
 class _AppLocalizationsDelegate

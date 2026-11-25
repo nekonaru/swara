@@ -16,7 +16,9 @@ Future<void> stopBulkMetadataScan(BuildContext context) async {
   if (!lib.isBulkScanningMetadata) return;
   await lib.cancelBulkScan();
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
+  ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
     SnackBar(
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 2),

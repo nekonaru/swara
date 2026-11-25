@@ -52,7 +52,9 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
     if (title.isEmpty || artist.isEmpty || album.isEmpty) {
       if (mounted) {
         final l = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),content: Text(l.editMetadataValidationEmpty)),
         );
       }
@@ -83,7 +85,9 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
     } catch (e) {
       if (mounted) {
         final l = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),content: Text(l.editMetadataSaveFailed(e.toString()))),
         );
       }
@@ -120,7 +124,9 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isScanning = false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(l.editMetadataRescanFailed(e.toString()))),
       );
       return;
@@ -134,7 +140,9 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       _genre.text = widget.song.genre ?? '';
       _region.text = widget.song.region ?? '';
     });
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
       SnackBar(duration: const Duration(seconds: 2),
         content: Text(limited
             ? AppLocalizations.of(context)!.editMetadataRescanRateLimited

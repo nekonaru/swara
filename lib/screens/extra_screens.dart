@@ -183,7 +183,9 @@ Widget buildSongTile(
                   await PlayerService.instance.setQueueAndPlay(queue, index);
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                       SnackBar(
                           behavior: SnackBarBehavior.floating,
                           duration: const Duration(seconds: 2),
@@ -288,7 +290,9 @@ Widget buildCollectionHeader({
                           await PlayerService.instance.setQueueAndPlay(songs, 0);
                         } catch (e) {
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                               SnackBar(
                                   behavior: SnackBarBehavior.floating,
                                   duration: const Duration(seconds: 2),
@@ -354,7 +358,9 @@ Widget buildGroupPlayActions(BuildContext context, List<Song> queue) {
                   await PlayerService.instance.setQueueAndPlay(queue, 0);
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                       SnackBar(
                           behavior: SnackBarBehavior.floating,
                           duration: const Duration(seconds: 2),
@@ -480,7 +486,9 @@ class _FoldersScreenState extends State<FoldersScreen> {
         _folders = [];
         _songsByFolder = {};
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -497,7 +505,9 @@ class _FoldersScreenState extends State<FoldersScreen> {
     if (mounted) {
       await context.read<LibraryProvider>().loadFromDb();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
@@ -847,7 +857,9 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
         : List<Song>.of(_localSongs);
     if (targets.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
@@ -887,7 +899,9 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
         _localSongs = lib.songs.where((s) => updatedIds.contains(s.id)).toList();
         _sortedCache = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -1508,7 +1522,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final playlists = provider.playlists;
       if (playlists.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(
             content: Text(
                 AppLocalizations.of(context)!.bulkCreatePlaylistFirst),
@@ -1563,7 +1579,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           final partial = AppLocalizations.of(context)!
                               .libraryPartialAddedToPlaylist(
                                   added, songs.length, name, failed);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 2),
@@ -1584,7 +1602,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -1604,7 +1624,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       _exitMultiSelect();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -1764,7 +1786,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 await PlayerService.instance.setQueueAndPlay(favs, 0);
                               } catch (e) {
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                                     SnackBar(
                                         behavior: SnackBarBehavior.floating,
                                         duration: const Duration(seconds: 2),
@@ -2039,7 +2063,9 @@ Future<void> _playQueue(BuildContext context, List<Song> queue, int index) async
     await PlayerService.instance.setQueueAndPlay(queue, index);
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -2086,7 +2112,9 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
       );
     }
@@ -2187,7 +2215,9 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
       );
     }

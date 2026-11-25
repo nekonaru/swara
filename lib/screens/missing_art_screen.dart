@@ -60,7 +60,9 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
       // Single song enrich via the existing provider API, which reloads the DB.
       await context.read<LibraryProvider>().rescanSingleMetadata(song);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.artRefreshed),
           behavior: SnackBarBehavior.floating,
@@ -69,7 +71,9 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .artRefreshFailed(e.toString())),
@@ -137,7 +141,9 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
       await context.read<LibraryProvider>().loadFromDb();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(cancelled
               ? l10n.scanStopped
@@ -150,7 +156,9 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .artFetchFailed(e.toString())),

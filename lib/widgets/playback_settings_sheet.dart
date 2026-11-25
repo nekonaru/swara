@@ -90,7 +90,9 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
       }
       await PlayerService.instance.refreshPlaybackSettings();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),
               content: Text(
                   AppLocalizations.of(context)!.playbackSettingsSaved)),
@@ -100,7 +102,9 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
     } catch (_) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),
               content: Text(
                   AppLocalizations.of(context)!.dataFailedGeneric)),

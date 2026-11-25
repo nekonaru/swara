@@ -248,7 +248,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void _toggleSelectAll(List<Song> visible) {
     // Too many rows: one write per song would freeze the UI.
     if (visible.length > _selectAllLimit) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
           content: Text(AppLocalizations.of(context)!
               .librarySelectAllTooMany(_selectAllLimit)),
           behavior: SnackBarBehavior.floating,
@@ -273,7 +275,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     await PlayerService.instance.setQueueAndPlay(queue, index);
     final err = PlayerService.instance.lastError;
     if (err != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(
               content: Text(err),
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -369,7 +373,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final provider = context.read<PlaylistProvider>();
     final playlists = provider.playlists;
     if (playlists.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(
               content: Text(l.libraryCreatePlaylistFirst),
               behavior: SnackBarBehavior.floating,
@@ -421,7 +427,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ? l.libraryPartialAddedToPlaylist(
                             added, songs.length, name, failed)
                         : '';
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
                         behavior: SnackBarBehavior.floating,
                         duration: const Duration(seconds: 2),
                         backgroundColor: failed > 0 ? Theme.of(context).colorScheme.error : null,
@@ -506,7 +514,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         );
                       } catch (e) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 2),
                             backgroundColor: Theme.of(context).colorScheme.error,
@@ -537,7 +547,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         _exitMultiSelect();
                         final done =
                             l.libraryFavoritesAdded(selected.length);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 2),
                             backgroundColor:
@@ -547,7 +559,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 : done)));
                       } catch (e) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 2),
                             backgroundColor: Theme.of(context).colorScheme.error,

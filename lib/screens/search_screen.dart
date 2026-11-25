@@ -2,7 +2,6 @@ import 'dart:async';
 import '../utils/motion.dart';
 import '../utils/row_layout.dart';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,8 +10,8 @@ import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
+import '../services/search_isolate.dart';
 import '../utils/format.dart';
-import '../utils/search_filter.dart';
 import '../utils/song_options.dart';
 import '../widgets/playing_indicator.dart';
 import '../widgets/mini_player.dart';
@@ -42,6 +41,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String _query = '';
   _SearchFilter _filter = _SearchFilter.lagu;
   Timer? _debounce;
+  final SearchIsolateClient _searchIsolate = SearchIsolateClient();
 
   // Search runs without any manual paging: the whole filtered result set is
   // rendered, but every row is still built lazily by ListView.builder.
@@ -96,6 +96,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _loadHistory();
+    unawaited(_searchIsolate.start());
   }
 
   // Read the stored history once. Guarded by mounted.
@@ -227,28 +228,48 @@ class _SearchScreenState extends State<SearchScreen> {
     if (mounted && !_searching) setState(() => _searching = true);
     final lib = context.read<LibraryProvider>();
     final source = lib.songs;
-    // Same source and version, so the published result is always in sync.
     final version = lib.songsVersion;
-    final query = _pendingQuery;
-    // Yield one turn so the guard below is meaningful even for small
-    // libraries where the filter would otherwise finish synchronously.
-    await Future<void>.delayed(Duration.zero);
-    final found = await _filterSongs(source, query, version);
-    // Guard after the isolate hop: an outdated run must not publish its
-    // results or its spelling hint over a newer query.
-    if (!mounted) return;
-    if (gen != _queryGen) return;
-    setState(() {
-      _results = found.songs;
-      _suggestion = found.suggestion;
-      _resultsLibVersion = version;
-      _searching = false;
-    });
+    final key = '$version:${_filter.name}';
+    try {
+      // Build and ship the haystacks once per version and filter. Each later
+      // keystroke sends only the query text and generation to the isolate.
+      _ensureHaystacks(source, version);
+      _searchIsolate.prepare(
+        key: key,
+        haystacks: _haystacks,
+        suggestHaystacks: _suggestHaystacks,
+      );
+      final found = await _searchIsolate.search(
+        key: key,
+        query: _pendingQuery,
+        limit: _resultsLimit,
+        generation: gen,
+      );
+      if (!mounted || gen != _queryGen) return;
+      setState(() {
+        _results = [
+          for (final i in found.indices)
+            if (i >= 0 && i < source.length) source[i],
+        ];
+        _suggestion = found.suggestion;
+        _resultsLibVersion = version;
+        _searching = false;
+      });
+    } catch (_) {
+      if (!mounted || gen != _queryGen) return;
+      setState(() {
+        _results = const <Song>[];
+        _suggestion = null;
+        _searching = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    ++_queryGen;
+    _searchIsolate.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -291,7 +312,9 @@ class _SearchScreenState extends State<SearchScreen> {
       final playlists = provider.playlists;
       if (playlists.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(
             content: Text(
                 AppLocalizations.of(context)!.bulkCreatePlaylistFirst),
@@ -348,7 +371,9 @@ class _SearchScreenState extends State<SearchScreen> {
                               AppLocalizations.of(context)!
                                   .libraryPartialAddedToPlaylist(
                                       added, songs.length, name, failed);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 2),
@@ -369,7 +394,9 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -393,7 +420,9 @@ class _SearchScreenState extends State<SearchScreen> {
       _exitMultiSelect();
       final done =
           AppLocalizations.of(context)!.libraryFavoritesAdded(songs.length);
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -405,7 +434,9 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
@@ -486,30 +517,6 @@ class _SearchScreenState extends State<SearchScreen> {
   // with regular expressions and the typo tolerant pass can run a bounded
   // edit distance against every word of every song, which used to cost a
   // frame per keystroke on a large library.
-  Future<({List<Song> songs, String? suggestion})> _filterSongs(
-      List<Song> songs, String query, int version) async {
-    if (query.trim().isEmpty) {
-      return (songs: const <Song>[], suggestion: null);
-    }
-    _ensureHaystacks(songs, version);
-    final res = await compute(filterSongsIsolate, <String, dynamic>{
-      'haystacks': _haystacks,
-      'suggestHaystacks': _suggestHaystacks,
-      'query': query,
-      'limit': _resultsLimit,
-    });
-    final indices = (res['indices'] as List).cast<int>();
-    // Map indices back to songs. The bounds check is cheap insurance against
-    // the list changing between the haystack build and this await.
-    return (
-      songs: [
-        for (final i in indices)
-          if (i >= 0 && i < songs.length) songs[i],
-      ],
-      suggestion: res['suggestion'] as String?,
-    );
-  }
-
   String _haystackFor(Song s) {
     switch (_filter) {
       case _SearchFilter.lagu:
@@ -735,7 +742,9 @@ class _SearchScreenState extends State<SearchScreen> {
             await PlayerService.instance.setQueueAndPlay(queue, index);
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                 SnackBar(
                     behavior: SnackBarBehavior.floating,
                     duration: const Duration(seconds: 2),

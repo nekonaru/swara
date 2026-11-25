@@ -6,6 +6,9 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 
+String normalizePathForBackup(String raw) =>
+    raw.replaceAll('\\', '/').trim().toLowerCase();
+
 class DBHelper {
   // True when [table] already has [column]. Used by the migrations to
   // avoid relying on try/catch for idempotency: a swallowed ALTER inside
@@ -39,7 +42,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 14,
+      version: 15,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -139,6 +142,19 @@ class DBHelper {
         ''');
         await db.execute(
             'CREATE INDEX IF NOT EXISTS idx_bookmarks_song ON song_bookmarks(songId)');
+        // Old paths kept after a real file rename, so backups exported before
+        // the rename can still remap the song on import.
+        await db.execute('''
+          CREATE TABLE song_path_aliases(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            songId INTEGER,
+            path TEXT,
+            basename TEXT,
+            changedAt TEXT
+          )
+        ''');
+        await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_path_aliases_song ON song_path_aliases(songId)');
         // Per-track and per-folder playback overrides. Separate tables keep
         // rescans from overwriting user settings on the songs table.
         await db.execute('''
@@ -371,6 +387,24 @@ class DBHelper {
             }
           }
         }
+        if (oldVersion < 15) {
+          for (final sql in <String>[
+            '''CREATE TABLE IF NOT EXISTS song_path_aliases(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              songId INTEGER,
+              path TEXT,
+              basename TEXT,
+              changedAt TEXT
+            )''',
+            'CREATE INDEX IF NOT EXISTS idx_path_aliases_song ON song_path_aliases(songId)',
+          ]) {
+            try {
+              await db.execute(sql);
+            } catch (e) {
+              debugPrint('DBHelper: v15 path alias migration failed: $e');
+            }
+          }
+        }
         // No automatic prune of listening_entries here. Besides deleting
         // numbers the dashboard still shows (see the note in onCreate), any
         // statement issued while the migration transaction is open joins that
@@ -589,23 +623,21 @@ class DBHelper {
     // The dashboard caches its summary numbers for 10 minutes and they come
     // from this table, so the cache must go or the summary would contradict
     // the fresh detail lists on the same screen.
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_dashboardCacheKey);
-    } catch (_) {
-      // Best effort: the numbers self heal on the next full reload.
-    }
+    await invalidateDashboardCache();
     return deleted;
   }
 
   /// Prefs key of the dashboard aggregate cache. Owned here because a history
   /// prune changes those numbers from outside the dashboard screen.
   static const String _dashboardCacheKey = 'dashboard_aggregate_cache_v1';
+  static const String dashboardCacheEpochKey = 'dashboard_cache_epoch_v1';
 
   /// Drop the dashboard summary cache when a new listening entry changes it.
   static Future<void> invalidateDashboardCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(dashboardCacheEpochKey,
+          (prefs.getInt(dashboardCacheEpochKey) ?? 0) + 1);
       await prefs.remove(_dashboardCacheKey);
     } catch (_) {
       // Best effort: the numbers self heal on the next full reload.
@@ -1511,6 +1543,7 @@ class DBHelper {
     // Every reader re-fetches this from the DB per call otherwise; drop the
     // cache so a hidden folder is invisible immediately.
     _excludedFoldersCache = null;
+    invalidateDashboardCache();
   }
 
   // Memo of the excluded folder set. Read repeatedly by the library, the
@@ -1955,6 +1988,21 @@ class DBHelper {
     return result;
   }
 
+  /// Previous normalized paths for songs that were renamed on disk.
+  Future<Map<int, List<String>>> getPathAliases() async {
+    final database = await db;
+    final rows = await database.query('song_path_aliases',
+        columns: ['songId', 'path']);
+    final result = <int, List<String>>{};
+    for (final row in rows) {
+      final id = (row['songId'] as num?)?.toInt();
+      final path = row['path'] as String?;
+      if (id == null || path == null || path.isEmpty) continue;
+      result.putIfAbsent(id, () => <String>[]).add(normalizePathForBackup(path));
+    }
+    return result;
+  }
+
   // ---------- Backup identity helpers ----------
   /// Change a song's stored path and title only when the row still matches
   /// [oldPath] and no other row already uses [newPath].
@@ -1982,6 +2030,14 @@ class DBHelper {
           where: 'id = ?',
           whereArgs: [id],
         );
+        // Keep the previous identity so a backup exported before this rename
+        // can still find the row on import.
+        await txn.insert('song_path_aliases', {
+          'songId': id,
+          'path': oldPath,
+          'basename': p.basenameWithoutExtension(oldPath),
+          'changedAt': DateTime.now().toIso8601String(),
+        });
         return true;
       });
     } catch (_) {

@@ -201,6 +201,7 @@ class LibraryProvider extends ChangeNotifier {
     try {
       await scanner.scanAndSync();
       await loadFromDb();
+      unawaited(DBHelper.invalidateDashboardCache());
     } catch (e) {
       scanError = '${lookupAppLocalizations(LanguageProvider.instance.locale).coreScanFailed}: $e';
       // Distinguish a denied permission from any other scan failure so the
@@ -337,6 +338,7 @@ class LibraryProvider extends ChangeNotifier {
       }
 
       await loadFromDb();
+      unawaited(DBHelper.invalidateDashboardCache());
     } finally {
       _bulkScanning = false;
       _bulkScanCancelRequested = false;
@@ -359,6 +361,7 @@ class LibraryProvider extends ChangeNotifier {
     if (!limited) {
       await DBHelper.instance.applyEnrichedMetadata(song);
     }
+    unawaited(DBHelper.invalidateDashboardCache());
     // The enrich can rewrite title/artist/album, so re-sort after patching.
     // One row changed: no full table reload for it.
     if (_patchSongInMemory(song)) {
@@ -707,6 +710,7 @@ class LibraryProvider extends ChangeNotifier {
       }
     }
     songs = kept;
+    unawaited(DBHelper.invalidateDashboardCache());
     // The cached total must follow the deletion, otherwise the library header
     // would keep reporting the duration of songs that no longer exist.
     _totalDurationMs =
@@ -719,6 +723,7 @@ class LibraryProvider extends ChangeNotifier {
 
   Future<void> updateMetadata(Song song) async {
     await DBHelper.instance.updateSongMetadata(song);
+    unawaited(DBHelper.invalidateDashboardCache());
     // A rename can change the sort keys, so the stored rows are patched and
     // the list is re-sorted in memory. Reloading the whole table here cost a
     // full query plus a full rebuild for one edited row.
@@ -785,6 +790,7 @@ class LibraryProvider extends ChangeNotifier {
       return result;
     }
     songs[index] = rebuilt;
+    unawaited(DBHelper.invalidateDashboardCache());
     PlayerService.instance.replaceQueueSong(rebuilt);
     _applySort();
     _songsVersion++;

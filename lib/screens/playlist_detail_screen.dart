@@ -76,7 +76,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       final l = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -119,7 +121,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       // DB failed - roll back to the previous order.
       setState(() => _songs = previousOrder);
       final l = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -136,7 +140,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       // Failed - rebuild so the dismissed tile reappears.
       setState(() {});
       final l = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -161,7 +167,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       final songs = List<Song>.of(_songs);
       if (songs.isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             content: Text(l10n.m3uExportEmpty),
@@ -173,7 +181,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       final file =
           await M3uService.saveM3uToDownloads(widget.playlistName, content);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(l10n.m3uExported(file.path)),
@@ -181,7 +191,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(l10n.m3uExportFailed(e.toString())),
@@ -205,7 +217,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         .where((p) => (p['id'] as int) != widget.playlistId)
         .toList();
     if (others.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(AppLocalizations.of(context)!.mergeNoOthers),
@@ -268,7 +282,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       }
       await _load();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(AppLocalizations.of(context)!.mergeSummary(
@@ -277,7 +293,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),

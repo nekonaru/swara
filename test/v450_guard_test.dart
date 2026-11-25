@@ -9,7 +9,7 @@ void main() {
 
   test('schema 14 carries timing offsets and bookmarks with cleanup', () {
     final db = read('lib/services/db_helper.dart');
-    expect(db.contains('version: 14'), isTrue);
+    expect(db.contains('version: 15'), isTrue);
     expect(db.contains('offsetMs INTEGER DEFAULT 0'), isTrue);
     expect(db.contains('CREATE TABLE song_bookmarks'), isTrue);
     expect(db.contains('idx_bookmarks_song'), isTrue);

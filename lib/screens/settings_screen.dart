@@ -305,7 +305,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showSnackWithAction(String message,
       {required String label, required VoidCallback onPressed}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
       SnackBar(duration: const Duration(seconds: 2),
         content: Text(message),
         action: SnackBarAction(label: label, onPressed: onPressed),

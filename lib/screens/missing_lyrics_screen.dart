@@ -76,7 +76,9 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
       if (!limited) await DBHelper.instance.applyEnrichedMetadata(song);
       await library.loadFromDb();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.lyrRefreshed),
           behavior: SnackBarBehavior.floating,
@@ -85,7 +87,9 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .lyrRefreshFailed(e.toString())),
@@ -153,7 +157,9 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
       await context.read<LibraryProvider>().loadFromDb();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(cancelled
               ? l10n.scanStopped
@@ -166,7 +172,9 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!
               .lyrFetchFailed(e.toString())),

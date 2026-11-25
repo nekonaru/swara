@@ -51,6 +51,7 @@ class DashboardScreenState extends State<DashboardScreen> {
 
   // Aggregate cache for the dashboard summary numbers, with a 10 minute TTL.
   static const _aggregateCacheKey = 'dashboard_aggregate_cache_v1';
+  static const _epochKey = DBHelper.dashboardCacheEpochKey;
   static const _aggregateCacheTtl = Duration(minutes: 10);
 
   @override
@@ -79,21 +80,35 @@ class DashboardScreenState extends State<DashboardScreen> {
   // behind on the next dashboard visit.
   Future<void> reload() {
     _loaded = true;
-    return _load(forceRefresh: true);
+    // Freshness comes from epoch invalidation. Revisits may use the cache;
+    // pull-to-refresh still forces a full recompute.
+    return _load();
   }
 
   /// Cached summary map, or null when absent, expired, or malformed.
   /// Never throws: any problem means the caller recomputes instead.
-  Future<Map<String, dynamic>?> _readAggregateCache() async {
+  /// Full dashboard cache: summary numbers plus detail lists. A cache entry
+  /// is valid only while the invalidation epoch is unchanged and the entry is
+  /// younger than ten minutes. Never throws.
+  Future<Map<String, dynamic>?> _readDashboardCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_aggregateCacheKey);
       if (raw == null || raw.isEmpty) return null;
       final map = jsonDecode(raw) as Map<String, dynamic>;
+      if (map['epoch'] != (prefs.getInt(_epochKey) ?? 0)) return null;
       final cacheTime = DateTime.tryParse('${map['cacheTime']}');
-      if (cacheTime == null) return null;
-      if (DateTime.now().difference(cacheTime) >= _aggregateCacheTtl) {
+      if (cacheTime == null ||
+          DateTime.now().difference(cacheTime) >= _aggregateCacheTtl) {
         return null;
+      }
+      for (final key in const <String>[
+        'daily', 'topSongIds', 'topArtists', 'topAlbums', 'genreDist',
+        'yearTopSongs', 'yearTopArtists', 'hourly', 'neverPlayed',
+        'lookupSongs', 'yearMs', 'totalSongs', 'totalMs', 'monthMs',
+        'streak', 'topGenre',
+      ]) {
+        if (!map.containsKey(key)) return null;
       }
       return map;
     } catch (_) {
@@ -101,8 +116,19 @@ class DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  /// Persist the summary numbers. Best effort only, never fails the load.
-  Future<void> _writeAggregateCache({
+  /// Persist the whole dashboard snapshot. Best effort only.
+  Future<void> _writeDashboardCache({
+    required Map<DateTime, int> daily,
+    required List<MapEntry<int, int>> topSongIds,
+    required List<MapEntry<String, int>> topArtists,
+    required List<MapEntry<String, int>> topAlbums,
+    required Map<String, int> genreDist,
+    required List<MapEntry<int, int>> yearTopSongs,
+    required List<MapEntry<String, int>> yearTopArtists,
+    required Map<int, int> hourly,
+    required List<Song> neverPlayed,
+    required List<Song> lookupSongs,
+    required int yearMs,
     required int totalSongs,
     required int totalMs,
     required int monthMs,
@@ -114,17 +140,107 @@ class DashboardScreenState extends State<DashboardScreen> {
       await prefs.setString(
         _aggregateCacheKey,
         jsonEncode({
+          'epoch': prefs.getInt(_epochKey) ?? 0,
+          'cacheTime': DateTime.now().toIso8601String(),
+          'daily': {
+            for (final entry in daily.entries)
+              entry.key.toIso8601String().substring(0, 10): entry.value,
+          },
+          'topSongIds': [for (final e in topSongIds) [e.key, e.value]],
+          'topArtists': [for (final e in topArtists) [e.key, e.value]],
+          'topAlbums': [for (final e in topAlbums) [e.key, e.value]],
+          'genreDist': genreDist,
+          'yearTopSongs': [for (final e in yearTopSongs) [e.key, e.value]],
+          'yearTopArtists': [for (final e in yearTopArtists) [e.key, e.value]],
+          'hourly': {for (final e in hourly.entries) '${e.key}': e.value},
+          'neverPlayed': [for (final s in neverPlayed) _compactSong(s)],
+          'lookupSongs': [for (final s in lookupSongs) _compactSong(s)],
+          'yearMs': yearMs,
           'totalSongs': totalSongs,
           'totalMs': totalMs,
           'monthMs': monthMs,
           'streak': streak,
           'topGenre': topGenre,
-          'cacheTime': DateTime.now().toIso8601String(),
         }),
       );
     } catch (_) {
       // Cache is optional, ignore write failures.
     }
+  }
+
+  Map<String, dynamic> _compactSong(Song s) => {
+        'id': s.id,
+        'filePath': s.filePath,
+        'title': s.title,
+        'artist': s.artist,
+        'album': s.album,
+        'durationMs': s.durationMs,
+      };
+
+  Song _songFromCompact(Map<String, dynamic> raw) => Song(
+        id: (raw['id'] as num).toInt(),
+        filePath: raw['filePath'] as String? ?? '',
+        title: raw['title'] as String? ?? '',
+        artist: raw['artist'] as String? ?? '',
+        album: raw['album'] as String? ?? '',
+        durationMs: (raw['durationMs'] as num?)?.toInt() ?? 0,
+      );
+
+  void _applyCachedDashboard(Map<String, dynamic> map) {
+    setState(() {
+      _daily = {
+        for (final entry in (map['daily'] as Map).entries)
+          DateTime.tryParse(entry.key.toString()) ?? DateTime.now():
+              (entry.value as num).toInt(),
+      };
+      _topSongIds = [
+        for (final raw in (map['topSongIds'] as List))
+          MapEntry((raw[0] as num).toInt(), (raw[1] as num).toInt()),
+      ];
+      _topArtists = [
+        for (final raw in (map['topArtists'] as List))
+          MapEntry(raw[0] as String, (raw[1] as num).toInt()),
+      ];
+      _topAlbums = [
+        for (final raw in (map['topAlbums'] as List))
+          MapEntry(raw[0] as String, (raw[1] as num).toInt()),
+      ];
+      _genreDist = {
+        for (final entry in (map['genreDist'] as Map).entries)
+          entry.key.toString(): (entry.value as num).toInt(),
+      };
+      _yearTopSongs = [
+        for (final raw in (map['yearTopSongs'] as List))
+          MapEntry((raw[0] as num).toInt(), (raw[1] as num).toInt()),
+      ];
+      _yearTopArtists = [
+        for (final raw in (map['yearTopArtists'] as List))
+          MapEntry(raw[0] as String, (raw[1] as num).toInt()),
+      ];
+      _hourly = {
+        for (final entry in (map['hourly'] as Map).entries)
+          int.tryParse(entry.key.toString()) ?? 0:
+              (entry.value as num).toInt(),
+      };
+      _neverPlayed = [
+        for (final raw in (map['neverPlayed'] as List))
+          if (raw is Map<String, dynamic>) _songFromCompact(raw),
+      ];
+      final lookups = [
+        for (final raw in (map['lookupSongs'] as List))
+          if (raw is Map<String, dynamic>) _songFromCompact(raw),
+      ];
+      _songLookup = {for (final s in lookups) s.id: s};
+      _yearMs = (map['yearMs'] as num).toInt();
+      _totalSongs = (map['totalSongs'] as num).toInt();
+      _totalListeningMs = (map['totalMs'] as num).toInt();
+      _thisMonthMs = (map['monthMs'] as num).toInt();
+      _streak = (map['streak'] as num).toInt();
+      final genre = map['topGenre'];
+      _topGenreMonth = genre is String && genre.isNotEmpty ? genre : null;
+      _fromCache = true;
+      _loading = false;
+    });
   }
 
   Future<void> _load({bool forceRefresh = false}) async {
@@ -136,12 +252,12 @@ class DashboardScreenState extends State<DashboardScreen> {
     }
 
     try {
-      // Only the summary numbers come from the cache. Detail lists are
-      // always read fresh from the DB. When in doubt, recompute instead
-      // of showing data that might be stale.
-      final cached = forceRefresh ? null : await _readAggregateCache();
-      final useCache = cached != null;
-
+      final cached = forceRefresh ? null : await _readDashboardCache();
+      if (cached != null) {
+        // A valid cache means zero DB queries on a dashboard revisit.
+        _applyCachedDashboard(cached);
+        return;
+      }
       // Detail queries always run fresh so lists never go stale.
       // Query order is fixed: details, then optional summary, then hourly.
       final nowForYear = DateTime.now();
@@ -161,15 +277,13 @@ class DashboardScreenState extends State<DashboardScreen> {
           DBHelper.instance.getListeningMsSince(yearStart),
           DBHelper.instance.getTopAlbums(limit: 5),
         ],
-        // Summary queries only run on a cache miss or forced refresh.
-        useCache
-            ? <Future>[]
-            : <Future>[
-                DBHelper.instance.getTotalListeningMs(),
-                DBHelper.instance.getThisMonthListeningMs(),
-                DBHelper.instance.getListeningStreak(),
-                DBHelper.instance.getTopGenreThisMonth(),
-              ],
+        // Summary queries always run here; a cache hit returned above.
+        <Future>[
+          DBHelper.instance.getTotalListeningMs(),
+          DBHelper.instance.getThisMonthListeningMs(),
+          DBHelper.instance.getListeningStreak(),
+          DBHelper.instance.getTopGenreThisMonth(),
+        ],
         // Hourly distribution always runs fresh with the detail queries.
         // Appended last so the summary indices above never shift.
         DBHelper.instance.getHourlyDistribution(),
@@ -239,22 +353,23 @@ class DashboardScreenState extends State<DashboardScreen> {
       final hourlyIndex = summaryStart + summaryFutures.length;
       final hourly = results[hourlyIndex] as Map<int, int>;
 
-      final int totalMs;
-      final int monthMs;
-      final int streak;
-      final String? topGenre;
-      if (useCache) {
-        totalMs = (cached['totalMs'] as num?)?.toInt() ?? 0;
-        monthMs = (cached['monthMs'] as num?)?.toInt() ?? 0;
-        streak = (cached['streak'] as num?)?.toInt() ?? 0;
-        final rawGenre = cached['topGenre'];
-        topGenre = rawGenre is String && rawGenre.isNotEmpty ? rawGenre : null;
-      } else {
-        totalMs = results[totalMsIndex] as int;
-        monthMs = results[monthMsIndex] as int;
-        streak = results[streakIndex] as int;
-        topGenre = results[topGenreIndex] as String?;
-        await _writeAggregateCache(
+      final int totalMs = results[totalMsIndex] as int;
+      final int monthMs = results[monthMsIndex] as int;
+      final int streak = results[streakIndex] as int;
+      final String? topGenre = results[topGenreIndex] as String?;
+      {
+        await _writeDashboardCache(
+          daily: daily,
+          topSongIds: topSongs,
+          topArtists: topArtists,
+          topAlbums: topAlbums,
+          genreDist: genreDist,
+          yearTopSongs: yearTopSongs,
+          yearTopArtists: yearTopArtists,
+          hourly: hourly,
+          neverPlayed: neverPlayed,
+          lookupSongs: lookupSongs,
+          yearMs: yearMs,
           totalSongs: allSongs.length,
           totalMs: totalMs,
           monthMs: monthMs,
@@ -281,7 +396,7 @@ class DashboardScreenState extends State<DashboardScreen> {
         _topGenreMonth = topGenre;
         _hourly = hourly;
         _neverPlayed = neverPlayed;
-        _fromCache = useCache;
+        _fromCache = false;
         _loading = false;
       });
     } catch (e) {
@@ -319,7 +434,9 @@ class DashboardScreenState extends State<DashboardScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .recapShareFailed(e.toString()))),
@@ -518,7 +635,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                                 .setQueueAndPlay([song], 0);
                           } catch (e) {
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                                 SnackBar(
                                     behavior: SnackBarBehavior.floating,
                                     duration: const Duration(seconds: 2),
@@ -634,7 +753,8 @@ class DashboardScreenState extends State<DashboardScreen> {
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context)
-                                  .showSnackBar(
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                                 SnackBar(
                                     behavior:
                                         SnackBarBehavior.floating,
@@ -1027,7 +1147,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                             .setQueueAndPlay(_neverPlayed, 0);
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                             SnackBar(
                                 behavior: SnackBarBehavior.floating,
                                 duration: const Duration(seconds: 2),
@@ -1067,7 +1189,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                             .setQueueAndPlay(_neverPlayed, i);
                       } catch (e) {
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                             SnackBar(
                                 behavior: SnackBarBehavior.floating,
                                 duration: const Duration(seconds: 2),

@@ -61,6 +61,8 @@ class _SongArtImageState extends State<SongArtImage> {
       _localArtFailed = false;
       _embeddedChecked = false;
       _embeddedPath = EmbeddedArtService.instance.peekSync(widget.song.id);
+    } else if (oldWidget.song.albumArtPath != widget.song.albumArtPath) {
+      _localArtFailed = false;
     }
   }
 
@@ -87,10 +89,10 @@ class _SongArtImageState extends State<SongArtImage> {
       }
       hasRealCover = _validCoverPaths.contains(localPath);
     }
+    // A file existing does not prove it decodes. Keep the embedded probe
+    // available as a fallback until an image actually renders.
     if (!_embeddedChecked && !hasRealCover) {
       _loadEmbedded();
-    } else if (hasRealCover && !_embeddedChecked) {
-      _embeddedChecked = true;
     }
   }
 
@@ -118,7 +120,8 @@ class _SongArtImageState extends State<SongArtImage> {
         _checkedCoverPaths.remove(path);
         _validCoverPaths.remove(path);
         _localArtFailed = true;
-        if (!_embeddedChecked && _embeddedPath == null) {
+        _embeddedChecked = false;
+        if (_embeddedPath == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _loadEmbedded();
           });

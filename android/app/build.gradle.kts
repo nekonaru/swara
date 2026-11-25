@@ -11,10 +11,16 @@ val releaseKeystorePath = System.getenv("SWARA_KEYSTORE_PATH")
 val releaseStorePassword = System.getenv("SWARA_STORE_PASSWORD")
 val releaseKeyAlias = System.getenv("SWARA_KEY_ALIAS")
 val releaseKeyPassword = System.getenv("SWARA_KEY_PASSWORD")
-val hasReleaseKey = releaseKeystorePath != null &&
-    releaseStorePassword != null &&
-    releaseKeyAlias != null &&
-    releaseKeyPassword != null
+val signingVars = listOf(
+    releaseKeystorePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+)
+if (signingVars.any { !it.isNullOrEmpty() } && signingVars.any { it.isNullOrEmpty() }) {
+    error("Release signing secrets are incomplete. Refusing to fall back to the debug key.")
+}
+val hasReleaseKey = signingVars.all { !it.isNullOrEmpty() }
 
 android {
     namespace = "com.nikodwidharma.offline_music_player"

@@ -47,9 +47,14 @@ class FileRenameService {
     // scoped storage this request is harmless and the native side asks for
     // per-item consent instead.
     if (Platform.isAndroid) {
-      final status = await Permission.storage.request();
-      if (status.isPermanentlyDenied) {
-        return const FileRenameResult(status: FileRenameStatus.noPermission);
+      final sdk = await _channel.invokeMethod<int>('getSdkInt') ?? 0;
+      // WRITE_EXTERNAL_STORAGE is only meaningful up to API 29. On newer
+      // versions the native side asks for per-item MediaStore consent.
+      if (sdk <= 29) {
+        final status = await Permission.storage.request();
+        if (!status.isGranted) {
+          return const FileRenameResult(status: FileRenameStatus.noPermission);
+        }
       }
     }
     try {

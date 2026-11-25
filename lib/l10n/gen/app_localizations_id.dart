@@ -2210,10 +2210,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get updateSignatureOnceHint =>
-      'Jika pemasang melaporkan konflik tanda tangan, hapus aplikasi sekali; pembaruan berikutnya akan langsung terpasang';
+      'Cadangkan data Anda dulu, hapus aplikasi ini, pasang rilis terbaru dari GitHub Releases, lalu pulihkan cadangan. Pembaruan berikutnya akan langsung terpasang';
 
   @override
   String songOptionsRenameFileOnlyTitle(String error) {
     return 'Hanya judul yang diubah: $error';
   }
+
+  @override
+  String get songOptionsRenameRepairFailed =>
+      'File sudah diganti nama tetapi pembaruan pustaka gagal; pustaka dimuat ulang untuk memperbaikinya';
 }

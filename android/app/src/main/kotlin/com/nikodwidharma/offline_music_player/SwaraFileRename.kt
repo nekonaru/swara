@@ -76,6 +76,10 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method == "getSdkInt") {
+            result.success(Build.VERSION.SDK_INT)
+            return
+        }
         if (call.method != "rename") {
             result.notImplemented()
             return
@@ -113,7 +117,9 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             return
         }
 
-        if (Build.VERSION.SDK_INT >= 29) {
+        // createWriteRequest exists from API 30. API 29 uses the legacy
+        // filesystem path with requestLegacyExternalStorage enabled.
+        if (Build.VERSION.SDK_INT >= 30) {
             requestScopedWrite(appContext, id, oldPath, newPath, newDisplayName, result)
         } else {
             executor.execute {

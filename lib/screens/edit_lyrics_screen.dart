@@ -41,7 +41,9 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
     final clipboardText = data?.text ?? '';
     if (clipboardText.trim().isEmpty) {
       final l = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsClipboardEmpty)),
       );
       return;
@@ -93,7 +95,9 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
   }
 
   void _showSearchFailed() {
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
       SnackBar(duration: const Duration(seconds: 2),
         content: Text(
             AppLocalizations.of(context)!.editLyricsSearchOpenFailed),
@@ -111,7 +115,9 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
       final count = await LrcImportService.pickAndApply(widget.song);
       if (!mounted || count == 0) return;
       if (count < 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsLrcTooLarge)),
         );
         return;
@@ -120,12 +126,16 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
       PlayerService.instance.lyricsRevision.value++;
       if (!mounted) return;
       setState(() => _controller.text = widget.song.lyrics ?? '');
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsLrcImported(count))),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsSaveFailed(e.toString()))),
       );
     }
@@ -136,7 +146,9 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
       await LrcImportService.share(widget.song);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.editLyricsSaveFailed(e.toString()))),
       );
     }
@@ -174,7 +186,9 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
     } catch (e) {
       if (mounted) {
         final l = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsSaveFailed(e.toString()))),
         );
       }
@@ -187,7 +201,9 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
     // on the previous screen even though this page is popped immediately.
     if (truncated) {
       final l = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsTruncated)),
       );
     }

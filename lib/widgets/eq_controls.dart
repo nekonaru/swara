@@ -130,14 +130,16 @@ class _EqControlsState extends State<EqControls> {
     if (name == null || !mounted) return;
     if (name.isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(duration: const Duration(seconds: 2),content: Text(l.eqPresetNameEmpty)));
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(duration: const Duration(seconds: 2),content: Text(l.eqPresetNameEmpty)));
       return;
     }
     final index = await theme.saveEqPreset(name, _eqDraftFrom(theme));
     if (!mounted) return;
     if (index < 0) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(duration: const Duration(seconds: 2),content: Text(l.eqPresetLimit)));
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(duration: const Duration(seconds: 2),content: Text(l.eqPresetLimit)));
       return;
     }
     await EqualizerService.instance.applyCustom(

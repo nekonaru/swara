@@ -382,7 +382,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       ),
     );
     if (!mounted || applied != true) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
       SnackBar(
         content: Text(_player.hasABRepeat
             ? l10n.abOn(
@@ -405,13 +407,17 @@ class _PlayerScreenState extends State<PlayerScreen>
       final launched =
           await launchUrl(url, mode: LaunchMode.externalApplication);
       if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.playerCannotOpenBrowser)),
         );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.playerSearchOpenFailed)),
         );
       }
@@ -443,7 +449,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     // lyrics empty, so the "not found" message must consider both views.
     if (_lrcLines.isNotEmpty) found = true;
     final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
       SnackBar(
         content: Text(found ? l10n.playerLyricsFound : l10n.playerLyricsNotFoundHint),
         behavior: SnackBarBehavior.floating,
@@ -719,7 +727,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                           onPressed: () async {
                             if (_player.currentSong?.id != bookmarkSongId) {
                               if (ctx.mounted) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(duration: const Duration(seconds: 2),
+                                ScaffoldMessenger.of(ctx)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(duration: const Duration(seconds: 2),
                                     content: Text(
                                         l10n.playerBookmarkSongChanged)));
                               }
@@ -730,7 +740,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                             final saved = await DBHelper.instance.addBookmark(
                                 bookmarkSongId, pos, formatDuration(pos));
                             if (!ctx.mounted) return;
-                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(duration: const Duration(seconds: 2),
+                            ScaffoldMessenger.of(ctx)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(duration: const Duration(seconds: 2),
                               content: Text(saved
                                   ? l10n.playerBookmarkSaved
                                   : l10n.playerBookmarkLimit),

@@ -167,7 +167,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       await lib.autoLoadAndScanIfNeeded();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
@@ -218,7 +220,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (_lastBackPress == null ||
         now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
       _lastBackPress = now;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
             content:
@@ -534,7 +538,9 @@ class _TabSettingsSheetState extends State<_TabSettingsSheet> {
                         final enabledCount =
                             _defs.where((t) => t.visible).length;
                         if (_defs[i].visible && enabledCount <= 1) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
                             SnackBar(
                                 behavior: SnackBarBehavior.floating,
                                 duration: const Duration(seconds: 2),

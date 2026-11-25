@@ -136,7 +136,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
         await prov.create(name);
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),
               content: Text(AppLocalizations.of(context)!
                   .autoPlaylistError(e.toString()))),
@@ -193,7 +195,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
         await prov.delete(id);
       } catch (e) {
         if (!ctx.mounted) return;
-        ScaffoldMessenger.of(ctx).showSnackBar(
+        ScaffoldMessenger.of(ctx)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),
               content: Text(
                   AppLocalizations.of(ctx)!.autoPlaylistError(e.toString()))),
@@ -388,7 +392,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
 
   void _showAutoError(Object e) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
       SnackBar(duration: const Duration(seconds: 2),
           content: Text(
               AppLocalizations.of(context)!.autoPlaylistError(e.toString()))),
@@ -558,7 +564,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       // Report every entry that could not be placed, including the ones
       // skipped because the file name was shared by several songs.
       final unresolved = picked.match.unresolved;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!.m3uImportSummary(
               added,
@@ -569,7 +577,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .m3uImportFailed(e.toString())),
@@ -589,7 +599,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       final songs = await prov.songsIn(playlistId);
       if (!mounted) return;
       if (songs.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2),
             content: Text(l10n.m3uExportEmpty),
           ),
@@ -600,14 +612,18 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       final file =
           await M3uService.saveM3uToDownloads(playlistName, content);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           content: Text(l10n.m3uExported(file.path)),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           content: Text(l10n.m3uExportFailed(e.toString())),
         ),
@@ -628,7 +644,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     if (!ctx.mounted) return;
     final others = prov.playlists.where((p) => (p['id'] as int) != targetId).toList();
     if (others.isEmpty) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
+      ScaffoldMessenger.of(ctx)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(ctx)!.mergeNoOthers),
         ),
@@ -690,7 +708,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       await prov.load();
       _scheduleArtRefresh(prov, targetId);
       if (!ctx.mounted) return;
-      ScaffoldMessenger.of(ctx).showSnackBar(
+      ScaffoldMessenger.of(ctx)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(ctx)!.mergeSummary(
               added, sourceName, targetName, skipped)),
@@ -698,7 +718,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       );
     } catch (e) {
       if (!ctx.mounted) return;
-      ScaffoldMessenger.of(ctx).showSnackBar(
+      ScaffoldMessenger.of(ctx)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(ctx)!
               .mergeFailed(e.toString())),

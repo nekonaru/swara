@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.10.0
+
+Large performance and reliability release: persistent search isolation, a full dashboard cache, rename-aware backups, and safer native update paths, with no new permission or dependency.
+
+## Improvements
+
+- **Search keeps one long-lived isolate.** Haystacks are prepared once per library version and filter; each keystroke sends only the query text, so typing stays light on large libraries.
+- **Dashboard revisits use the cache.** Summary numbers, charts, rank lists, hidden-song filtering and compact song entries are cached for ten minutes and invalidated by an epoch on every data change.
+- **Backups remember renamed paths.** Schema v15 keeps previous file identities so a backup made before a real rename can still restore tags, lyrics, playlists and history.
+- **Snackbars no longer stack anywhere.** Every message replaces the previous one, lasts two seconds, and can be closed immediately.
+- **CI refuses incomplete signing secrets.** A partial key configuration fails the build instead of silently publishing a debug-signed APK.
+
+## Bug fixes
+
+- **Android 10 rename no longer calls an API 30 method**, so it cannot crash or hang on a rename request.
+- **A failed library update after a rename now reloads the library** and reports that the file itself was renamed.
+- **Local covers that exist but cannot decode fall back to embedded art** instead of leaving a blank row.
+- **Storage permission is only requested on Android 10 and below**, so scoped-storage users still get the correct MediaStore consent prompt.
+- **The update hint now explains the backup, uninstall, reinstall and restore steps** needed to move from an older debug-signed install.
+
 ## v4.9.0
 
 Large usability and reliability release: short dismissible feedback, real file rename where the OS allows it, and stable release signing for direct updates.
