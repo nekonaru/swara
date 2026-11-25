@@ -93,8 +93,8 @@ void main() {
     test('forgotten favorites joins the auto playlists', () {
       final collections = read('lib/screens/collections_screen.dart');
       expect(collections.contains('_forgottenName'), isTrue);
-      expect(collections.contains('_syncForgottenFavorites'), isTrue);
-      expect(collections.contains('isAuto: true'), isTrue);
+      expect(collections.contains('refreshAllSmart()'), isTrue);
+      expect(collections.contains('SmartRule.tryParse('), isTrue);
     });
 
     test('native platform settings match the documented minimum OS', () {

@@ -9,6 +9,7 @@ import '../models/song.dart';
 import 'db_helper.dart';
 import 'equalizer_service.dart';
 import 'loudness_service.dart';
+import 'smart_playlist_service.dart';
 import 'package:swara/utils/playback_settings.dart';
 
 enum SwaraRepeatMode { off, all, one }
@@ -959,6 +960,7 @@ class PlayerService extends ChangeNotifier {
       _crossfadeActiveGeneration = -1;
       _markSongPlayed(nextSong);
       await DBHelper.instance.markPlayed(nextSong.id);
+      unawaited(SmartPlaylistService.instance.rebuildAll(playStatsOnly: true));
       unawaited(_saveResumeState());
       if (playGen != _playGeneration || fadeGen != _crossfadeGeneration || _disposed) return;
 
@@ -1338,6 +1340,7 @@ class PlayerService extends ChangeNotifier {
     _accumulatedListenedMs = 0;
     _markSongPlayed(song);
     await DBHelper.instance.markPlayed(song.id);
+      unawaited(SmartPlaylistService.instance.rebuildAll(playStatsOnly: true));
     if (playGen != _playGeneration || _disposed) return;
     lastError = null;
     _consecutiveLoadFailures = 0;

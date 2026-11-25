@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../models/smart_rule.dart';
+import '../utils/format.dart';
 import 'db_helper.dart';
 
 /// Evaluates rule-based playlists entirely from the local database. Every
@@ -102,7 +103,7 @@ class SmartPlaylistService {
       'lastPlayed_desc' => 's.lastPlayedAt DESC',
       _ => 's.title ASC',
     };
-    final sql = StringBuffer('SELECT s.id FROM songs s');
+    final sql = StringBuffer('SELECT s.id, s.filePath FROM songs s');
     if (where.isNotEmpty) {
       sql.write(' WHERE ${where.join(rule.match == 'any' ? ' OR ' : ' AND ')}');
     }
@@ -112,7 +113,14 @@ class SmartPlaylistService {
       args.add(rule.limit);
     }
     final rows = await database.rawQuery(sql.toString(), args);
-    var ids = rows.map((r) => (r['id'] as num).toInt()).toList();
+    final excluded = await DBHelper.instance.getExcludedFolders();
+    var ids = rows
+        .where((r) {
+          final path = r['filePath'] as String? ?? '';
+          return path.isEmpty || !excluded.contains(folderOf(path));
+        })
+        .map((r) => (r['id'] as num).toInt())
+        .toList();
     if (rule.order == 'random_daily') {
       final seed = DateTime.now().year * 10000 +
           DateTime.now().month * 100 +

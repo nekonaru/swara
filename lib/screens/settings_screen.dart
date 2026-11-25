@@ -74,16 +74,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _createSnapshotNow() async {
     if (_busyData || _restoringSnapshot) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _busyData = true);
     try {
       final info = await SnapshotService.instance.createSnapshot(force: true);
       if (!mounted) return;
       if (info != null) {
-        _showSnack(AppLocalizations.of(context)!
+        _showSnack(l10n
             .dataSnapshotItem(_formatExportStamp(info.createdAt),
                 _formatBytes(info.bytes)));
       } else {
-        _showSnack(AppLocalizations.of(context)!.dataSnapshotEmpty);
+        final empty = await DBHelper.instance.getSongCount() == 0;
+        _showSnack(empty
+            ? l10n.dataSnapshotEmpty
+            : l10n.dataSnapshotFailed('unknown'));
       }
       await _loadSnapshots();
     } catch (e) {

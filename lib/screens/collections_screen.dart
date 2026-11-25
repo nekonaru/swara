@@ -46,8 +46,6 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   static const String _dailyMixName = 'Daily Mix';
   static const String _unplayedName = 'Unplayed';
   static const String _forgottenName = 'Forgotten Favorites';
-  static const int _dailyMixLimit = 25;
-  static const int _forgottenDays = 90;
 
   // One-shot guard so the auto playlists are synced once per screen visit
   // instead of on every rebuild. Deleting an auto playlist only removes
@@ -57,7 +55,6 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   // Library version the auto playlists were built from.
   int _autoSyncedVersion = -1;
   // Extra salt added to the date seed when the user taps refresh.
-  int _dailySalt = 0;
   // Duplicate group count shown on the duplicate finder card. Recomputed
   // off the main isolate whenever the library changes; -1 means unknown and
   // the card stays hidden until a count is ready.
@@ -376,112 +373,14 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
 
   // Seed derived from the current calendar date so the mix stays stable
   // for the whole day. The manual refresh salt makes a new mix on demand.
-  int _dailySeed() {
-    final now = DateTime.now();
-    final base = now.year * 10000 + now.month * 100 + now.day;
-    return base + _dailySalt;
-  }
-
-  // Pick up to [_dailyMixLimit] random songs from the loaded library.
-  List<int> _pickDailyMixIds(LibraryProvider lib) {
-    final ids = lib.songs.map((s) => s.id).toList();
-    ids.shuffle(Random(_dailySeed()));
-    if (ids.length > _dailyMixLimit) {
-      return ids.sublist(0, _dailyMixLimit);
-    }
-    return ids;
-  }
-
-  void _showAutoError(Object e) {
+  void _showAutoError(Object error) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-      SnackBar(duration: const Duration(seconds: 2),
-          content: Text(
-              AppLocalizations.of(context)!.autoPlaylistError(e.toString()))),
-    );
-  }
-
-  // Create the playlist when missing, otherwise replace its content.
-  // Uses only the existing PlaylistProvider API so no other file changes.
-  Future<void> _syncOneAutoPlaylist(
-      PlaylistProvider prov, String name, List<int> songIds) async {
-    try {
-      await prov.load();
-      if (!mounted) return;
-      Map<String, dynamic>? existing;
-      // Auto playlists keep their canonical name in the DB; the isAuto flag
-      // keeps them recognized as automatic even after a user rename, and is
-      // stamped here for rows created before the column existed.
-      for (final p in prov.playlists) {
-        if ((p['name'] as String) == name) {
-          existing = p;
-          break;
-        }
-      }
-      int playlistId;
-      if (existing == null) {
-        await prov.create(name, isAuto: true);
-        if (!mounted) return;
-        final found = prov.playlists.firstWhere(
-          (p) => (p['name'] as String) == name,
-        );
-        playlistId = found['id'] as int;
-      } else {
-        playlistId = existing['id'] as int;
-        await DBHelper.instance.setPlaylistAuto(playlistId, true);
-      }
-      // One transaction for delete plus insert: a failed write cannot leave
-      // the auto playlist empty.
-      await DBHelper.instance.replacePlaylistSongs(playlistId, songIds);
-      await prov.load();
-      // Refresh the collage after the content changed, without blocking.
-      _scheduleArtRefresh(prov, playlistId);
-    } catch (e) {
-      // The provider may still hold members that a failed write removed.
-      await prov.load();
-      _showAutoError(e);
-    }
-  }
-
-  Future<void> _syncDailyMix(
-      PlaylistProvider prov, LibraryProvider lib) async {
-    await _syncOneAutoPlaylist(prov, _dailyMixName, _pickDailyMixIds(lib));
-  }
-
-  Future<void> _syncUnplayed(PlaylistProvider prov, LibraryProvider lib) async {
-    try {
-      final never = await DBHelper.instance.getNeverPlayedSongs();
-      if (!mounted) return;
-      final visible = lib.songs.map((s) => s.id).toSet();
-      final ids = never
-          .map((s) => s.id)
-          .where((id) => visible.contains(id))
-          .toList();
-      await _syncOneAutoPlaylist(prov, _unplayedName, ids);
-    } catch (e) {
-      _showAutoError(e);
-    }
-  }
-
-  /// Favorites that have not been played for 90 days (or never), newest
-  /// neglected first. Rebuilt with the library, like Unplayed.
-  Future<void> _syncForgottenFavorites(
-      PlaylistProvider prov, LibraryProvider lib) async {
-    try {
-      final forgotten =
-          await DBHelper.instance.getForgottenFavorites(days: _forgottenDays);
-      if (!mounted) return;
-      final visible = lib.songs.map((s) => s.id).toSet();
-      final ids = forgotten
-          .map((s) => s.id)
-          .where((id) => visible.contains(id))
-          .toList();
-      await _syncOneAutoPlaylist(prov, _forgottenName, ids);
-    } catch (e) {
-      _showAutoError(e);
-    }
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        duration: const Duration(seconds: 2),
+        content: Text(error.toString()),
+      ));
   }
 
   // Runs once when the library is ready. Never duplicates: existing
@@ -496,11 +395,9 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     if (_autoSynced && _autoSyncedVersion == lib.songsVersion) return;
     _autoSyncedVersion = lib.songsVersion;
     _autoSyncing = true;
-    await _syncDailyMix(prov, lib);
-    if (!mounted) return;
-    await _syncUnplayed(prov, lib);
-    if (!mounted) return;
-    await _syncForgottenFavorites(prov, lib);
+    // One authoritative engine for all smart playlists, including the three
+    // built-in rules seeded in the database migration.
+    await prov.refreshAllSmart();
     if (!mounted) return;
     setState(() {
       _autoSyncing = false;
@@ -510,10 +407,21 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
 
   Future<void> _reshuffleDailyMix(
       PlaylistProvider prov, LibraryProvider lib) async {
-    setState(() {
-      _dailySalt = Random().nextInt(1 << 30);
-    });
-    await _syncDailyMix(prov, lib);
+    final row = prov.playlists.firstWhere(
+      (p) => (p['name'] as String?) == _dailyMixName,
+      orElse: () => const <String, dynamic>{},
+    );
+    final id = (row['id'] as num?)?.toInt();
+    final rule = SmartRule.tryParse(row['rule'] as String?);
+    if (id == null || rule == null) return;
+    final salt = Random().nextInt(1 << 30);
+    await prov.updateRule(id, SmartRule(
+      match: rule.match,
+      criteria: rule.criteria,
+      order: rule.order,
+      limit: rule.limit,
+      salt: salt,
+    ));
   }
 
   // Import an .m3u/.m3u8 file as a new playlist. The playlist name
@@ -545,7 +453,11 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     final rule = await showSmartRuleEditor(context, const SmartRule());
     if (rule == null || !mounted) return;
     final prov = context.read<PlaylistProvider>();
-    await prov.createSmart(name, rule);
+    try {
+      await prov.createSmart(name, rule);
+    } catch (e) {
+      if (mounted) _showAutoError(e);
+    }
   }
 
   Future<void> _editSmartRule(Map<String, dynamic> playlist) async {
@@ -1223,10 +1135,11 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                           AppLocalizations.of(context)!.smartPlaylistNew)),
                 ],
               );
+              if (!mounted || choice == null) return;
               if (choice == 'smart') {
-                _createSmartPlaylist();
+                await _createSmartPlaylist();
               } else if (choice == 'normal') {
-                _createPlaylist();
+                await _createPlaylist();
               }
             },
             child: const Icon(Icons.add),

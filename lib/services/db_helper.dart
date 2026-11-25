@@ -1370,7 +1370,7 @@ class DBHelper {
     final database = await db;
     await database.update(
       'playlists',
-      {'rule': rule},
+      {'rule': rule, 'isAuto': rule != null ? 1 : 0},
       where: 'id = ?',
       whereArgs: [playlistId],
     );

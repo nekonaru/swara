@@ -51,6 +51,7 @@ Future<SmartRule?> showSmartRuleEditor(
                   _CriterionTile(
                     row: rows[i],
                     onRemove: () => setState(() => rows.removeAt(i)),
+                    onChanged: () => setState(() {}),
                   ),
                 TextButton.icon(
                   onPressed: () => setState(() => rows.add(_CriterionRow())),
@@ -132,7 +133,37 @@ class _CriterionRow {
     ..op = c.op
     ..value = c.value?.toString() ?? '';
 
+  static const Set<SmartOp> _textOps = <SmartOp>{
+    SmartOp.contains,
+    SmartOp.equals,
+    SmartOp.startsWith,
+    SmartOp.notContains,
+  };
+  static const Set<SmartOp> _dateOps = <SmartOp>{
+    SmartOp.isNull,
+    SmartOp.isNotNull,
+    SmartOp.beforeDays,
+    SmartOp.afterDays,
+  };
+  static const Set<SmartOp> _numberOps = <SmartOp>{
+    SmartOp.eq,
+    SmartOp.neq,
+    SmartOp.gt,
+    SmartOp.gte,
+    SmartOp.lt,
+    SmartOp.lte,
+  };
+
+  static Set<SmartOp> supportedOps(SmartField field) => switch (field) {
+        SmartField.title || SmartField.artist || SmartField.album ||
+        SmartField.genre => _textOps,
+        SmartField.favorite => const <SmartOp>{SmartOp.isTrue, SmartOp.isFalse},
+        SmartField.lastPlayed || SmartField.addedAt => _dateOps,
+        SmartField.playCount || SmartField.duration => _numberOps,
+      };
+
   bool get isValid {
+    if (!supportedOps(field).contains(op)) return false;
     if (_needsValue.contains(op)) return value.trim().isNotEmpty;
     return true;
   }
@@ -169,8 +200,13 @@ class _CriterionRow {
 class _CriterionTile extends StatelessWidget {
   final _CriterionRow row;
   final VoidCallback onRemove;
+  final VoidCallback onChanged;
 
-  const _CriterionTile({required this.row, required this.onRemove});
+  const _CriterionTile({
+    required this.row,
+    required this.onRemove,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +222,11 @@ class _CriterionTile extends StatelessWidget {
                 DropdownMenuItem(value: f, child: Text(_fieldLabel(l, f))),
             ],
             onChanged: (v) {
-              if (v != null) row.field = v;
+              if (v == null) return;
+              row.field = v;
+              final allowed = _CriterionRow.supportedOps(v);
+              if (!allowed.contains(row.op)) row.op = allowed.first;
+              onChanged();
             },
           ),
         ),
@@ -196,11 +236,14 @@ class _CriterionTile extends StatelessWidget {
             value: row.op,
             isExpanded: true,
             items: [
-              for (final op in SmartOp.values)
+              for (final op in _CriterionRow.supportedOps(row.field))
                 DropdownMenuItem(value: op, child: Text(_opLabel(l, op))),
             ],
             onChanged: (v) {
-              if (v != null) row.op = v;
+              if (v != null) {
+                row.op = v;
+                onChanged();
+              }
             },
           ),
         ),

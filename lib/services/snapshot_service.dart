@@ -106,7 +106,9 @@ class SnapshotService {
     final existing = _creatingValue;
     if (existing != null) {
       await existing;
-      return _lastCreated;
+      // A forced call waits for the in-flight one, then takes its own fresh
+      // snapshot instead of returning the automatic one.
+      if (!force) return _lastCreated;
     }
     final completer = Completer<SnapshotInfo?>();
     _creatingValue = completer.future;
