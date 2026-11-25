@@ -51,6 +51,18 @@ class _SongArtImageState extends State<SongArtImage> {
   String? _embeddedPath;
   // True once we know this song has no embedded art (checked on disk).
   bool _embeddedChecked = false;
+  // A referenced local file failed to decode. Do not retry it every frame.
+  bool _localArtFailed = false;
+
+  @override
+  void didUpdateWidget(covariant SongArtImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.song.id != widget.song.id) {
+      _localArtFailed = false;
+      _embeddedChecked = false;
+      _embeddedPath = EmbeddedArtService.instance.peekSync(widget.song.id);
+    }
+  }
 
   @override
   void initState() {
@@ -105,7 +117,8 @@ class _SongArtImageState extends State<SongArtImage> {
         // existence check. Drop the cached answer and retry the embedded art.
         _checkedCoverPaths.remove(path);
         _validCoverPaths.remove(path);
-        if (_embeddedPath == null) {
+        _localArtFailed = true;
+        if (!_embeddedChecked && _embeddedPath == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _loadEmbedded();
           });
@@ -137,7 +150,7 @@ class _SongArtImageState extends State<SongArtImage> {
   @override
   Widget build(BuildContext context) {
     final localPath = (widget.song.albumArtPath ?? '').trim();
-    if (localPath.isNotEmpty) {
+    if (localPath.isNotEmpty && !_localArtFailed) {
       return _localImage(localPath);
     }
     final embedded = _embeddedPath;

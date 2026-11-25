@@ -365,6 +365,18 @@ Future<void> _renameSong(BuildContext context, Song song, LibraryProvider lib) a
     final displayName = safeBase + p.extension(song.filePath);
     final result = await lib.renameSongFile(song, displayName);
     if (result.status == FileRenameStatus.renamed) return;
+    if (result.fileRenamed) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text(l.songOptionsRenameFileOnlyTitle(
+                result.error ?? result.status.name)),
+          ),
+        );
+      }
+      return;
+    }
     // The OS refused the real rename. Keep the database title edit and say so
     // explicitly so the user is not misled into thinking the file changed.
     final oldTitle = song.title;

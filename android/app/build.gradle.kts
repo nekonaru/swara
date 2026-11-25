@@ -11,6 +11,10 @@ val releaseKeystorePath = System.getenv("SWARA_KEYSTORE_PATH")
 val releaseStorePassword = System.getenv("SWARA_STORE_PASSWORD")
 val releaseKeyAlias = System.getenv("SWARA_KEY_ALIAS")
 val releaseKeyPassword = System.getenv("SWARA_KEY_PASSWORD")
+val hasReleaseKey = releaseKeystorePath != null &&
+    releaseStorePassword != null &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null
 
 android {
     namespace = "com.nikodwidharma.offline_music_player"
@@ -35,11 +39,7 @@ android {
     }
 
     signingConfigs {
-        if (releaseKeystorePath != null &&
-            releaseStorePassword != null &&
-            releaseKeyAlias != null &&
-            releaseKeyPassword != null
-        ) {
+        if (hasReleaseKey) {
             create("release") {
                 storeFile = file(releaseKeystorePath)
                 storePassword = releaseStorePassword
@@ -51,7 +51,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (releaseKeystorePath != null) {
+            signingConfig = if (hasReleaseKey) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")

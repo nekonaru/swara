@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Dart facade for the native file rename bridge.
 enum FileRenameStatus {
@@ -16,12 +19,15 @@ class FileRenameResult {
   final String? path;
   final String? displayName;
   final String? error;
+  // True when the OS already renamed the file even if the DB update failed.
+  final bool fileRenamed;
 
   const FileRenameResult({
     required this.status,
     this.path,
     this.displayName,
     this.error,
+    this.fileRenamed = false,
   });
 }
 
@@ -37,6 +43,15 @@ class FileRenameService {
     required String oldPath,
     required String newDisplayName,
   }) async {
+    // Legacy Android needs WRITE_EXTERNAL_STORAGE for File.renameTo. On
+    // scoped storage this request is harmless and the native side asks for
+    // per-item consent instead.
+    if (Platform.isAndroid) {
+      final status = await Permission.storage.request();
+      if (status.isPermanentlyDenied) {
+        return const FileRenameResult(status: FileRenameStatus.noPermission);
+      }
+    }
     try {
       final raw = await _channel.invokeMapMethod<String, dynamic>('rename', {
         'id': id,

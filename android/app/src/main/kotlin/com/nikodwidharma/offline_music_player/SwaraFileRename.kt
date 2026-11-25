@@ -36,6 +36,7 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     private var pendingId: Int? = null
     private var pendingNewName: String? = null
     private var pendingOldPath: String? = null
+    private var pendingUri: Uri? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
@@ -55,6 +56,8 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        binding?.removeActivityResultListener(this::onActivityResult)
+        failPending("activity_gone")
         activity = null
         binding = null
     }
@@ -66,10 +69,10 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     }
 
     override fun onDetachedFromActivity() {
+        binding?.removeActivityResultListener(this::onActivityResult)
+        failPending("activity_gone")
         activity = null
         binding = null
-        pendingResult = null
-        pendingId = null
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -110,7 +113,7 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             return
         }
 
-        if (Build.VERSION.SDK_INT >= 30) {
+        if (Build.VERSION.SDK_INT >= 29) {
             requestScopedWrite(appContext, id, oldPath, newPath, newDisplayName, result)
         } else {
             executor.execute {
@@ -182,6 +185,7 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
         pendingId = id
         pendingNewName = newDisplayName
         pendingOldPath = oldPath
+        pendingUri = uri
         try {
             currentActivity.startIntentSenderForResult(
                 request.intentSender,
@@ -204,6 +208,7 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
         val id = pendingId
         val newName = pendingNewName
         val oldPath = pendingOldPath
+        val targetUri = pendingUri
         clearPending()
         if (resultCode != Activity.RESULT_OK || id == null || newName.isNullOrEmpty() || oldPath.isNullOrEmpty()) {
             result.error("consent_denied", "Write consent denied", null)
@@ -222,12 +227,16 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             @Suppress("DEPRECATION")
             val selection = "${MediaStore.MediaColumns.DATA}=?"
-            val updated = appContext.contentResolver.update(
-                collection,
-                values,
-                selection,
-                arrayOf(oldPath),
-            )
+            val updated = if (targetUri != null) {
+                appContext.contentResolver.update(targetUri, values, null, null)
+            } else {
+                appContext.contentResolver.update(
+                    collection,
+                    values,
+                    selection,
+                    arrayOf(oldPath),
+                )
+            }
             if (updated <= 0) {
                 result.error("failed", "MediaStore update failed", null)
                 return@execute
@@ -253,11 +262,17 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
         return true
     }
 
+    private fun failPending(code: String) {
+        pendingResult?.error(code, "Rename interrupted", null)
+        clearPending()
+    }
+
     private fun clearPending() {
         pendingResult = null
         pendingId = null
         pendingNewName = null
         pendingOldPath = null
+        pendingUri = null
     }
 
     private fun success(result: MethodChannel.Result, id: Int, path: String, displayName: String) {

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/providers/language_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path/path.dart' as p;
 import '../models/song.dart';
 import '../services/db_helper.dart';
 import '../services/file_rename_service.dart';
@@ -738,14 +739,13 @@ class LibraryProvider extends ChangeNotifier {
       oldPath: song.filePath,
       newDisplayName: newDisplayName,
     );
-    if (result.status != FileRenameStatus.renamed ||
-        result.path == null ||
-        result.path == song.filePath) {
+    if (result.status != FileRenameStatus.renamed || result.path == null) {
       return result;
     }
-    final title = result.displayName?.isEmpty == false
-        ? result.displayName!
-        : newDisplayName;
+    // The native side returns a display name with the extension. The library
+    // title should stay human readable, without ".mp3".
+    final title = p.withoutExtension(
+        result.displayName?.isNotEmpty == true ? result.displayName! : newDisplayName);
     final applied = await DBHelper.instance.updateSongFilePath(
       song.id,
       oldPath: song.filePath,
@@ -753,8 +753,15 @@ class LibraryProvider extends ChangeNotifier {
       newTitle: title,
     );
     if (!applied) {
-      return const FileRenameResult(
-          status: FileRenameStatus.failed, error: 'Database path update failed');
+      // The file is already renamed. Never let the caller report a harmless
+      // title-only edit while the database still points at the old path.
+      return FileRenameResult(
+        status: FileRenameStatus.failed,
+        path: result.path,
+        displayName: result.displayName,
+        fileRenamed: true,
+        error: 'Database path update failed',
+      );
     }
     final rebuilt = Song(
       id: song.id,
