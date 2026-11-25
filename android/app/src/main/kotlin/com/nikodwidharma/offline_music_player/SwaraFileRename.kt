@@ -207,8 +207,19 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
                 } else {
                     MediaScannerConnection.scanFile(
                         context, arrayOf(oldPath, newPath), null, null)
+                    var actualName = newDisplayName
+                    val check = resolver.query(uri,
+                        arrayOf(MediaStore.MediaColumns.DISPLAY_NAME), null, null, null)
+                    check?.use { c ->
+                        if (c.moveToFirst()) {
+                            val idx = c.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+                            if (idx >= 0) actualName = c.getString(idx)
+                        }
+                    }
+                    val parent = File(oldPath).parent ?: ""
+                    val actualPath = File(parent, actualName).absolutePath
                     context.mainExecutor.execute {
-                        success(result, id, newPath, newDisplayName)
+                        success(result, id, actualPath, actualName)
                     }
                 }
             }
@@ -254,9 +265,9 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             val uri = pendingTagsUri
             val values = pendingTagsValues
             val fields = listOfNotNull(
-                if (values?.contains(MediaStore.Audio.Media.TITLE) == true) "title" else null,
-                if (values?.contains(MediaStore.Audio.Media.ARTIST) == true) "artist" else null,
-                if (values?.contains(MediaStore.Audio.Media.ALBUM) == true) "album" else null,
+                if (values?.getAsString(MediaStore.Audio.Media.TITLE) != null) "title" else null,
+                if (values?.getAsString(MediaStore.Audio.Media.ARTIST) != null) "artist" else null,
+                if (values?.getAsString(MediaStore.Audio.Media.ALBUM) != null) "album" else null,
             )
             clearTagsPending()
             if (resultCode != Activity.RESULT_OK || id == null || path == null) {
@@ -368,6 +379,10 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     }
 
     private fun handleWriteTags(call: MethodCall, result: MethodChannel.Result) {
+        if (pendingTagsResult != null) {
+            result.error("busy", "Another tag write is in progress", null)
+            return
+        }
         val id = call.argument<Int>("id")
         val path = call.argument<String>("filePath")
         val title = call.argument<String>("title")?.trim()

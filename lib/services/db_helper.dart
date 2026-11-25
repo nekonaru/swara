@@ -1081,7 +1081,7 @@ class DBHelper {
 
   Future<void> markPlayed(int songId) async {
     // lastPlayedAt drives the "never played" dashboard list.
-    invalidateDashboardCache();
+    await invalidateDashboardCache();
     try {
       final database = await db;
       await database.update(

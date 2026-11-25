@@ -42,16 +42,16 @@ class TagWriteService {
     required String artist,
     required String album,
   }) async {
-    if (Platform.isAndroid) {
-      final sdk = await _channel.invokeMethod<int>('getSdkInt') ?? 0;
-      if (sdk <= 29) {
-        final status = await Permission.storage.request();
-        if (!status.isGranted) {
-          return const TagWriteResult(status: TagWriteStatus.noPermission);
+    try {
+      if (Platform.isAndroid) {
+        final sdk = await _channel.invokeMethod<int>('getSdkInt') ?? 0;
+        if (sdk <= 29) {
+          final status = await Permission.storage.request();
+          if (!status.isGranted) {
+            return const TagWriteResult(status: TagWriteStatus.noPermission);
+          }
         }
       }
-    }
-    try {
       final raw = await _channel.invokeMapMethod<String, dynamic>('writeTags', {
         'id': id,
         'filePath': filePath,

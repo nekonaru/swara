@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'backup_service.dart';
+import 'db_helper.dart';
 
 class SnapshotInfo {
   final String name;
@@ -100,10 +101,12 @@ class SnapshotService {
     bool force = false,
     Duration minInterval = defaultInterval,
   }) async {
-    final existing = _creatingValue;
-    if (existing != null) {
-      await existing;
-      return _lastCreated;
+    if (!force) {
+      final existing = _creatingValue;
+      if (existing != null) {
+        await existing;
+        return _lastCreated;
+      }
     }
     final completer = Completer<SnapshotInfo?>();
     _creatingValue = completer.future;
@@ -112,10 +115,20 @@ class SnapshotService {
         final last = await lastSnapshot();
         if (last != null &&
             DateTime.now().difference(last) < minInterval) {
+          _lastCreated = null;
           completer.complete(null);
           return null;
         }
       }
+      // A fresh install has an empty library. Do not persist and later offer
+      // to restore an empty snapshot.
+      if (await DBHelper.instance.getSongCount() == 0) {
+        _lastCreated = null;
+        completer.complete(null);
+        return null;
+      }
+      final previousRestore = _restoreLock;
+      await previousRestore.catchError((Object _) {});
       final content = await BackupService.exportLibrary();
       final now = DateTime.now();
       String two(int n) => n.toString().padLeft(2, '0');
@@ -148,6 +161,7 @@ class SnapshotService {
       completer.complete(info);
       return info;
     } catch (_) {
+      _lastCreated = null;
       completer.complete(null);
       return null;
     } finally {

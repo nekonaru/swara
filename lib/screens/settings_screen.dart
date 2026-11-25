@@ -46,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _lastExport;
   List<SnapshotInfo> _snapshots = const <SnapshotInfo>[];
   bool _restoringSnapshot = false;
+  bool _actionableSnackVisible = false;
   bool _loudnessEnabled = false;
   // App version shown in About, loaded once from package info.
   String _appVersion = '';
@@ -398,8 +399,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showSnack(String message) {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    // Replace the previous message instead of queueing a stack of them.
-    messenger.hideCurrentSnackBar();
+    // Never hide a snackbar that carries an action such as Retry install.
+    if (!_actionableSnackVisible) messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
         SnackBar(duration: const Duration(seconds: 2), content: Text(message)));
   }
@@ -409,10 +410,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     // Do not hide an existing actionable snackbar: the retry-install action
     // must remain available while other messages come and go.
+    _actionableSnackVisible = true;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(duration: const Duration(seconds: 2),
+      SnackBar(duration: const Duration(seconds: 10),
         content: Text(message),
-        action: SnackBarAction(label: label, onPressed: onPressed),
+        action: SnackBarAction(label: label, onPressed: () {
+          _actionableSnackVisible = false;
+          onPressed();
+        }),
       ),
     );
   }

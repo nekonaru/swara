@@ -90,6 +90,7 @@ class SearchIsolateClient {
   SendPort? _commands;
   final ReceivePort _replies = ReceivePort();
   StreamSubscription? _replySub;
+  Completer<SendPort>? _readyCompleter;
   final Map<int, Completer<SearchIsolateResult>> _inFlight = {};
   int _latestIssued = -1;
   String? _preparedKey;
@@ -105,6 +106,7 @@ class SearchIsolateClient {
   Future<void> _start() async {
     if (_disposed) return;
     final ready = Completer<SendPort>();
+    _readyCompleter = ready;
     _replySub = _replies.listen((message) {
       if (message is! Map<String, dynamic>) return;
       final type = message['type'];
@@ -167,6 +169,9 @@ class SearchIsolateClient {
     final port = _commands;
     if (port == null) await start();
     _latestIssued = generation;
+    if (_disposed || _commands == null) {
+      return const (indices: <int>[], suggestion: null);
+    }
     final completer = Completer<SearchIsolateResult>();
     _inFlight[generation] = completer;
     _commands!.send({
@@ -189,6 +194,10 @@ class SearchIsolateClient {
     }
     _inFlight.clear();
     _preparedKey = null;
+    final ready = _readyCompleter;
+    if (ready != null && !ready.isCompleted) {
+      ready.completeError(StateError('Search isolate disposed'));
+    }
     _commands?.send({'type': 'close'});
     _replySub?.cancel();
     _replies.close();

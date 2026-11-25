@@ -814,7 +814,8 @@ class LibraryProvider extends ChangeNotifier {
       );
     }
     await updateMetadata(updated);
-    if (result.osWritten) PlayerService.instance.replaceQueueSong(updated);
+    // The queue copies song fields, so refresh it for a DB-only edit too.
+    PlayerService.instance.replaceQueueSong(updated);
     return result;
   }
 
