@@ -13,6 +13,9 @@ import java.util.concurrent.RejectedExecutionException
 // Theme.AppCompat descendant theme (see values/styles.xml).
 class MainActivity : AudioServiceFragmentActivity() {
     private var widgetChannel: MethodChannel? = null
+    private var shareChannel: MethodChannel? = null
+    private val pendingImportUris = ArrayList<String>()
+    private var shareHandlerReady = false
     // Widget rebinds touch RemoteViews and the widget manager; keep that
     // off the main looper.
     private val widgetExecutor =
@@ -37,6 +40,37 @@ class MainActivity : AudioServiceFragmentActivity() {
                 .start()
         }
         super.onCreate(savedInstanceState)
+        collectImportIntent(intent)
+    }
+
+    private fun collectImportIntent(intent: android.content.Intent?) {
+        if (intent == null) return
+        val action = intent.action ?: return
+        val uris = ArrayList<android.net.Uri>()
+        if (action == android.content.Intent.ACTION_VIEW) {
+            intent.data?.let { uris.add(it) }
+        } else if (action == android.content.Intent.ACTION_SEND ||
+            action == android.content.Intent.ACTION_SEND_MULTIPLE
+        ) {
+            intent.clipData?.let { clip ->
+                for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
+            } ?: intent.data?.let { uris.add(it) }
+        }
+        for (uri in uris) {
+            val flags = intent.flags and (
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            if (flags != 0 && uri.scheme == "content") {
+                try {
+                    applicationContext.contentResolver.takePersistableUriPermission(uri, flags)
+                } catch (_: Exception) {
+                    // Some providers refuse persistable grants; the copy reads
+                    // immediately, so this is not fatal.
+                }
+            }
+            val value = uri.toString()
+            if (!pendingImportUris.contains(value)) pendingImportUris.add(value)
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -105,6 +139,41 @@ class MainActivity : AudioServiceFragmentActivity() {
                 }
             }
         }
+        // Audio files shared from other apps are copied into Music/Swara Imports.
+        shareChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "swara/share_import",
+        ).apply {
+            setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getInitialImport" -> {
+                        val uris = ArrayList(pendingImportUris)
+                        pendingImportUris.clear()
+                        result.success(uris)
+                    }
+                    "notifyHandlerReady" -> {
+                        shareHandlerReady = true
+                        if (pendingImportUris.isNotEmpty()) {
+                            val uris = ArrayList(pendingImportUris)
+                            pendingImportUris.clear()
+                            invokeMethod("onImportUris", uris)
+                        }
+                        result.success(null)
+                    }
+                    "importAudioFiles" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val uris = (call.arguments as? List<String>) ?: emptyList()
+                        val parsed = uris.mapNotNull {
+                            try { android.net.Uri.parse(it) } catch (_: Exception) { null }
+                        }
+                        SwaraAudioImport.import(applicationContext, parsed) { data ->
+                            result.success(data)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
         // If the app was launched from a widget tap while the process was
         // dead, the extra still exists; Flutter's getInitialAction replay
         // picks it up during engine startup. Taps that land while the engine
@@ -114,6 +183,7 @@ class MainActivity : AudioServiceFragmentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
+        collectImportIntent(intent)
         // Widget tapped while the activity is already up; forward the action.
         // Remove the extra right away so a later cold start never replays it.
         val action = intent.getStringExtra("swara_widget_action")

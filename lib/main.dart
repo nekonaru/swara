@@ -17,6 +17,7 @@ import 'services/equalizer_service.dart';
 import 'services/loudness_service.dart';
 import 'services/permission_service.dart';
 import 'services/snapshot_service.dart';
+import 'services/share_import_service.dart';
 import 'services/player_service.dart';
 import 'services/swara_audio_handler.dart';
 import 'screens/home_screen.dart';
@@ -65,7 +66,10 @@ void main() {
 
   // Keep at most three recent local snapshots. The interval gate lives in
   // SnapshotService, so timer and lifecycle callers cannot duplicate work.
-  unawaited(bootFuture.then((_) => _startAutoSnapshots()));
+  unawaited(bootFuture.then((_) {
+    _startAutoSnapshots();
+    _startShareImportBridge();
+  }));
 
   // Dynamic launcher shortcuts are registered by the boot task after the
   // saved language is loaded, so their titles are localized.
@@ -143,6 +147,46 @@ class _WidgetBridge {
       debugPrint('Widget state push failed: $e');
     }
   }
+}
+
+final GlobalKey<ScaffoldMessengerState> _shareScaffoldKey =
+    GlobalKey<ScaffoldMessengerState>();
+
+Future<void> _handleSharedImport(List<String> uris) async {
+  if (uris.isEmpty) return;
+  try {
+    await _WidgetBridge.bootFuture;
+  } catch (_) {}
+  final result = await ShareImportService.instance.importUris(uris);
+  if (result.imported > 0) {
+    await LibraryProvider.instance.scanDevice();
+  }
+  final messenger = _shareScaffoldKey.currentState;
+  if (messenger == null) return;
+  final l = lookupAppLocalizations(LanguageProvider.instance.locale);
+  final parts = <String>[];
+  if (result.imported > 0) parts.add(l.shareImportImported(result.imported));
+  if (result.skipped > 0) parts.add(l.shareImportSkipped(result.skipped));
+  if (result.failed > 0) parts.add(l.shareImportFailed('${result.failed}'));
+  if (parts.isEmpty) return;
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      duration: const Duration(seconds: 2),
+      content: Text(parts.join(' ')),
+    ));
+}
+
+void _startShareImportBridge() {
+  ShareImportService.channel.setMethodCallHandler((call) async {
+    if (call.method == 'onImportUris') {
+      final uris = (call.arguments as List?)?.cast<String>() ?? const <String>[];
+      unawaited(_handleSharedImport(uris));
+    }
+  });
+  unawaited(ShareImportService.channel.invokeMethod<void>('notifyHandlerReady'));
+  unawaited(ShareImportService.instance.getInitialImport()
+      .then((uris) => _handleSharedImport(uris)));
 }
 
 void _startAutoSnapshots() {
@@ -462,6 +506,7 @@ class MusicApp extends StatelessWidget {
             // dynamic scheme.
             final dynamic = tp.dynamicColor;
             return MaterialApp(
+              scaffoldMessengerKey: _shareScaffoldKey,
               title: 'Swara',
               debugShowCheckedModeBanner: false,
               locale: lp.locale,

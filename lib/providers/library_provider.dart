@@ -98,6 +98,10 @@ class LibraryProvider extends ChangeNotifier {
     super.notifyListeners();
   }
 
+  // Context-free singleton for OS callbacks (shared-file import, widget).
+  // The app still registers its own instance through MultiProvider.
+  static final LibraryProvider instance = LibraryProvider();
+
   LibraryProvider() {
     // Await it in loadFromDb so the saved sort order is applied to the very
     // first list, not just on the next restart or sort tap.

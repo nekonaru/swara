@@ -2835,5 +2835,29 @@
     "autoBrowseRecent":  "Recent",
     "@autoBrowseRecent":  {
                                    "description":  "Android Auto browse category for recently played songs"
+                               },
+    "shareImportImported":  "Imported {count} song(s)",
+    "@shareImportImported":  {
+                                   "description":  "Share import message"
+,
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+                               },
+    "shareImportSkipped":  "Skipped {count} duplicate(s)",
+    "@shareImportSkipped":  {
+                                   "description":  "Share import message"
+,
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+                               },
+    "shareImportFailed":  "Import failed: {error}",
+    "@shareImportFailed":  {
+                                   "description":  "Share import message"
+,
+                                   "placeholders": {
+                                     "error": {"type": "String"}
+                                   }
                                }
 }

@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.14.0
+
+Large native integration release: audio files shared from other apps can be imported into the offline library, with no new install-time permission.
+
+## New features
+
+- **Share audio into Swara.** Sending an audio file or several files from a chat, browser or email copies them into `Music/Swara Imports`, rescans the library and reports imported, duplicate and failed counts.
+
+## Improvements
+
+- **Imported files behave like normal library songs** because they become MediaStore audio rows, so favorites, history, playlists and backups keep working.
+- **Share grants are consumed immediately** and not persisted when a provider refuses a long-lived grant.
+
+## Bug fixes
+
+- **A long-running install retry message no longer blocks later feedback**, and ordinary messages still replace each other promptly.
+- **Snackbar duration checks no longer mistake playback timeouts for long messages.**
+
 ## v4.13.1
 
 Patch release after review: safer backup restore, dependable built-in rules, and consistent Android Auto browsing.

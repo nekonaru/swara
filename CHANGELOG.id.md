@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.14.0
+
+Rilis integrasi native besar: file audio yang dibagikan aplikasi lain bisa diimpor ke pustaka offline tanpa izin pemasangan baru.
+
+## Fitur baru
+
+- **Bagikan audio ke Swara.** Mengirim satu atau beberapa file audio dari chat, browser, atau email menyalinnya ke `Music/Swara Imports`, memindai ulang pustaka, lalu melaporkan jumlah berhasil, duplikat, dan gagal.
+
+## Peningkatan
+
+- **File hasil impor berlaku seperti lagu pustaka biasa** karena menjadi baris audio MediaStore, sehingga favorit, riwayat, playlist, dan cadangan tetap bekerja.
+- **Izin berbagi dipakai segera** dan tidak disimpan bila penyedia menolak izin jangka panjang.
+
+## Perbaikan bug
+
+- **Pesan ulang pemasangan yang lama tidak lagi menghalangi pesan berikutnya**, dan pesan biasa tetap saling menggantikan.
+- **Pemeriksaan durasi snackbar tidak lagi salah mengira timeout pemutaran sebagai pesan panjang.**
+
 ## v4.13.1
 
 Rilis patch setelah review: pemulihan cadangan lebih aman, aturan bawaan lebih andal, dan jelajah Android Auto konsisten.

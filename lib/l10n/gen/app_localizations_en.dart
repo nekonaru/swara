@@ -2417,4 +2417,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autoBrowseRecent => 'Recent';
+
+  @override
+  String shareImportImported(int count) {
+    return 'Imported $count song(s)';
+  }
+
+  @override
+  String shareImportSkipped(int count) {
+    return 'Skipped $count duplicate(s)';
+  }
+
+  @override
+  String shareImportFailed(String error) {
+    return 'Import failed: $error';
+  }
 }

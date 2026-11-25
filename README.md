@@ -158,6 +158,7 @@
 | **Backup and restore** | Export and import playlists, favorites and history, plus manual tags, plain lyrics, synced LRC, timing corrections and bookmarks matched by file path across devices |
 | **Save backup to file** | Save a timestamped JSON backup to a location you pick with the system file picker and see the last export date in Settings |
 | **Local snapshots** | Keep up to three automatic app-private snapshots of your library and restore one from Settings |
+| **Share audio into Swara** | Send audio files from other apps to copy them into your library and rescan automatically |
 | **History cleanup** | Optional, you-confirmed cleanup of old listening history in Settings |
 
 ### Appearance and Language

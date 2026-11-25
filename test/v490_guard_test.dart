@@ -19,12 +19,11 @@ void main() {
         .where((f) => !f.path.contains(r'l10n\gen'));
     for (final file in files) {
       final text = file.readAsStringSync();
-      expect(
-        RegExp(r'Duration\(seconds: [3-9]\d*\)').hasMatch(
-            text.split('SnackBar(').skip(1).join('SnackBar(')),
-        isFalse,
-        reason: '${file.path} still has a long snackbar duration',
-      );
+      final longSnackbar = RegExp(
+        r'SnackBar\([\s\S]{0,240}?Duration\(seconds: [3-9]\d*\)',
+      ).hasMatch(text);
+      expect(longSnackbar, isFalse,
+          reason: '${file.path} still has a long snackbar duration');
     }
   });
 

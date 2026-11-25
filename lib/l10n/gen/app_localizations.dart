@@ -4281,6 +4281,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent'**
   String get autoBrowseRecent;
+
+  /// Share import message
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {count} song(s)'**
+  String shareImportImported(int count);
+
+  /// Share import message
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped {count} duplicate(s)'**
+  String shareImportSkipped(int count);
+
+  /// Share import message
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed: {error}'**
+  String shareImportFailed(String error);
 }
 
 class _AppLocalizationsDelegate

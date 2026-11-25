@@ -2415,4 +2415,19 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get autoBrowseRecent => 'Terakhir';
+
+  @override
+  String shareImportImported(int count) {
+    return 'Mengimpor $count lagu';
+  }
+
+  @override
+  String shareImportSkipped(int count) {
+    return 'Melewati $count duplikat';
+  }
+
+  @override
+  String shareImportFailed(String error) {
+    return 'Impor gagal: $error';
+  }
 }

@@ -2835,5 +2835,29 @@
     "autoBrowseRecent":  "Terakhir",
     "@autoBrowseRecent":  {
                                    "description":  "Android Auto browse category for recently played songs"
+                               },
+    "shareImportImported":  "Mengimpor {count} lagu",
+    "@shareImportImported":  {
+                                   "description":  "Share import message"
+,
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+                               },
+    "shareImportSkipped":  "Melewati {count} duplikat",
+    "@shareImportSkipped":  {
+                                   "description":  "Share import message"
+,
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+                               },
+    "shareImportFailed":  "Impor gagal: {error}",
+    "@shareImportFailed":  {
+                                   "description":  "Share import message"
+,
+                                   "placeholders": {
+                                     "error": {"type": "String"}
+                                   }
                                }
 }
