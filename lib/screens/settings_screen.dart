@@ -406,7 +406,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showSnack(String message) {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    // Never hide a snackbar that carries an action such as Retry install.
+    // An actionable snackbar such as Retry install stays visible; other
+    // messages may queue behind it until it closes.
     if (!_actionableSnackVisible) messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
         SnackBar(duration: const Duration(seconds: 2), content: Text(message)));

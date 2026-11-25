@@ -38,6 +38,19 @@ String folderOf(String filePath) {
   return normalized.substring(0, idx);
 }
 
+/// True when [filePath] is inside [folder] or the folder itself. Hidden
+/// folders exclude their descendants, matching querySongsPage's LIKE rule.
+bool isHiddenPath(String filePath, Set<String> excluded) {
+  if (excluded.isEmpty) return false;
+  final normalized = filePath.replaceAll('\\', '/');
+  for (final raw in excluded) {
+    final folder = raw.replaceAll('\\', '/').replaceAll(RegExp(r'/$'), '');
+    if (folder.isEmpty) continue;
+    if (normalized == folder || normalized.startsWith('$folder/')) return true;
+  }
+  return false;
+}
+
 /// First letter that is safe for avatar/A-Z - never throws RangeError.
 String safeInitial(String s) => s.isEmpty ? '#' : s[0].toUpperCase();
 String formatDuration(int ms) {

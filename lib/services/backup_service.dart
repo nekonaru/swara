@@ -590,10 +590,17 @@ class BackupService {
           if (!isNew) {
             playlistId = idByName[name]!;
             playlistsAlreadyPresent++;
-            // A backup restore is explicit: its rule wins over a stale local
-            // one, and members are rebuilt from it at the end of the import.
-            if (backupRule != null && backupRule.isNotEmpty) {
-              await dbHelper.setPlaylistRule(playlistId, backupRule);
+            final local = existingRows.firstWhere(
+              (row) => (row['id'] as num?)?.toInt() == playlistId,
+              orElse: () => const <String, dynamic>{},
+            );
+            final localIsSmart = (local['isAuto'] as num?) == 1 ||
+                (local['rule'] as String?)?.isNotEmpty == true;
+            // A backup rule wins over a stale local smart rule, but must never
+            // convert a hand-curated playlist with the same name.
+            if (backupRule != null && backupRule.isNotEmpty && localIsSmart) {
+              await dbHelper.setPlaylistRule(playlistId, backupRule,
+                  updateAuto: false);
             }
           } else if (createdAt != null) {
             // Preserve the original ordering: insert with the export's

@@ -428,6 +428,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       limit: rule.limit,
       salt: salt,
     ));
+    _scheduleArtRefresh(prov, id);
   }
 
   // Import an .m3u/.m3u8 file as a new playlist. The playlist name

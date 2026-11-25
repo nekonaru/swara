@@ -1117,12 +1117,25 @@ class DBHelper {
     }
   }
 
-  Future<List<Song>> getRecentlyPlayed({int limit = 50, int offset = 0}) async {
+  Future<List<Song>> getRecentlyPlayed({
+    int limit = 50,
+    int offset = 0,
+    Set<String>? excludedFolders,
+  }) async {
     final database = await db;
+    final where = <String>['lastPlayedAt IS NOT NULL'];
+    final args = <Object?>[];
+    for (final folder in excludedFolders ?? const <String>{}) {
+      final normalized = folder.replaceAll('\\', '/').replaceAll(RegExp(r'/$'), '');
+      if (normalized.isEmpty) continue;
+      where.add("filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(normalized)}/%');
+    }
+    args.addAll([limit, offset < 0 ? 0 : offset]);
     final rows = await database.rawQuery(
-      'SELECT * FROM songs WHERE lastPlayedAt IS NOT NULL '
+      'SELECT * FROM songs WHERE ${where.join(' AND ')} '
       'ORDER BY lastPlayedAt DESC LIMIT ? OFFSET ?',
-      [limit, offset < 0 ? 0 : offset],
+      args,
     );
     return await _songsFromRows(rows);
   }
@@ -1159,7 +1172,7 @@ class DBHelper {
     final folders = <String>{};
     for (final song in await getSongSummaries()) {
       final folder = folderOf(song.filePath);
-      if (folder.isEmpty || excludedFolders.contains(folder)) continue;
+      if (folder.isEmpty || isHiddenPath(song.filePath, excludedFolders)) continue;
       folders.add(folder);
     }
     final sorted = folders.toList()..sort();
@@ -1410,11 +1423,15 @@ class DBHelper {
     });
   }
 
-  Future<void> setPlaylistRule(int playlistId, String? rule) async {
+  Future<void> setPlaylistRule(int playlistId, String? rule,
+      {bool updateAuto = true}) async {
     final database = await db;
     await database.update(
       'playlists',
-      {'rule': rule, 'isAuto': rule != null ? 1 : 0},
+      {
+        'rule': rule,
+        if (updateAuto) 'isAuto': rule != null ? 1 : 0,
+      },
       where: 'id = ?',
       whereArgs: [playlistId],
     );

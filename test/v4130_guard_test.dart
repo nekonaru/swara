@@ -31,7 +31,7 @@ void main() {
   test('built-in smart playlists exist on fresh installs', () {
     final service = read('lib/services/smart_playlist_service.dart');
     expect(service.contains('static const builtInSeeds'), isTrue);
-    expect(service.contains('Future<void> ensureBuiltIns()'), isTrue);
+    expect(service.contains('Future<List<int>> ensureBuiltIns()'), isTrue);
     expect(service.contains('await ensureBuiltIns();'), isTrue);
     expect(service.contains('_rebuildWithRule(id, rule)'), isTrue);
   });
@@ -39,8 +39,8 @@ void main() {
   test('smart rules handle never played and hidden folders', () {
     final service = read('lib/services/smart_playlist_service.dart');
     expect(service.contains('expr IS NULL OR julianday'), isTrue);
-    expect(service.contains('path.isNotEmpty && !excluded.contains'), isTrue);
-    expect(service.contains('No SQL LIMIT'), isTrue);
+    expect(service.contains('isHiddenPath(path, excluded)'), isTrue);
+    expect(service.contains('LIMIT ? OFFSET ?'), isTrue);
   });
 
   test('smart editor rejects invalid numeric conditions', () {
@@ -51,6 +51,6 @@ void main() {
 
   test('backup restore uses the backup rule', () {
     final backup = read('lib/services/backup_service.dart');
-    expect(backup.contains('its rule wins over a stale local'), isTrue);
+    expect(backup.contains('localIsSmart'), isTrue);
   });
 }

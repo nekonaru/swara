@@ -415,11 +415,24 @@ class SwaraAudioHandler extends BaseAudioHandler {
       await PlayerService.instance.ready
           .timeout(const Duration(seconds: 3))
           .catchError((Object _) {});
-      final text = query.trim();
-      if (text.isEmpty) return;
-      final hits = await SwaraBrowseCatalog.search(text, 1);
-      if (hits.isEmpty) return;
-      await _playMediaItem(hits.first.id);
+      final terms = <String>[query.trim()];
+      for (final key in const [
+        'android.media.extra.ARTIST',
+        'android.media.extra.TITLE',
+        'android.media.extra.ALBUM',
+        'artist',
+        'title',
+        'album',
+      ]) {
+        final value = extras?[key]?.toString().trim() ?? '';
+        if (value.isNotEmpty) terms.add(value);
+      }
+      for (final term in terms.where((t) => t.isNotEmpty)) {
+        final hits = await SwaraBrowseCatalog.search(term, 1);
+        if (hits.isEmpty) continue;
+        await _playMediaItem(hits.first.id);
+        return;
+      }
     } catch (e) {
       debugPrint('playFromSearch failed: $e');
     }

@@ -104,7 +104,17 @@ Future<SmartRule?> showSmartRuleEditor(
                   ));
                 return;
               }
-              final limit = int.tryParse(limitController.text.trim());
+              final limitText = limitController.text.trim();
+              final parsedLimit = int.tryParse(limitText);
+              if (limitText.isNotEmpty && (parsedLimit == null || parsedLimit <= 0)) {
+                ScaffoldMessenger.of(ctx)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                    content: Text(AppLocalizations.of(ctx)!.smartRuleInvalid),
+                  ));
+                return;
+              }
+              final limit = parsedLimit;
               Navigator.pop(
                 ctx,
                 SmartRule(

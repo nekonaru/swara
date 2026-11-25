@@ -61,7 +61,7 @@ class SwaraBrowseCatalog {
     final (page, pageSize) = pageOf(options);
     final offset = page * pageSize;
     if (parentId == root) {
-      return [
+      final categories = [
         MediaItem(id: recent, title: l.autoBrowseRecent,
             artist: '', album: '', playable: false),
         MediaItem(id: catPlaylists, title: l.autoBrowsePlaylists,
@@ -73,10 +73,17 @@ class SwaraBrowseCatalog {
         MediaItem(id: catQueue, title: l.queueTitle,
             artist: '', album: '', playable: false),
       ];
+      // Android Auto paginates until a short page arrives. Returning all five
+      // on every page would loop forever with a small page size.
+      return categories.skip(offset).take(pageSize).toList();
     }
     if (parentId == recent) {
+      final excluded = await DBHelper.instance.getExcludedFolders();
       final rows = await DBHelper.instance.getRecentlyPlayed(
-          limit: pageSize, offset: offset);
+        limit: pageSize,
+        offset: offset,
+        excludedFolders: excluded,
+      );
       return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catPlaylists) {
@@ -128,7 +135,9 @@ class SwaraBrowseCatalog {
         return const <MediaItem>[];
       }
       final rows = (await DBHelper.instance.getSongSummaries())
-          .where((s) => folderOf(s.filePath) == folder)
+          .where((s) =>
+              folderOf(s.filePath) == folder ||
+              isHiddenPath(s.filePath, {folder}))
           .skip(offset)
           .take(pageSize);
       return [for (final song in rows) _leaf(song)];
