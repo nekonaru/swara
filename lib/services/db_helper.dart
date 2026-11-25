@@ -483,7 +483,18 @@ class DBHelper {
   /// heavy await here, only one statement per missing index, so it does not
   /// hold up startup.
   static Future<void> _ensureIndexes(Database db) async {
+    // Every DB caller awaits onOpen. Issuing 11 CREATE INDEX statements on a
+    // warm start is pure overhead, so skip the ones already in the schema.
+    final existing = <String>{};
+    try {
+      final rows = await db.query('sqlite_master',
+          columns: ['name'], where: "type = 'index'");
+      existing.addAll(rows.map((r) => (r['name'] as String?) ?? ''));
+    } catch (_) {
+      // If the catalog read fails, fall through to the idempotent statements.
+    }
     for (final entry in _indexStatements.entries) {
+      if (existing.contains(entry.key)) continue;
       try {
         await db.execute(entry.value);
       } catch (e) {
@@ -868,6 +879,12 @@ class DBHelper {
     final database = await db;
     final rows = await database.query('songs', orderBy: 'addedAt DESC', limit: limit);
     return await _songsFromRows(rows);
+  }
+
+  Future<void> clearPlaylistSongs(int playlistId) async {
+    final database = await db;
+    await database.delete('playlist_songs',
+        where: 'playlistId = ?', whereArgs: [playlistId]);
   }
 
   Future<void> deleteSong(int id) async {
@@ -1878,6 +1895,43 @@ class DBHelper {
     );
   }
 
+  /// One batched read for all per-song extras used by backup export. Three
+  /// queries per song used to mean thousands of awaits on a large library.
+  Future<Map<int, Map<String, Object?>>> getBackupSongExtras(
+      List<int> songIds) async {
+    final database = await db;
+    final result = <int, Map<String, Object?>>{};
+    const chunk = 400;
+    for (var off = 0; off < songIds.length; off += chunk) {
+      final end = off + chunk > songIds.length ? songIds.length : off + chunk;
+      final slice = songIds.sublist(off, end);
+      final placeholders = List.filled(slice.length, '?').join(',');
+      final lrcRows = await database.rawQuery(
+          'SELECT songId, lrc, offsetMs FROM synced_lyrics '
+          'WHERE songId IN ($placeholders)', slice);
+      for (final row in lrcRows) {
+        final id = (row['songId'] as num?)?.toInt();
+        if (id == null) continue;
+        result.putIfAbsent(id, () => {});
+        result[id]!['lrc'] = row['lrc'];
+        result[id]!['offsetMs'] = row['offsetMs'];
+      }
+      final bookmarkRows = await database.rawQuery(
+          'SELECT id, songId, positionMs, label, createdAt FROM song_bookmarks '
+          'WHERE songId IN ($placeholders) ORDER BY positionMs ASC', slice);
+      for (final row in bookmarkRows) {
+        final id = (row['songId'] as num?)?.toInt();
+        if (id == null) continue;
+        result.putIfAbsent(id, () => {});
+        final list = (result[id]!['bookmarks'] as List<Object?>?)?.toList() ??
+            <Object?>[];
+        list.add(row);
+        result[id]!['bookmarks'] = list;
+      }
+    }
+    return result;
+  }
+
   // ---------- Backup identity helpers ----------
   Future<Map<String, Object?>?> querySongById(int id) async {
     final database = await db;
@@ -1966,6 +2020,12 @@ class DBHelper {
       'createdAt': createdAt,
     });
     return true;
+  }
+
+  Future<void> updateBookmarkLabel(int bookmarkId, String label) async {
+    final database = await db;
+    await database.update('song_bookmarks', {'label': label.trim()},
+        where: 'id = ?', whereArgs: [bookmarkId]);
   }
 
   Future<void> deleteBookmark(int bookmarkId) async {

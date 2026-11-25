@@ -249,11 +249,15 @@ class BackupService {
       entry['identityKey'] = identityKeyFor((entry['songId'] as num).toInt());
     }
 
+    final allSongs = await DBHelper.instance.getAllSongs();
+    final songExtras = await DBHelper.instance
+        .getBackupSongExtras(allSongs.map((s) => s.id).toList());
     final songsJson = <Map<String, dynamic>>[];
-    for (final song in await DBHelper.instance.getAllSongs()) {
-      final lrc = await DBHelper.instance.getSyncedLyrics(song.id);
-      final offset = await DBHelper.instance.getSyncedLyricOffset(song.id);
-      final bookmarks = await DBHelper.instance.getBookmarks(song.id);
+    for (final song in allSongs) {
+      final extras = songExtras[song.id] ?? const <String, Object?>{};
+      final lrc = extras['lrc'] as String?;
+      final offset = (extras['offsetMs'] as num?)?.toInt() ?? 0;
+      final bookmarks = (extras['bookmarks'] as List<Object?>?) ?? const [];
       songsJson.add({
         'identityKey': identityKeyFor(song.id),
         'filePath': song.filePath,
@@ -271,11 +275,12 @@ class BackupService {
         'lyricOffsetMs': offset,
         'bookmarks': [
           for (final b in bookmarks)
-            {
-              'positionMs': b['positionMs'],
-              'label': b['label'],
-              'createdAt': b['createdAt'],
-            },
+            if (b is Map<String, Object?>)
+              {
+                'positionMs': b['positionMs'],
+                'label': b['label'],
+                'createdAt': b['createdAt'],
+              },
         ],
         'isFavorite': song.isFavorite,
       });
@@ -414,12 +419,20 @@ class BackupService {
       }
       final localIdentityRows = await DBHelper.instance.getSongIdentityRows();
       final byPath = <String, int>{};
+      // One basename index instead of scanning every local row per imported
+      // song: identity resolution stays O(n + m) on large libraries.
+      final byBasename = <String, List<(int duration, int id)>>{};
       for (final row in localIdentityRows) {
         final id = (row['id'] as num?)?.toInt();
         final path = row['filePath'] as String?;
-        if (id != null && path != null && path.isNotEmpty) {
-          byPath[normalizeBackupPath(path)] = id;
-        }
+        if (id == null || path == null || path.isEmpty) continue;
+        byPath[normalizeBackupPath(path)] = id;
+        final base = backupBasename(path);
+        if (base.isEmpty || base == '/') continue;
+        final duration = (row['durationMs'] as num?)?.toInt() ?? 0;
+        byBasename
+            .putIfAbsent(base, () => <(int duration, int id)>[])
+            .add((duration, id));
       }
 
       int? resolveIdentity(Map<String, dynamic> raw) {
@@ -434,13 +447,10 @@ class BackupService {
         if (basename.isEmpty || basename == '/') return null;
         final duration = (raw['durationMs'] as num?)?.toInt() ?? 0;
         final candidates = <int>[];
-        for (final row in localIdentityRows) {
-          final localPath = row['filePath'] as String?;
-          if (localPath == null) continue;
-          if (backupBasename(localPath) != basename) continue;
-          final localDuration = (row['durationMs'] as num?)?.toInt() ?? 0;
+        for (final (localDuration, localId)
+            in byBasename[basename] ?? const <(int duration, int id)>[]) {
           if ((localDuration - duration).abs() <= kDurationToleranceMs) {
-            candidates.add((row['id'] as num).toInt());
+            candidates.add(localId);
           }
         }
         return candidates.length == 1 ? candidates.first : null;
@@ -805,6 +815,7 @@ class BackupService {
         membersSkipped == 0 &&
         favoritesSkipped == 0 &&
         entriesSkipped == 0 &&
+        resolvedV3Songs.isEmpty &&
         songsMatched == 0 &&
         metadataRestored == 0 &&
         syncedLyricsRestored == 0 &&
@@ -921,37 +932,48 @@ class BackupService {
           final lrc = raw['syncedLyrics'] as String?;
           final offset = (raw['lyricOffsetMs'] as num?)?.toInt() ?? 0;
 
+          final newTitle = isEmptyText(localRows['title'] as String?) &&
+                  !isEmptyText(title)
+              ? title
+              : null;
+          final newArtist = isEmptyText(localRows['artist'] as String?) &&
+                  !isEmptyText(artist)
+              ? artist
+              : null;
+          final newAlbum = isEmptyText(localRows['album'] as String?) &&
+                  !isEmptyText(album)
+              ? album
+              : null;
+          final newGenre = isEmptyText(localRows['genre'] as String?) &&
+                  !isEmptyText(genre)
+              ? genre
+              : null;
+          final newRegion = isEmptyText(localRows['region'] as String?) &&
+                  !isEmptyText(region)
+              ? region
+              : null;
+          final newLyrics =
+              isEmptyText(localLyrics) && !isEmptyText(lyrics) ? lyrics : null;
           await DBHelper.instance.applyBackupSongMetadata(
             localId,
-            title: isEmptyText(localRows['title'] as String?) && !isEmptyText(title)
-                ? title
-                : null,
-            artist: isEmptyText(localRows['artist'] as String?) && !isEmptyText(artist)
-                ? artist
-                : null,
-            album: isEmptyText(localRows['album'] as String?) && !isEmptyText(album)
-                ? album
-                : null,
-            genre: isEmptyText(localRows['genre'] as String?) && !isEmptyText(genre)
-                ? genre
-                : null,
-            region: isEmptyText(localRows['region'] as String?) && !isEmptyText(region)
-                ? region
-                : null,
-            lyrics: isEmptyText(localLyrics) && !isEmptyText(lyrics)
-                ? lyrics
-                : null,
+            title: newTitle,
+            artist: newArtist,
+            album: newAlbum,
+            genre: newGenre,
+            region: newRegion,
+            lyrics: newLyrics,
+            // A restored tag set is already enriched; do not let a later
+            // "scan missing metadata" fetch overwrites it.
+            metadataScanned: raw['metadataScanned'] == true ? true : null,
           );
-          if (!isEmptyText(title) ||
-              !isEmptyText(artist) ||
-              !isEmptyText(album) ||
-              !isEmptyText(genre) ||
-              !isEmptyText(region)) {
+          if (newTitle != null ||
+              newArtist != null ||
+              newAlbum != null ||
+              newGenre != null ||
+              newRegion != null) {
             metadataRestored++;
           }
-          if (isEmptyText(localLyrics) && !isEmptyText(lyrics)) {
-            lyricsRestored++;
-          }
+          if (newLyrics != null) lyricsRestored++;
 
           final hasLocalLrc =
               await DBHelper.instance.getSyncedLyrics(localId) != null;

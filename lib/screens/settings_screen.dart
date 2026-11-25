@@ -536,34 +536,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       final l10nAfter = AppLocalizations.of(context)!;
       setState(() => _busyData = false);
-      _showSnack(l10nAfter.dataImportDone(
+      // One snackbar only: successive showSnackBar calls replace each other,
+      // which used to hide the v3 summary behind the skipped-count message.
+      final summary = StringBuffer(l10nAfter.dataImportDone(
           result.playlistsCreated,
           result.playlistMembersAdded,
           result.favoritesRestored,
           result.listeningEntriesRestored));
-      if ((result.playlistMembersSkipped +
-              result.favoritesSkipped +
-              result.listeningEntriesSkipped) >
-          0) {
-        _showSnack(AppLocalizations.of(context)!.dataImportSkipped(
-            result.playlistMembersSkipped,
-            result.favoritesSkipped,
-            result.listeningEntriesSkipped));
-      }
       if (result.songsMatched > 0 ||
           result.songsUnmatched > 0 ||
           result.bookmarksRestored > 0) {
-        _showSnack(l10nAfter.dataImportDoneV3(
+        summary.write(' ');
+        summary.write(l10nAfter.dataImportDoneV3(
             result.songsMatched,
             result.metadataRestored,
             result.lyricsRestored,
             result.syncedLyricsRestored,
             result.bookmarksRestored));
-        if (result.songsUnmatched > 0 || result.bookmarksSkipped > 0) {
-          _showSnack(l10nAfter.dataImportSkippedV3(
-              result.songsUnmatched, result.bookmarksSkipped));
-        }
       }
+      final skipped = StringBuffer();
+      if ((result.playlistMembersSkipped +
+              result.favoritesSkipped +
+              result.listeningEntriesSkipped) >
+          0) {
+        skipped.write(l10nAfter.dataImportSkipped(
+            result.playlistMembersSkipped,
+            result.favoritesSkipped,
+            result.listeningEntriesSkipped));
+      }
+      if (result.songsUnmatched > 0 || result.bookmarksSkipped > 0) {
+        if (skipped.isNotEmpty) skipped.write(' ');
+        skipped.write(l10nAfter.dataImportSkippedV3(
+            result.songsUnmatched, result.bookmarksSkipped));
+      }
+      if (skipped.isNotEmpty) summary.write(' ${skipped.toString()}');
+      _showSnack(summary.toString());
     } catch (e) {
       if (!mounted) return;
       setState(() => _busyData = false);

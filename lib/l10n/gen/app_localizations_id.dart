@@ -2194,4 +2194,14 @@ class AppLocalizationsId extends AppLocalizations {
   String dataImportSkippedV3(int unmatched, int bookmarks) {
     return 'Lagu tidak cocok $unmatched, penanda dilewati $bookmarks';
   }
+
+  @override
+  String get playerLyricTimingReset => 'Atur ulang koreksi waktu';
+
+  @override
+  String get playerBookmarkRename => 'Ganti nama penanda';
+
+  @override
+  String get playerBookmarkSongChanged =>
+      'Lagu berubah, penanda tidak disimpan';
 }

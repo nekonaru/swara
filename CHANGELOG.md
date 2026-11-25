@@ -1,5 +1,32 @@
 # Changelog
 
+## v4.7.0
+
+Feature and performance release: named bookmarks, one-tap lyric reset, and a lighter backup and playback path, with no new permission.
+
+## New features
+
+- **Bookmark labels can be renamed.** Saved playhead positions are now genuinely named instead of showing only a duration.
+- **Lyric timing reset.** A single button clears a saved correction and returns to the original file offset.
+
+## Improvements
+
+- **Backup export is batched.** Per-song extras are read in bulk instead of three queries per song, so large libraries export much faster.
+- **Backup identity is indexed.** Path and basename matching builds one lookup table instead of scanning local songs for every imported row.
+- **Auto playlists replace contents in bulk.** One delete and one insert replace thousands of single-song writes and notifications.
+- **The widget stops churning during playback.** Ordinary position ticks no longer trigger a widget rebuild every 1.5 seconds.
+- **Artwork probing skips covered songs.** Rows with a local or remote cover no longer query MediaStore on the first scroll.
+- **Warm database opens skip existing indexes.** Eleven idempotent statements are no longer issued on every launch.
+- **Import reports use one message.** Restored and skipped counts no longer hide each other behind successive snackbars.
+- **Restored tags keep their scanned flag.** A later missing-metadata scan will not overwrite tags that came from a backup.
+
+## Bug fixes
+
+- **Song-only v3 backups import correctly** instead of being rejected as having no matching entries.
+- **Metadata counts reflect real changes.** An unchanged local library no longer reports restored metadata.
+- **Bookmark taps ignore a track change** instead of seeking the new song to the old song's position.
+- **Pending lyric corrections reach the database** before an edit reload or an exit, and are retried if a write fails.
+
 ## v4.6.0
 
 Large data and native polish release: stable-identity backup, a user-visible save location, and a deeper accessibility pass, with no new permission.

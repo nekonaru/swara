@@ -2538,5 +2538,17 @@
                                      "unmatched": {"type": "int"},
                                      "bookmarks": {"type": "int"}
                                    }
+                               },
+    "playerLyricTimingReset":  "Reset timing correction",
+    "@playerLyricTimingReset":  {
+                                   "description":  "Button that clears the saved lyric timing correction"
+                               },
+    "playerBookmarkRename":  "Rename bookmark",
+    "@playerBookmarkRename":  {
+                                   "description":  "Action that renames a saved bookmark label"
+                               },
+    "playerBookmarkSongChanged":  "The song changed, bookmark not saved",
+    "@playerBookmarkSongChanged":  {
+                                   "description":  "Message when a bookmark sheet is used after the track changed"
                                }
 }

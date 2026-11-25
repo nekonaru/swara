@@ -230,7 +230,11 @@ void _startWidgetStatePush() {
   var lastPlaying = false;
   var lastArt = '';
   var hasPushed = false;
-  var lastSeenPositionMs = 0;
+  // Track the previous tick, not the last pushed value. Comparing against the
+  // last push makes every 1.5 s of normal playback look like a seek and
+  // rebuilds the widget about 40 times a minute.
+  var lastTickPositionMs = 0;
+  var hasTick = false;
   // The position stream advances smoothly at ~1 Hz; a jump larger than the
   // threshold means a seek happened, and the widget chronometer's base must
   // be re-pushed. (A-B repeat seeks, slider seeks, restore seeks all move
@@ -260,7 +264,8 @@ void _startWidgetStatePush() {
     lastArtist = artist;
     lastPlaying = playing;
     lastArt = art;
-    lastSeenPositionMs = positionMs;
+    lastTickPositionMs = positionMs;
+    hasTick = true;
     hasPushed = true;
     await _WidgetBridge.pushState(
         title, artist, playing, art.isEmpty ? null : art, positionMs);
@@ -277,9 +282,11 @@ void _startWidgetStatePush() {
     lastSubscribedPlayerId = player.hashCode.toString();
     positionSub = player.positionStream.listen((_) {
       final positionMs = PlayerService.instance.positionForWidget;
-      if ((positionMs - lastSeenPositionMs).abs() > jumpThresholdMs) {
+      if (hasTick && (positionMs - lastTickPositionMs).abs() > jumpThresholdMs) {
         unawaited(push(force: true));
       }
+      lastTickPositionMs = positionMs;
+      hasTick = true;
     });
   }
 

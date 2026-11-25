@@ -3873,6 +3873,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unmatched songs {unmatched}, skipped bookmarks {bookmarks}'**
   String dataImportSkippedV3(int unmatched, int bookmarks);
+
+  /// Button that clears the saved lyric timing correction
+  ///
+  /// In en, this message translates to:
+  /// **'Reset timing correction'**
+  String get playerLyricTimingReset;
+
+  /// Action that renames a saved bookmark label
+  ///
+  /// In en, this message translates to:
+  /// **'Rename bookmark'**
+  String get playerBookmarkRename;
+
+  /// Message when a bookmark sheet is used after the track changed
+  ///
+  /// In en, this message translates to:
+  /// **'The song changed, bookmark not saved'**
+  String get playerBookmarkSongChanged;
 }
 
 class _AppLocalizationsDelegate

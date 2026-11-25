@@ -2538,5 +2538,17 @@
                                      "unmatched": {"type": "int"},
                                      "bookmarks": {"type": "int"}
                                    }
+                               },
+    "playerLyricTimingReset":  "Atur ulang koreksi waktu",
+    "@playerLyricTimingReset":  {
+                                   "description":  "Tombol yang menghapus koreksi waktu lirik tersimpan"
+                               },
+    "playerBookmarkRename":  "Ganti nama penanda",
+    "@playerBookmarkRename":  {
+                                   "description":  "Aksi mengganti label penanda tersimpan"
+                               },
+    "playerBookmarkSongChanged":  "Lagu berubah, penanda tidak disimpan",
+    "@playerBookmarkSongChanged":  {
+                                   "description":  "Pesan saat sheet penanda dipakai setelah lagu berganti"
                                }
 }

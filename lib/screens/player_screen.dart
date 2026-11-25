@@ -101,12 +101,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
-  void _onLyricsRevision() {
+  Future<void> _onLyricsRevision() async {
     final song = _player.currentSong;
     if (song == null || !mounted) return;
     // A nudge right before the edit must reach the DB before the reload
     // reads the saved offset back.
-    _flushPendingLrcOffset();
+    await _flushPendingLrcOffset();
     _lrcLoadGeneration++;
     _lrcLoading = false;
     _lrcSongId = -1;
@@ -143,7 +143,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _player.removeListener(_onPlayerForLyrics);
     _player.lyricsRevision.removeListener(_onLyricsRevision);
     _lrcOffsetSaveTimer?.cancel();
-    _flushPendingLrcOffset();
+    unawaited(_flushPendingLrcOffset());
     _returnController.dispose();
     // If the slider is disposed mid-drag, release the seek guard so A-B
     // repeat and crossfade triggers are not suppressed for the rest of the
@@ -468,7 +468,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<void> _maybeLoadSyncedLyrics(Song song) async {
     // Leaving a song before the debounce fires must not lose the correction.
     if (_pendingOffsetSongId != null && _pendingOffsetSongId != song.id) {
-      _flushPendingLrcOffset();
+      await _flushPendingLrcOffset();
     }
     // If a different song asks for lyrics while an older load is in flight,
     // invalidate that load before the early return. Otherwise the stale load
@@ -626,17 +626,39 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   /// Write a pending timing correction immediately. Safe to call more than
-  /// once; the pending state is cleared before the DB write.
-  void _flushPendingLrcOffset() {
+  /// once. On failure the pending state is restored so a later reload or exit
+  /// can retry instead of silently losing the correction.
+  Future<void> _flushPendingLrcOffset() async {
     final songId = _pendingOffsetSongId;
     if (songId == null) return;
     final value = _pendingOffsetMs;
     _pendingOffsetSongId = null;
-    DBHelper.instance
-        .setSyncedLyricOffset(songId, value)
-        .catchError((Object e) {
+    try {
+      await DBHelper.instance.setSyncedLyricOffset(songId, value);
+    } catch (e) {
       debugPrint('Lyric offset save failed: $e');
-    });
+      _pendingOffsetSongId = songId;
+      _pendingOffsetMs = value;
+    }
+  }
+
+  /// Clear the saved correction and return to the file offset.
+  Future<void> _resetLrcOffset() async {
+    final songId = _player.currentSong?.id;
+    if (songId == null) return;
+    _lrcOffsetSaveTimer?.cancel();
+    _pendingOffsetSongId = null;
+    try {
+      await DBHelper.instance.setSyncedLyricOffset(songId, 0);
+    } catch (e) {
+      debugPrint('Lyric offset reset failed: $e');
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _lrcManualOffsetMs = 0);
+    final idx = _lrcIndexFor(_player.activePlayer.position.inMilliseconds);
+    setState(() => _lrcIndex = idx);
+    _scrollToLrcLine(idx);
   }
 
   Future<void> _openBookmarks(Song song) async {
@@ -678,6 +700,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                           label: Text(l10n.playerBookmarkSave),
                           onPressed: () async {
                             if (_player.currentSong?.id != bookmarkSongId) {
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                    content: Text(
+                                        l10n.playerBookmarkSongChanged)));
+                              }
                               return;
                             }
                             final pos =
@@ -707,6 +734,10 @@ class _PlayerScreenState extends State<PlayerScreen>
                             subtitle: Text(formatDuration(
                                 (row['positionMs'] as num?)?.toInt() ?? 0)),
                             onTap: () {
+                              if (_player.currentSong?.id != bookmarkSongId) {
+                                Navigator.pop(ctx);
+                                return;
+                              }
                               final pos =
                                   (row['positionMs'] as num?)?.toInt() ?? 0;
                               Navigator.pop(ctx);
@@ -714,17 +745,62 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   .seek(Duration(milliseconds: pos))
                                   .catchError((Object _) {});
                             },
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              tooltip: l10n.delete,
-                              onPressed: () async {
-                                await DBHelper.instance.deleteBookmark(
-                                    (row['id'] as num).toInt());
-                                if (!ctx.mounted) return;
-                                bookmarks =
-                                    DBHelper.instance.getBookmarks(bookmarkSongId);
-                                setSheetState(() {});
-                              },
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined),
+                                  tooltip: l10n.playerBookmarkRename,
+                                  onPressed: () async {
+                                    final controller = TextEditingController(
+                                        text: (row['label'] as String?) ?? '');
+                                    final edited = await showDialog<String>(
+                                      context: ctx,
+                                      builder: (dialogCtx) => AlertDialog(
+                                        title: Text(l10n.playerBookmarkRename),
+                                        content: TextField(
+                                            controller: controller,
+                                            maxLines: 1,
+                                            autofocus: true),
+                                        actions: [
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(dialogCtx),
+                                              child: Text(l10n.cancel)),
+                                          TextButton(
+                                              onPressed: () => Navigator.pop(
+                                                  dialogCtx,
+                                                  controller.text.trim()),
+                                              child: Text(l10n.save)),
+                                        ],
+                                      ),
+                                    );
+                                    controller.dispose();
+                                    if (edited == null ||
+                                        edited.isEmpty ||
+                                        !ctx.mounted) {
+                                      return;
+                                    }
+                                    await DBHelper.instance.updateBookmarkLabel(
+                                        (row['id'] as num).toInt(), edited);
+                                    bookmarks =
+                                        DBHelper.instance.getBookmarks(bookmarkSongId);
+                                    setSheetState(() {});
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  tooltip: l10n.delete,
+                                  onPressed: () async {
+                                    await DBHelper.instance.deleteBookmark(
+                                        (row['id'] as num).toInt());
+                                    if (!ctx.mounted) return;
+                                    bookmarks = DBHelper.instance
+                                        .getBookmarks(bookmarkSongId);
+                                    setSheetState(() {});
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                       ],
@@ -910,6 +986,12 @@ class _PlayerScreenState extends State<PlayerScreen>
         runSpacing: 4,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          if (_lrcManualOffsetMs != 0)
+            _buildOffsetButton(
+              icon: Icons.restart_alt,
+              tooltip: AppLocalizations.of(context)!.playerLyricTimingReset,
+              onPressed: _resetLrcOffset,
+            ),
           Text(
             AppLocalizations.of(context)!.playerLyricTiming,
             style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),

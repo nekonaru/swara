@@ -423,18 +423,11 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       } else {
         playlistId = existing['id'] as int;
         await DBHelper.instance.setPlaylistAuto(playlistId, true);
-        final current = await prov.songsIn(playlistId);
-        for (final s in current) {
-          await prov.removeSong(playlistId, s.id);
-        }
+        // One DELETE instead of one notify per removed song.
+        await DBHelper.instance.clearPlaylistSongs(playlistId);
       }
-      for (final id in songIds) {
-        try {
-          await prov.addSong(playlistId, id);
-        } catch (_) {
-          // Ignore per-song duplicate errors, keep syncing the rest.
-        }
-      }
+      // One transaction and one notification for the whole replacement.
+      await prov.addSongs(playlistId, songIds);
       await prov.load();
       // Refresh the collage after the content changed, without blocking.
       _scheduleArtRefresh(prov, playlistId);

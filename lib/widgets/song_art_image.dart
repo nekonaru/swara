@@ -53,8 +53,15 @@ class _SongArtImageState extends State<SongArtImage> {
     _embeddedPath = EmbeddedArtService.instance.peekSync(widget.song.id);
     _embeddedChecked = _embeddedPath != null ||
         EmbeddedArtService.instance.isKnownMissing(widget.song.id);
-    if (!_embeddedChecked) {
+    // A usable local or cached remote cover is displayed without the
+    // embedded probe. Avoiding that MediaStore query per visible row is the
+    // difference between a smooth first fling and hundreds of disk writes.
+    final hasUsableCover = (widget.song.albumArtPath ?? '').trim().isNotEmpty ||
+        (widget.song.albumArtUrl ?? '').trim().isNotEmpty;
+    if (!_embeddedChecked && !hasUsableCover) {
       _loadEmbedded();
+    } else if (hasUsableCover && !_embeddedChecked) {
+      _embeddedChecked = true;
     }
   }
 

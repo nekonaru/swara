@@ -2195,4 +2195,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String dataImportSkippedV3(int unmatched, int bookmarks) {
     return 'Unmatched songs $unmatched, skipped bookmarks $bookmarks';
   }
+
+  @override
+  String get playerLyricTimingReset => 'Reset timing correction';
+
+  @override
+  String get playerBookmarkRename => 'Rename bookmark';
+
+  @override
+  String get playerBookmarkSongChanged =>
+      'The song changed, bookmark not saved';
 }

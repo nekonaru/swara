@@ -1,5 +1,32 @@
 # Changelog
 
+## v4.7.0
+
+Rilis fitur dan performa: penanda bernama, atur ulang waktu lirik sekali ketuk, serta jalur cadangan dan pemutaran yang lebih ringan tanpa izin baru.
+
+## Fitur baru
+
+- **Label penanda bisa diganti nama.** Posisi putar tersimpan kini benar-benar bernama, bukan hanya menampilkan durasi.
+- **Atur ulang waktu lirik.** Satu tombol menghapus koreksi tersimpan dan kembali ke offset asli file.
+
+## Peningkatan
+
+- **Ekspor cadangan dibatch.** Data tambahan per lagu dibaca sekaligus, bukan tiga query per lagu, sehingga pustaka besar jauh lebih cepat diekspor.
+- **Identitas cadangan memakai indeks.** Pencocokan jalur dan nama file membangun satu tabel pencarian, bukan memindai semua lagu lokal per baris impor.
+- **Playlist otomatis mengganti isi secara massal.** Satu hapus dan satu sisip menggantikan ribuan operasi serta notifikasi per lagu.
+- **Widget tidak lagi berulang saat pemutaran.** Tick posisi biasa tidak lagi memicu pembangunan ulang widget setiap 1,5 detik.
+- **Pencarian sampul melewati lagu yang sudah ada sampulnya.** Baris dengan sampul lokal atau jarak jauh tidak lagi meminta MediaStore saat guliran pertama.
+- **Pembukaan database hangat melewati indeks yang sudah ada.** Sebelas pernyataan idempoten tidak lagi dijalankan setiap peluncuran.
+- **Laporan impor memakai satu pesan.** Jumlah yang dipulihkan dan dilewati tidak lagi saling menutupi.
+- **Tag yang dipulihkan mempertahankan penanda sudah dipindai.** Pemindaian metadata berikutnya tidak menimpa tag hasil cadangan.
+
+## Perbaikan bug
+
+- **Cadangan v3 yang hanya berisi lagu berhasil diimpor** alih-alih ditolak sebagai tidak ada yang cocok.
+- **Jumlah metadata mencerminkan perubahan nyata.** Pustaka lokal yang sudah benar tidak lagi melaporkan metadata dipulihkan.
+- **Ketukan penanda mengabaikan pergantian lagu** sehingga tidak menjerumuskan lagu baru ke posisi lagu lama.
+- **Koreksi lirik yang tertunda sampai ke database** sebelum edit atau keluar, dan dicoba ulang jika penulisan gagal.
+
 ## v4.6.0
 
 Rilis besar untuk data dan penyempurnaan native: cadangan dengan identitas stabil, lokasi simpan yang terlihat pengguna, dan pendalaman aksesibilitas tanpa izin baru.

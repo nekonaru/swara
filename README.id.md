@@ -57,7 +57,7 @@
 |-------|-----------|
 | **Pemutaran offline** | Pindai dan putar musik langsung dari penyimpanan ponsel |
 | **Resume pemutaran** | Melanjutkan lagu terakhir pada menit:detik yang sama saat aplikasi dibuka kembali |
-| **Penanda lagu** | Simpan hingga 20 posisi putar bernama per lagu dan lompat kembali ke posisi itu setelah restart |
+| **Penanda lagu** | Simpan hingga 20 posisi putar bernama per lagu, ganti namanya, dan lompat kembali setelah restart |
 | **Cabut headset** | Pemutaran jeda otomatis saat headset dicabut atau rute Bluetooth terputus |
 | **Pemutaran di latar belakang** | Foreground service Android asli dengan MediaSession: kontrol notifikasi dan layar kunci (putar/jeda/berikutnya/sebelumnya) |
 | **Widget layar home** | Sampul album, kontrol sebelumnya/putar/berikutnya, dan chronometer waktu berjalan langsung di layar home |
@@ -101,7 +101,7 @@
 | **Lirik sesuai permintaan** | Diambil lewat lrclib dengan lyrics.ovh sebagai cadangan, bisa diedit manual, ada cadangan pencarian Google |
 | **Edit manual** | Perbaiki metadata dan lirik per lagu saat hasil pemindaian salah |
 | **Lirik tersinkron** | Lirik baris demi baris yang mengikuti lagu, dengan tampilan teks biasa sebagai cadangan |
-| **Penyelarasan lirik** | Membaca tag offset dari file .lrc, memungkinkan menggeser lirik per 100 ms, dan menyimpan koreksi tersebut per lagu |
+| **Penyelarasan lirik** | Membaca tag offset dari file .lrc, menggeser lirik per 100 ms, menyimpan koreksi per lagu, dan mengaturnya ulang dalam satu ketukan |
 | **File .lrc lokal** | Impor file lirik .lrc dari penyimpanan sendiri atau bagikan lirik sinkron yang tersimpan, sepenuhnya offline |
 
 ### Pustaka dan Pencarian
