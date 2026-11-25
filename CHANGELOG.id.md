@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.13.1
+
+Rilis patch setelah review: pemulihan cadangan lebih aman, aturan bawaan lebih andal, dan jelajah Android Auto konsisten.
+
+## Perbaikan bug
+
+- **Pemulihan cadangan tidak lagi mengubah playlist pilihan manual** bernama sama menjadi playlist pintar atau mengganti anggotanya.
+- **Playlist bawaan tanpa aturan diperbaiki**, bukan dilewati selamanya, termasuk baris dari cadangan lama.
+- **Halaman root dan folder tersembunyi Android Auto kini benar.** Folder tersembunyi atau turunannya tidak bisa dijelajahi dari mobil.
+- **Perintah suara dengan metadata artis atau album bekerja** walau teks ucapan kosong.
+- **Daily Mix menyegarkan kolase setelah diacak**, dan batas aturan tidak valid ditolak, bukan diam-diam menjadi tanpa batas.
+- **Pembangunan ulang playlist saat pemutaran melewati pekerjaan yang tidak perlu** bila anggota tidak berubah.
+
 ## v4.13.0
 
 Rilis besar untuk jelajah dan keandalan daftar putar: Android Auto lengkap dengan halaman dan pemutaran suara, plus perbaikan agar playlist pintar bawaan selalu dapat diandalkan tanpa dependensi baru.

@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.13.1
+
+Patch release after review: safer backup restore, dependable built-in rules, and consistent Android Auto browsing.
+
+## Bug fixes
+
+- **Restoring a backup no longer converts a hand-curated playlist** with the same name into a smart playlist or replaces its members.
+- **Built-in playlists with a missing rule are repaired** instead of being skipped forever, including rows restored from older backups.
+- **Android Auto root paging and hidden folders behave correctly.** A hidden folder or its descendants cannot be browsed in the car.
+- **Voice commands with artist or album metadata work** even when the spoken query is empty.
+- **Daily Mix reshuffle refreshes its collage**, and an invalid rule limit is rejected instead of silently becoming unlimited.
+- **Smart rebuilds during playback skip unnecessary work** when membership is unchanged.
+
 ## v4.13.0
 
 Large browse and playlist reliability release: full Android Auto paging with voice playback, and fixes that make built-in smart playlists dependable, with no new dependency.
