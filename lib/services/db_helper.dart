@@ -881,6 +881,24 @@ class DBHelper {
     return await _songsFromRows(rows);
   }
 
+  /// Replace a playlist's membership in one transaction so a failed insert
+  /// never leaves an auto playlist empty.
+  Future<void> replacePlaylistSongs(
+      int playlistId, List<int> songIds) async {
+    final database = await db;
+    await database.transaction((txn) async {
+      await txn.delete('playlist_songs',
+          where: 'playlistId = ?', whereArgs: [playlistId]);
+      for (final id in songIds) {
+        await txn.insert('playlist_songs', {
+          'playlistId': playlistId,
+          'songId': id,
+          'addedAt': DateTime.now().toIso8601String(),
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    });
+  }
+
   Future<void> clearPlaylistSongs(int playlistId) async {
     final database = await db;
     await database.delete('playlist_songs',

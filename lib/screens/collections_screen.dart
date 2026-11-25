@@ -423,15 +423,16 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       } else {
         playlistId = existing['id'] as int;
         await DBHelper.instance.setPlaylistAuto(playlistId, true);
-        // One DELETE instead of one notify per removed song.
-        await DBHelper.instance.clearPlaylistSongs(playlistId);
       }
-      // One transaction and one notification for the whole replacement.
-      await prov.addSongs(playlistId, songIds);
+      // One transaction for delete plus insert: a failed write cannot leave
+      // the auto playlist empty.
+      await DBHelper.instance.replacePlaylistSongs(playlistId, songIds);
       await prov.load();
       // Refresh the collage after the content changed, without blocking.
       _scheduleArtRefresh(prov, playlistId);
     } catch (e) {
+      // The provider may still hold members that a failed write removed.
+      await prov.load();
       _showAutoError(e);
     }
   }

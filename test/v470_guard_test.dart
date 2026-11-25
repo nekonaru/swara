@@ -55,8 +55,9 @@ void main() {
 
   test('art probing skips songs with a usable cover', () {
     final art = read('lib/widgets/song_art_image.dart');
-    expect(art.contains('hasUsableCover'), isTrue);
-    expect(art.contains('!hasUsableCover'), isTrue);
+    expect(art.contains('hasRealCover'), isTrue);
+    expect(art.contains('existsSync()'), isTrue);
+    expect(art.contains('!hasRealCover'), isTrue);
   });
 
   test('new l10n keys exist in both locales', () {

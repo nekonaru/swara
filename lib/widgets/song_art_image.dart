@@ -56,11 +56,20 @@ class _SongArtImageState extends State<SongArtImage> {
     // A usable local or cached remote cover is displayed without the
     // embedded probe. Avoiding that MediaStore query per visible row is the
     // difference between a smooth first fling and hundreds of disk writes.
-    final hasUsableCover = (widget.song.albumArtPath ?? '').trim().isNotEmpty ||
-        (widget.song.albumArtUrl ?? '').trim().isNotEmpty;
-    if (!_embeddedChecked && !hasUsableCover) {
+    final localPath = (widget.song.albumArtPath ?? '').trim();
+    // Only a real on-disk cover can replace the embedded-art fallback. A
+    // stale path or a remote URL must still let the embedded probe run.
+    var hasRealCover = false;
+    if (localPath.isNotEmpty) {
+      try {
+        hasRealCover = File(localPath).existsSync();
+      } catch (_) {
+        hasRealCover = false;
+      }
+    }
+    if (!_embeddedChecked && !hasRealCover) {
       _loadEmbedded();
-    } else if (hasUsableCover && !_embeddedChecked) {
+    } else if (hasRealCover && !_embeddedChecked) {
       _embeddedChecked = true;
     }
   }

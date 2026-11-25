@@ -637,8 +637,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       await DBHelper.instance.setSyncedLyricOffset(songId, value);
     } catch (e) {
       debugPrint('Lyric offset save failed: $e');
-      _pendingOffsetSongId = songId;
-      _pendingOffsetMs = value;
+      // A nudge made while the write was in flight is newer than this one.
+      if (_pendingOffsetSongId == null) {
+        _pendingOffsetSongId = songId;
+        _pendingOffsetMs = value;
+      }
     }
   }
 
@@ -654,7 +657,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       debugPrint('Lyric offset reset failed: $e');
       return;
     }
-    if (!mounted) return;
+    if (!mounted ||
+        _player.currentSong?.id != songId ||
+        _pendingOffsetSongId != null) {
+      return;
+    }
     setState(() => _lrcManualOffsetMs = 0);
     final idx = _lrcIndexFor(_player.activePlayer.position.inMilliseconds);
     setState(() => _lrcIndex = idx);
