@@ -234,6 +234,7 @@ class _SearchScreenState extends State<SearchScreen> {
       // Build and ship the haystacks once per version and filter. Each later
       // keystroke sends only the query text and generation to the isolate.
       _ensureHaystacks(source, version);
+      await _searchIsolate.start();
       _searchIsolate.prepare(
         key: key,
         haystacks: _haystacks,

@@ -386,7 +386,7 @@ Future<void> _renameSong(BuildContext context, Song song, LibraryProvider lib) a
     if (result.fileRenamed) {
       // The file already changed. Reload from disk so the library row is
       // repaired instead of left pointing at the old path.
-      await lib.loadFromDb();
+      await lib.forceScanDevice();
       if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()

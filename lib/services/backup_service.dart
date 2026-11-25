@@ -449,6 +449,18 @@ class BackupService {
       final aliasMap = rawAliases is Map
           ? Map<String, dynamic>.from(rawAliases)
           : <String, dynamic>{};
+      // A backup exported before a rename has no alias metadata. The local
+      // alias table still knows the old path, so merge old -> current here.
+      final localAliases = await DBHelper.instance.getPathAliases();
+      for (final entry in localAliases.entries) {
+        final current = byPath.entries
+            .firstWhere((e) => e.value == entry.key,
+                orElse: () => const MapEntry('', -1));
+        if (current.value < 0) continue;
+        for (final oldPath in entry.value) {
+          aliasMap[oldPath] = current.key;
+        }
+      }
 
       int? resolveIdentity(Map<String, dynamic> raw) {
         final path = (raw['identityKey'] as String?) ??

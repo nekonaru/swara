@@ -73,7 +73,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _lastPlayerErrorShown = err;
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
-    messenger.showSnackBar(
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),

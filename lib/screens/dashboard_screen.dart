@@ -134,13 +134,17 @@ class DashboardScreenState extends State<DashboardScreen> {
     required int monthMs,
     required int streak,
     required String? topGenre,
+    required int epoch,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // A data change during the queries may have bumped the epoch. Writing
+      // under that new epoch would keep results that are already stale.
+      if ((prefs.getInt(_epochKey) ?? 0) != epoch) return;
       await prefs.setString(
         _aggregateCacheKey,
         jsonEncode({
-          'epoch': prefs.getInt(_epochKey) ?? 0,
+          'epoch': epoch,
           'cacheTime': DateTime.now().toIso8601String(),
           'daily': {
             for (final entry in daily.entries)
@@ -168,23 +172,11 @@ class DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Map<String, dynamic> _compactSong(Song s) => {
-        'id': s.id,
-        'filePath': s.filePath,
-        'title': s.title,
-        'artist': s.artist,
-        'album': s.album,
-        'durationMs': s.durationMs,
-      };
+  // Full row, not a compact subset: cached songs are passed to
+  // setQueueAndPlay, so lyrics, art and playback fields must survive.
+  Map<String, dynamic> _compactSong(Song s) => s.toMap();
 
-  Song _songFromCompact(Map<String, dynamic> raw) => Song(
-        id: (raw['id'] as num).toInt(),
-        filePath: raw['filePath'] as String? ?? '',
-        title: raw['title'] as String? ?? '',
-        artist: raw['artist'] as String? ?? '',
-        album: raw['album'] as String? ?? '',
-        durationMs: (raw['durationMs'] as num?)?.toInt() ?? 0,
-      );
+  Song _songFromCompact(Map<String, dynamic> raw) => Song.fromMap(raw);
 
   void _applyCachedDashboard(Map<String, dynamic> map) {
     setState(() {
@@ -252,6 +244,8 @@ class DashboardScreenState extends State<DashboardScreen> {
     }
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheEpoch = prefs.getInt(_epochKey) ?? 0;
       final cached = forceRefresh ? null : await _readDashboardCache();
       if (cached != null) {
         // A valid cache means zero DB queries on a dashboard revisit.
@@ -375,6 +369,7 @@ class DashboardScreenState extends State<DashboardScreen> {
           monthMs: monthMs,
           streak: streak,
           topGenre: topGenre,
+          epoch: cacheEpoch,
         );
       }
 

@@ -92,6 +92,7 @@ class SearchIsolateClient {
   StreamSubscription? _replySub;
   final Map<int, Completer<SearchIsolateResult>> _inFlight = {};
   int _latestIssued = -1;
+  String? _preparedKey;
   bool _disposed = false;
   Future<void>? _starting;
 
@@ -139,6 +140,8 @@ class SearchIsolateClient {
   }) {
     final port = _commands;
     if (_disposed || port == null) return;
+    if (_preparedKey == key) return;
+    _preparedKey = key;
     port.send({
       'type': 'prepare',
       'key': key,
@@ -180,6 +183,7 @@ class SearchIsolateClient {
       }
     }
     _inFlight.clear();
+    _preparedKey = null;
     _commands?.send({'type': 'close'});
     _replySub?.cancel();
     _replies.close();

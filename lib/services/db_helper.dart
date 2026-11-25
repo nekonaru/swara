@@ -960,6 +960,7 @@ class DBHelper {
   }
 
   Future<void> updateSongMetadata(Song s) async {
+    invalidateDashboardCache();
     final database = await db;
     // Read isFavorite from the DB first so it is not reset by a stale Song object.
     // Same protection as in upsertSong() - the user may have favorited the song
@@ -979,6 +980,7 @@ class DBHelper {
   /// Here the favorite flags are read once for the whole batch and every
   /// update commits together.
   Future<void> updateSongMetadataBulk(List<Song> songs) async {
+    invalidateDashboardCache();
     if (songs.isEmpty) return;
     final database = await db;
     final ids = songs.map((s) => s.id).toSet().toList();
@@ -1410,6 +1412,7 @@ class DBHelper {
   /// scanner but wrong for a deliberate "fetch from the internet", which is
   /// exactly the case where the new values should win.
   Future<void> applyEnrichedMetadata(Song s) async {
+    invalidateDashboardCache();
     final database = await db;
     await database.update(
       'songs',
