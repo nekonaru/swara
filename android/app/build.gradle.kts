@@ -17,10 +17,10 @@ val signingVars = listOf(
     releaseKeyAlias,
     releaseKeyPassword,
 )
-if (signingVars.any { !it.isNullOrEmpty() } && signingVars.any { it.isNullOrEmpty() }) {
+if (signingVars.any { !it.isNullOrBlank() } && signingVars.any { it.isNullOrBlank() }) {
     error("Release signing secrets are incomplete. Refusing to fall back to the debug key.")
 }
-val hasReleaseKey = signingVars.all { !it.isNullOrEmpty() }
+val hasReleaseKey = signingVars.all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.nikodwidharma.offline_music_player"

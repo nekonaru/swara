@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.11.0
+
+Large offline data release: local snapshots, tag writeback, and several native reliability fixes, with no new dependency.
+
+## New features
+
+- **Local snapshots.** The app keeps up to three recent JSON snapshots in app-private storage, taken on a daily timer and when the app is backgrounded. Settings can list, restore and delete them, and offers a one-time restore if the library is empty.
+- **Write tags to the music file.** The Edit Metadata screen can also write title, artist and album to MediaStore after the usual consent prompt. If the OS refuses, the library edit still lands and the message says so.
+
+## Improvements
+
+- **API 10 rename uses MediaStore directly** instead of calling a method introduced in API 11, so real rename works on Android 10 with a modern target SDK.
+- **Dashboard invalidates on playback.** Marking a song played now clears the cached never-played list immediately.
+- **Alias normalization is shared.** Backup identity uses one canonical path function, so paths with escapes or duplicate slashes still resolve after a rename.
+- **Search isolate lifecycle is safer.** A dispose during startup kills the new isolate instead of leaking it.
+- **CI rejects blank signing secrets**, not just missing ones.
+
+## Bug fixes
+
+- **An actionable snackbar is no longer hidden** by unrelated messages, so the update retry button stays available.
+- **A failed v15 alias migration no longer breaks backup export.**
+- **Cached dashboard songs keep their full fields**, so playing from a cached rank tile still works with lyrics and artwork.
+
 ## v4.10.0
 
 Large performance and reliability release: persistent search isolation, a full dashboard cache, rename-aware backups, and safer native update paths, with no new permission or dependency.

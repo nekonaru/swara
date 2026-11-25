@@ -1,5 +1,28 @@
 # Changelog
 
+## v4.11.0
+
+Rilis data offline besar: snapshot lokal, penulisan tag ke file, dan beberapa perbaikan keandalan native tanpa dependensi baru.
+
+## Fitur baru
+
+- **Snapshot lokal.** Aplikasi menyimpan hingga tiga snapshot JSON terakhir di penyimpanan privat aplikasi, dibuat harian dan saat aplikasi ke latar belakang. Pengaturan bisa menampilkan, memulihkan, dan menghapusnya, serta menawarkan pemulihan sekali saat pustaka masih kosong.
+- **Tulis tag ke file musik.** Layar Edit Metadata juga bisa menulis judul, artis, dan album ke MediaStore setelah persetujuan biasa. Jika OS menolak, perubahan pustaka tetap tersimpan dan pesannya menyatakan hal itu.
+
+## Peningkatan
+
+- **Rename di Android 10 memakai MediaStore langsung**, bukan metode yang baru ada di API 11, sehingga rename nyata bekerja di Android 10 dengan target SDK modern.
+- **Dashboard dibatalkan saat pemutaran.** Menandai lagu sebagai diputar kini langsung membersihkan cache daftar belum diputar.
+- **Normalisasi alias disatukan.** Identitas cadangan memakai satu fungsi kanonik, sehingga jalur dengan escape atau garis miring ganda tetap cocok setelah rename.
+- **Siklus hidup isolate pencarian lebih aman.** Dispose saat startup membunuh isolate baru, bukan membiarkannya bocor.
+- **CI menolak secret penandatanganan kosong**, bukan hanya yang hilang.
+
+## Perbaikan bug
+
+- **Snackbar dengan aksi tidak lagi disembunyikan** oleh pesan lain, sehingga tombol ulang pembaruan tetap tersedia.
+- **Gagal migrasi alias v15 tidak lagi memecah ekspor cadangan.**
+- **Lagu dashboard cache menyimpan semua kolom**, sehingga memutar dari peringkat cache tetap memuat lirik dan sampul.
+
 ## v4.10.0
 
 Rilis besar untuk performa dan keandalan: isolate pencarian permanen, cache dashboard lengkap, cadangan yang mengenal nama baru, dan jalur native yang lebih aman tanpa izin atau dependensi baru.

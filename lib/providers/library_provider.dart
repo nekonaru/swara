@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import '../models/song.dart';
 import '../services/db_helper.dart';
 import '../services/file_rename_service.dart';
+import '../services/tag_write_service.dart';
 import '../services/library_scanner.dart';
 import '../services/metadata_service.dart';
 import '../services/player_service.dart';
@@ -795,6 +796,25 @@ class LibraryProvider extends ChangeNotifier {
     _applySort();
     _songsVersion++;
     notifyListeners();
+    return result;
+  }
+
+  /// Write tags to the OS media database when possible, then always update
+  /// our own library. A refusal is reported but never blocks the edit.
+  Future<TagWriteResult> writeTagsAndUpdate(Song updated,
+      {bool writeToFile = true}) async {
+    TagWriteResult result = const TagWriteResult(status: TagWriteStatus.dbOnly);
+    if (writeToFile) {
+      result = await TagWriteService.instance.writeTags(
+        id: updated.id,
+        filePath: updated.filePath,
+        title: updated.title,
+        artist: updated.artist,
+        album: updated.album,
+      );
+    }
+    await updateMetadata(updated);
+    if (result.osWritten) PlayerService.instance.replaceQueueSong(updated);
     return result;
   }
 

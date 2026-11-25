@@ -129,7 +129,12 @@ class SearchIsolateClient {
         suggestion: message['suggestion'] as String?,
       ));
     });
-    _isolate = await Isolate.spawn(searchIsolateEntry, _replies.sendPort);
+    final spawned = await Isolate.spawn(searchIsolateEntry, _replies.sendPort);
+    if (_disposed) {
+      spawned.kill();
+      return;
+    }
+    _isolate = spawned;
     _commands = await ready.future;
   }
 

@@ -2220,4 +2220,68 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get songOptionsRenameRepairFailed =>
       'File sudah diganti nama tetapi pembaruan pustaka gagal; pustaka dimuat ulang untuk memperbaikinya';
+
+  @override
+  String get dataSnapshotsSection => 'Snapshot lokal';
+
+  @override
+  String get dataSnapshotCreate => 'Buat snapshot sekarang';
+
+  @override
+  String get dataSnapshotEmpty => 'Belum ada snapshot';
+
+  @override
+  String dataSnapshotItem(String date, String size) {
+    return 'Disimpan $date ($size)';
+  }
+
+  @override
+  String get dataSnapshotRestore => 'Pulihkan';
+
+  @override
+  String get dataSnapshotRestoreTitle => 'Pulihkan snapshot';
+
+  @override
+  String dataSnapshotRestoreMessage(String date) {
+    return 'Pulihkan snapshot dari $date? Data saat ini tetap ada; tidak ada yang ditimpa.';
+  }
+
+  @override
+  String get dataSnapshotRestored => 'Snapshot dipulihkan';
+
+  @override
+  String get dataSnapshotDelete => 'Hapus snapshot';
+
+  @override
+  String get dataSnapshotDeleted => 'Snapshot dihapus';
+
+  @override
+  String dataSnapshotFailed(String error) {
+    return 'Snapshot gagal: $error';
+  }
+
+  @override
+  String get dataSnapshotAutoTitle => 'Pulihkan snapshot lokal?';
+
+  @override
+  String dataSnapshotAutoMessage(String date) {
+    return 'Ditemukan snapshot dari $date. Pulihkan ke pustaka yang masih kosong ini?';
+  }
+
+  @override
+  String get dataSnapshotAutoAccept => 'Pulihkan';
+
+  @override
+  String get dataSnapshotAutoDecline => 'Lewati';
+
+  @override
+  String get editMetadataWriteToFile => 'Tulis juga tag ke file musik';
+
+  @override
+  String get editMetadataTagsWritten => 'Tag tersimpan di pustaka dan file';
+
+  @override
+  String editMetadataTagsDbOnly(String error) {
+    return 'Tag hanya tersimpan di pustaka: $error';
+  }
 }

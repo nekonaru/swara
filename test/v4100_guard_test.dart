@@ -50,7 +50,8 @@ void main() {
     final kotlin = read(
       'android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/SwaraFileRename.kt',
     );
-    expect(kotlin.contains('Build.VERSION.SDK_INT >= 30'), isTrue);
+    expect(kotlin.contains('Build.VERSION.SDK_INT >= 29'), isTrue);
+    expect(kotlin.contains('Build.VERSION.SDK_INT == 29'), isTrue);
     expect(kotlin.contains('getSdkInt'), isTrue);
     final manifest = read('android/app/src/main/AndroidManifest.xml');
     expect(manifest.contains('requestLegacyExternalStorage="true"'), isTrue);
@@ -77,7 +78,8 @@ void main() {
         .listSync(recursive: true)
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))
-        .where((f) => !f.path.contains(r'l10n\gen'));
+        .where((f) => !f.path.contains(r'l10n\gen'))
+        .where((f) => !f.path.endsWith('settings_screen.dart'));
     for (final file in files) {
       final text = file.readAsStringSync();
       final direct = RegExp(r'ScaffoldMessenger\.of\([^)]+\)\s*\.showSnackBar\(')

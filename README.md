@@ -101,6 +101,7 @@
 | **On-demand lyrics** | Fetched via lrclib with lyrics.ovh as fallback, editable manually, Google search fallback |
 | **Manual editing** | Fix metadata and lyrics per song when the scan gets it wrong |
 | **Real file rename** | "Rename song" renames the actual music file where the OS allows it; if the OS refuses, only the library title changes and the app says so |
+| **Tag writeback** | The metadata editor can also write title, artist and album to the OS media database, with a clear fallback when the OS refuses |
 | **Synced lyrics** | Line-by-line lyrics that follow the song, with plain view fallback |
 | **Lyric timing** | Reads the offset tag from .lrc files, lets you nudge lyrics by 100 ms, remembers the correction per song, and resets it in one tap |
 | **Local .lrc files** | Import a sidecar .lrc file from your own storage or share the stored synced lyrics back out, fully offline |
@@ -155,6 +156,7 @@
 |---------|-------------|
 | **Backup and restore** | Export and import playlists, favorites and history, plus manual tags, plain lyrics, synced LRC, timing corrections and bookmarks matched by file path across devices |
 | **Save backup to file** | Save a timestamped JSON backup to a location you pick with the system file picker and see the last export date in Settings |
+| **Local snapshots** | Keep up to three automatic app-private snapshots of your library and restore one from Settings |
 | **History cleanup** | Optional, you-confirmed cleanup of old listening history in Settings |
 
 ### Appearance and Language

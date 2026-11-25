@@ -21,6 +21,7 @@ import '../services/update_service.dart';
 import '../services/equalizer_service.dart';
 import '../services/loudness_service.dart';
 import '../services/player_service.dart';
+import '../services/snapshot_service.dart';
 import '../utils/scan_controls.dart';
 import '../widgets/eq_controls.dart';
 
@@ -43,6 +44,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _busyHistory = false;
   // Last backup export, and the live DSP toggle state.
   DateTime? _lastExport;
+  List<SnapshotInfo> _snapshots = const <SnapshotInfo>[];
+  bool _restoringSnapshot = false;
   bool _loudnessEnabled = false;
   // App version shown in About, loaded once from package info.
   String _appVersion = '';
@@ -54,6 +57,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadAppVersion();
     _loudnessEnabled = LoudnessService.instance.enabled;
     _loadLastExport();
+    _loadSnapshots();
+    _maybeOfferAutoRestore();
+  }
+
+  Future<void> _loadSnapshots() async {
+    try {
+      final list = await SnapshotService.instance.listSnapshots();
+      if (!mounted) return;
+      setState(() => _snapshots = list);
+    } catch (_) {
+      if (mounted) setState(() => _snapshots = const <SnapshotInfo>[]);
+    }
+  }
+
+  Future<void> _createSnapshotNow() async {
+    if (_busyData || _restoringSnapshot) return;
+    setState(() => _busyData = true);
+    try {
+      final info = await SnapshotService.instance.createSnapshot(force: true);
+      if (!mounted) return;
+      if (info != null) {
+        _showSnack(AppLocalizations.of(context)!
+            .dataSnapshotItem(_formatExportStamp(info.createdAt),
+                _formatBytes(info.bytes)));
+      }
+      await _loadSnapshots();
+    } catch (e) {
+      if (mounted) {
+        _showSnack(AppLocalizations.of(context)!.dataSnapshotFailed(e.toString()));
+      }
+    } finally {
+      if (mounted) setState(() => _busyData = false);
+    }
+  }
+
+  Future<void> _restoreSnapshot(SnapshotInfo info) async {
+    if (_busyData || _restoringSnapshot) return;
+    final l = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.dataSnapshotRestoreTitle),
+        content: Text(l.dataSnapshotRestoreMessage(_formatExportStamp(info.createdAt))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.dataSnapshotRestore)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _restoringSnapshot = true);
+    final libraryProvider = context.read<LibraryProvider>();
+    final playlistProvider = context.read<PlaylistProvider>();
+    try {
+      await SnapshotService.instance.restoreSnapshot(info.name);
+      await libraryProvider.loadFromDb();
+      await playlistProvider.load();
+      if (!mounted) return;
+      _showSnack(l.dataSnapshotRestored);
+    } catch (e) {
+      if (mounted) _showSnack(l.dataSnapshotFailed(e.toString()));
+    } finally {
+      if (mounted) setState(() => _restoringSnapshot = false);
+    }
+  }
+
+  Future<void> _deleteSnapshot(SnapshotInfo info) async {
+    await SnapshotService.instance.deleteSnapshot(info.name);
+    if (!mounted) return;
+    _showSnack(AppLocalizations.of(context)!.dataSnapshotDeleted);
+    await _loadSnapshots();
+  }
+
+  Future<void> _maybeOfferAutoRestore() async {
+    try {
+      if (await SnapshotService.autoRestoreOffered()) return;
+      if (await DBHelper.instance.getSongCount() != 0) {
+        await SnapshotService.markAutoRestoreOffered();
+        return;
+      }
+      final latest = (await SnapshotService.instance.listSnapshots()).firstOrNull;
+      if (latest == null || !mounted) return;
+      final l = AppLocalizations.of(context)!;
+      final accept = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l.dataSnapshotAutoTitle),
+          content: Text(l.dataSnapshotAutoMessage(_formatExportStamp(latest.createdAt))),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.dataSnapshotAutoDecline)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.dataSnapshotAutoAccept)),
+          ],
+        ),
+      );
+      await SnapshotService.markAutoRestoreOffered();
+      if (accept == true && mounted) await _restoreSnapshot(latest);
+    } catch (_) {
+      // The offer is optional; never block Settings.
+    }
   }
 
   Future<void> _loadLastExport() async {
@@ -305,9 +407,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showSnackWithAction(String message,
       {required String label, required VoidCallback onPressed}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
+    // Do not hide an existing actionable snackbar: the retry-install action
+    // must remain available while other messages come and go.
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(duration: const Duration(seconds: 2),
         content: Text(message),
         action: SnackBarAction(label: label, onPressed: onPressed),
@@ -1216,6 +1318,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(AppLocalizations.of(context)!.dataImportSubtitle),
             onTap: _busyData ? null : _importData,
           ),
+          _SectionHeader(AppLocalizations.of(context)!.dataSnapshotsSection),
+          ListTile(
+            leading: const Icon(Icons.save_outlined),
+            title: Text(AppLocalizations.of(context)!.dataSnapshotCreate),
+            subtitle: Text(AppLocalizations.of(context)!.dataNever),
+            onTap: (_busyData || _restoringSnapshot) ? null : _createSnapshotNow,
+          ),
+          if (_snapshots.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(AppLocalizations.of(context)!.dataSnapshotEmpty),
+            ),
+          for (final snapshot in _snapshots)
+            ListTile(
+              leading: const Icon(Icons.history_outlined),
+              title: Text(AppLocalizations.of(context)!.dataSnapshotItem(
+                  _formatExportStamp(snapshot.createdAt),
+                  _formatBytes(snapshot.bytes))),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.restore_outlined),
+                    tooltip: AppLocalizations.of(context)!.dataSnapshotRestore,
+                    onPressed: (_busyData || _restoringSnapshot)
+                        ? null
+                        : () => _restoreSnapshot(snapshot),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: AppLocalizations.of(context)!.dataSnapshotDelete,
+                    onPressed: (_busyData || _restoringSnapshot)
+                        ? null
+                        : () => _deleteSnapshot(snapshot),
+                  ),
+                ],
+              ),
+            ),
           ListTile(
             leading: const Icon(Icons.schedule_outlined),
             title: Text(AppLocalizations.of(context)!.dataLastExport),

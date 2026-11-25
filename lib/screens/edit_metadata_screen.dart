@@ -3,6 +3,7 @@ import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
+import '../services/tag_write_service.dart';
 import 'edit_lyrics_screen.dart';
 
 class EditMetadataScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class EditMetadataScreen extends StatefulWidget {
 }
 
 class _EditMetadataScreenState extends State<EditMetadataScreen> {
+  bool _writeToFile = true;
   late TextEditingController _title;
   late TextEditingController _artist;
   late TextEditingController _album;
@@ -43,6 +45,7 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
   }
 
   Future<void> _save() async {
+    final l = AppLocalizations.of(context)!;
     final title = _title.text.trim();
     final artist = _artist.text.trim();
     final album = _album.text.trim();
@@ -80,8 +83,14 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       addedAt: s.addedAt,
       metadataScanned: s.metadataScanned,
     );
+    final messenger = ScaffoldMessenger.of(context);
+    final provider = context.read<LibraryProvider>();
+    TagWriteResult writeResult = const TagWriteResult(status: TagWriteStatus.dbOnly);
     try {
-      await context.read<LibraryProvider>().updateMetadata(updated);
+      writeResult = await provider.writeTagsAndUpdate(
+        updated,
+        writeToFile: _writeToFile,
+      );
     } catch (e) {
       if (mounted) {
         final l = AppLocalizations.of(context)!;
@@ -98,7 +107,16 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
     s.album = album;
     s.genre = genre;
     s.region = region;
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        duration: const Duration(seconds: 2),
+        content: Text(writeResult.osWritten
+            ? l.editMetadataTagsWritten
+            : l.editMetadataTagsDbOnly(writeResult.error ?? 'unsupported')),
+      ));
+    Navigator.pop(context);
   }
 
   Future<void> _rescanFromInternet() async {
@@ -171,7 +189,12 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
                 : const Icon(Icons.cloud_sync_outlined),
             label: Text(_isScanning ? l.editMetadataFetching : l.editMetadataRescanButton),
           ),
-          const SizedBox(height: 16),
+          SwitchListTile(
+            title: Text(l.editMetadataWriteToFile),
+            value: _writeToFile,
+            onChanged: (value) => setState(() => _writeToFile = value),
+          ),
+          const SizedBox(height: 8),
           TextField(controller: _title, decoration: InputDecoration(labelText: l.editMetadataFieldTitle)),
           const SizedBox(height: 12),
           TextField(controller: _artist, decoration: InputDecoration(labelText: l.editMetadataFieldArtist)),

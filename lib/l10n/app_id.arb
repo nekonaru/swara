@@ -2571,5 +2571,93 @@
     "songOptionsRenameRepairFailed":  "File sudah diganti nama tetapi pembaruan pustaka gagal; pustaka dimuat ulang untuk memperbaikinya",
     "@songOptionsRenameRepairFailed":  {
                                    "description":  "Pesan setelah penggantian nama file yang gagal memperbarui database tetapi pustaka dimuat ulang"
+                               },
+    "dataSnapshotsSection":  "Snapshot lokal",
+    "@dataSnapshotsSection":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotCreate":  "Buat snapshot sekarang",
+    "@dataSnapshotCreate":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotEmpty":  "Belum ada snapshot",
+    "@dataSnapshotEmpty":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotItem":  "Disimpan {date} ({size})",
+    "@dataSnapshotItem":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "date": {"type": "String"},
+                                     "size": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotRestore":  "Pulihkan",
+    "@dataSnapshotRestore":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotRestoreTitle":  "Pulihkan snapshot",
+    "@dataSnapshotRestoreTitle":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotRestoreMessage":  "Pulihkan snapshot dari {date}? Data saat ini tetap ada; tidak ada yang ditimpa.",
+    "@dataSnapshotRestoreMessage":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "date": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotRestored":  "Snapshot dipulihkan",
+    "@dataSnapshotRestored":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotDelete":  "Hapus snapshot",
+    "@dataSnapshotDelete":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotDeleted":  "Snapshot dihapus",
+    "@dataSnapshotDeleted":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotFailed":  "Snapshot gagal: {error}",
+    "@dataSnapshotFailed":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "error": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotAutoTitle":  "Pulihkan snapshot lokal?",
+    "@dataSnapshotAutoTitle":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotAutoMessage":  "Ditemukan snapshot dari {date}. Pulihkan ke pustaka yang masih kosong ini?",
+    "@dataSnapshotAutoMessage":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "date": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotAutoAccept":  "Pulihkan",
+    "@dataSnapshotAutoAccept":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotAutoDecline":  "Lewati",
+    "@dataSnapshotAutoDecline":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "editMetadataWriteToFile":  "Tulis juga tag ke file musik",
+    "@editMetadataWriteToFile":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "editMetadataTagsWritten":  "Tag tersimpan di pustaka dan file",
+    "@editMetadataTagsWritten":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "editMetadataTagsDbOnly":  "Tag hanya tersimpan di pustaka: {error}",
+    "@editMetadataTagsDbOnly":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "error": {"type": "String"}
+                                   }
                                }
 }

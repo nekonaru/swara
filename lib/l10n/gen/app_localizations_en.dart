@@ -2221,4 +2221,69 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get songOptionsRenameRepairFailed =>
       'The file was renamed but the library update failed; the library was reloaded to repair it';
+
+  @override
+  String get dataSnapshotsSection => 'Local snapshots';
+
+  @override
+  String get dataSnapshotCreate => 'Take a snapshot now';
+
+  @override
+  String get dataSnapshotEmpty => 'No snapshots yet';
+
+  @override
+  String dataSnapshotItem(String date, String size) {
+    return 'Saved $date ($size)';
+  }
+
+  @override
+  String get dataSnapshotRestore => 'Restore';
+
+  @override
+  String get dataSnapshotRestoreTitle => 'Restore snapshot';
+
+  @override
+  String dataSnapshotRestoreMessage(String date) {
+    return 'Restore the snapshot from $date? Current data is kept; nothing is overwritten.';
+  }
+
+  @override
+  String get dataSnapshotRestored => 'Snapshot restored';
+
+  @override
+  String get dataSnapshotDelete => 'Delete snapshot';
+
+  @override
+  String get dataSnapshotDeleted => 'Snapshot deleted';
+
+  @override
+  String dataSnapshotFailed(String error) {
+    return 'Snapshot failed: $error';
+  }
+
+  @override
+  String get dataSnapshotAutoTitle => 'Restore local snapshot?';
+
+  @override
+  String dataSnapshotAutoMessage(String date) {
+    return 'A snapshot from $date was found. Restore it into this empty library?';
+  }
+
+  @override
+  String get dataSnapshotAutoAccept => 'Restore';
+
+  @override
+  String get dataSnapshotAutoDecline => 'Skip';
+
+  @override
+  String get editMetadataWriteToFile => 'Also write tags to the music file';
+
+  @override
+  String get editMetadataTagsWritten =>
+      'Tags saved to the library and the file';
+
+  @override
+  String editMetadataTagsDbOnly(String error) {
+    return 'Tags saved to the library only: $error';
+  }
 }

@@ -2571,5 +2571,93 @@
     "songOptionsRenameRepairFailed":  "The file was renamed but the library update failed; the library was reloaded to repair it",
     "@songOptionsRenameRepairFailed":  {
                                    "description":  "Message after a file rename whose database update failed but the library was reloaded"
+                               },
+    "dataSnapshotsSection":  "Local snapshots",
+    "@dataSnapshotsSection":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotCreate":  "Take a snapshot now",
+    "@dataSnapshotCreate":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotEmpty":  "No snapshots yet",
+    "@dataSnapshotEmpty":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotItem":  "Saved {date} ({size})",
+    "@dataSnapshotItem":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "date": {"type": "String"},
+                                     "size": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotRestore":  "Restore",
+    "@dataSnapshotRestore":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotRestoreTitle":  "Restore snapshot",
+    "@dataSnapshotRestoreTitle":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotRestoreMessage":  "Restore the snapshot from {date}? Current data is kept; nothing is overwritten.",
+    "@dataSnapshotRestoreMessage":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "date": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotRestored":  "Snapshot restored",
+    "@dataSnapshotRestored":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotDelete":  "Delete snapshot",
+    "@dataSnapshotDelete":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotDeleted":  "Snapshot deleted",
+    "@dataSnapshotDeleted":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotFailed":  "Snapshot failed: {error}",
+    "@dataSnapshotFailed":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "error": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotAutoTitle":  "Restore local snapshot?",
+    "@dataSnapshotAutoTitle":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotAutoMessage":  "A snapshot from {date} was found. Restore it into this empty library?",
+    "@dataSnapshotAutoMessage":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "date": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotAutoAccept":  "Restore",
+    "@dataSnapshotAutoAccept":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotAutoDecline":  "Skip",
+    "@dataSnapshotAutoDecline":  {
+                                   "description":  "English locale string"
+                               },
+    "editMetadataWriteToFile":  "Also write tags to the music file",
+    "@editMetadataWriteToFile":  {
+                                   "description":  "English locale string"
+                               },
+    "editMetadataTagsWritten":  "Tags saved to the library and the file",
+    "@editMetadataTagsWritten":  {
+                                   "description":  "English locale string"
+                               },
+    "editMetadataTagsDbOnly":  "Tags saved to the library only: {error}",
+    "@editMetadataTagsDbOnly":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "error": {"type": "String"}
+                                   }
                                }
 }

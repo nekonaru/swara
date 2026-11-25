@@ -2,6 +2,7 @@ package com.nikodwidharma.offline_music_player
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -37,6 +38,14 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     private var pendingNewName: String? = null
     private var pendingOldPath: String? = null
     private var pendingUri: Uri? = null
+
+    // Tag writes use a separate request code and result slot so a concurrent
+    // rename consent cannot complete the wrong Dart future.
+    private var pendingTagsResult: MethodChannel.Result? = null
+    private var pendingTagsId: Int? = null
+    private var pendingTagsPath: String? = null
+    private var pendingTagsUri: Uri? = null
+    private var pendingTagsValues: android.content.ContentValues? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
@@ -80,6 +89,10 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             result.success(Build.VERSION.SDK_INT)
             return
         }
+        if (call.method == "writeTags") {
+            handleWriteTags(call, result)
+            return
+        }
         if (call.method != "rename") {
             result.notImplemented()
             return
@@ -117,9 +130,9 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             return
         }
 
-        // createWriteRequest exists from API 30. API 29 uses the legacy
-        // filesystem path with requestLegacyExternalStorage enabled.
-        if (Build.VERSION.SDK_INT >= 30) {
+        // API 29 has MediaStore but not createWriteRequest (API 30+).
+        // requestScopedWrite handles both consent models.
+        if (Build.VERSION.SDK_INT >= 29) {
             requestScopedWrite(appContext, id, oldPath, newPath, newDisplayName, result)
         } else {
             executor.execute {
@@ -176,6 +189,31 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             result.error("not_found", "MediaStore row not found", null)
             return
         }
+        if (Build.VERSION.SDK_INT == 29) {
+            // The write permission was granted by the Dart preflight.
+            executor.execute {
+                val values = android.content.ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, newDisplayName)
+                    put(MediaStore.Audio.Media.TITLE, newDisplayName.substringBeforeLast('.'))
+                }
+                val updated = try {
+                    resolver.update(uri, values, null, null)
+                } catch (e: Exception) {
+                    result.error("failed", e.message ?: "MediaStore update failed", null)
+                    return@execute
+                }
+                if (updated <= 0) {
+                    result.error("update_failed", "MediaStore update failed", null)
+                } else {
+                    MediaScannerConnection.scanFile(
+                        context, arrayOf(oldPath, newPath), null, null)
+                    context.mainExecutor.execute {
+                        success(result, id, newPath, newDisplayName)
+                    }
+                }
+            }
+            return
+        }
         val request = try {
             MediaStore.createWriteRequest(resolver, listOf(uri))
         } catch (e: Exception) {
@@ -209,6 +247,42 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     }
 
     private fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (requestCode == REQUEST_WRITE_TAGS) {
+            val result = pendingTagsResult ?: return true
+            val id = pendingTagsId
+            val path = pendingTagsPath
+            val uri = pendingTagsUri
+            val values = pendingTagsValues
+            val fields = listOfNotNull(
+                if (values?.contains(MediaStore.Audio.Media.TITLE) == true) "title" else null,
+                if (values?.contains(MediaStore.Audio.Media.ARTIST) == true) "artist" else null,
+                if (values?.contains(MediaStore.Audio.Media.ALBUM) == true) "album" else null,
+            )
+            clearTagsPending()
+            if (resultCode != Activity.RESULT_OK || id == null || path == null) {
+                result.error("consent_denied", "Write consent denied", null)
+                return true
+            }
+            executor.execute {
+                val updated = try {
+                    if (uri != null && values != null) {
+                        context!!.contentResolver.update(uri, values, null, null)
+                    } else 0
+                } catch (e: Exception) {
+                    result.error("failed", e.message ?: "Tag update failed", null)
+                    return@execute
+                }
+                if (updated <= 0) {
+                    result.error("update_failed", "Tag update failed", null)
+                } else {
+                    MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
+                    context!!.mainExecutor.execute {
+                        result.success(mapOf("id" to id, "fields" to fields))
+                    }
+                }
+            }
+            return true
+        }
         if (requestCode != REQUEST_WRITE) return false
         val result = pendingResult ?: return true
         val id = pendingId
@@ -270,7 +344,9 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
 
     private fun failPending(code: String) {
         pendingResult?.error(code, "Rename interrupted", null)
+        pendingTagsResult?.error(code, "Tag write interrupted", null)
         clearPending()
+        clearTagsPending()
     }
 
     private fun clearPending() {
@@ -291,8 +367,105 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
         )
     }
 
+    private fun handleWriteTags(call: MethodCall, result: MethodChannel.Result) {
+        val id = call.argument<Int>("id")
+        val path = call.argument<String>("filePath")
+        val title = call.argument<String>("title")?.trim()
+        val artist = call.argument<String>("artist")?.trim()
+        val album = call.argument<String>("album")?.trim()
+        if (id == null || path.isNullOrEmpty() ||
+            (title.isNullOrEmpty() && artist.isNullOrEmpty() && album.isNullOrEmpty())
+        ) {
+            result.error("invalid_args", "Missing tag arguments", null)
+            return
+        }
+        val context = context
+        if (context == null) {
+            result.error("failed", "Plugin not attached", null)
+            return
+        }
+        val values = android.content.ContentValues().apply {
+            if (!title.isNullOrEmpty()) put(MediaStore.Audio.Media.TITLE, title)
+            if (!artist.isNullOrEmpty()) put(MediaStore.Audio.Media.ARTIST, artist)
+            if (!album.isNullOrEmpty()) put(MediaStore.Audio.Media.ALBUM, album)
+        }
+        val fields = listOfNotNull(
+            if (title.isNullOrEmpty()) null else "title",
+            if (artist.isNullOrEmpty()) null else "artist",
+            if (album.isNullOrEmpty()) null else "album",
+        )
+        val uri = ContentUris.withAppendedId(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            id.toLong(),
+        )
+        if (Build.VERSION.SDK_INT >= 30) {
+            val request = try {
+                MediaStore.createWriteRequest(context.contentResolver, listOf(uri))
+            } catch (e: Exception) {
+                result.error("failed", e.message ?: "Could not request write access", null)
+                return
+            }
+            val currentActivity = activity
+            if (currentActivity == null) {
+                result.error("activity_gone", "No activity to show consent", null)
+                return
+            }
+            pendingTagsResult = result
+            pendingTagsId = id
+            pendingTagsPath = path
+            pendingTagsUri = uri
+            pendingTagsValues = values
+            try {
+                currentActivity.startIntentSenderForResult(
+                    request.intentSender, REQUEST_WRITE_TAGS, null, 0, 0, 0, null)
+            } catch (e: Exception) {
+                clearTagsPending()
+                result.error("failed", e.message ?: "Could not start consent", null)
+            }
+            return
+        }
+        executor.execute {
+            if (ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                result.error("no_permission", "Write permission missing", null)
+                return@execute
+            }
+            val updated = try {
+                @Suppress("DEPRECATION")
+                context.contentResolver.update(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    values,
+                    "${MediaStore.MediaColumns.DATA}=?",
+                    arrayOf(path),
+                )
+            } catch (e: Exception) {
+                result.error("failed", e.message ?: "Tag update failed", null)
+                return@execute
+            }
+            if (updated <= 0) {
+                result.error("update_failed", "Tag update failed", null)
+                return@execute
+            }
+            MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
+            context.mainExecutor.execute {
+                result.success(mapOf("id" to id, "fields" to fields))
+            }
+        }
+    }
+
+    private fun clearTagsPending() {
+        pendingTagsResult = null
+        pendingTagsId = null
+        pendingTagsPath = null
+        pendingTagsUri = null
+        pendingTagsValues = null
+    }
+
     companion object {
         const val CHANNEL = "swara/file_rename"
         const val REQUEST_WRITE = 4102
+        const val REQUEST_WRITE_TAGS = 4103
     }
 }

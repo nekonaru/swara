@@ -101,6 +101,7 @@
 | **Lirik sesuai permintaan** | Diambil lewat lrclib dengan lyrics.ovh sebagai cadangan, bisa diedit manual, ada cadangan pencarian Google |
 | **Edit manual** | Perbaiki metadata dan lirik per lagu saat hasil pemindaian salah |
 | **Ganti nama file nyata** | "Ganti nama lagu" mengganti nama file musik yang sebenarnya bila OS mengizinkan; jika ditolak, hanya judul pustaka yang berubah dan aplikasi memberitahunya |
+| **Tulis balik tag** | Editor metadata juga bisa menulis judul, artis, dan album ke database media OS, dengan pesan fallback yang jelas bila OS menolak |
 | **Lirik tersinkron** | Lirik baris demi baris yang mengikuti lagu, dengan tampilan teks biasa sebagai cadangan |
 | **Penyelarasan lirik** | Membaca tag offset dari file .lrc, menggeser lirik per 100 ms, menyimpan koreksi per lagu, dan mengaturnya ulang dalam satu ketukan |
 | **File .lrc lokal** | Impor file lirik .lrc dari penyimpanan sendiri atau bagikan lirik sinkron yang tersimpan, sepenuhnya offline |
@@ -155,6 +156,7 @@
 |-------|-----------|
 | **Cadangkan dan pulihkan** | Ekspor dan impor playlist, favorit dan riwayat, plus tag manual, lirik biasa, lirik sinkron, koreksi waktu, dan penanda yang dicocokkan lewat jalur file antarperangkat |
 | **Simpan backup ke file** | Simpan file JSON backup bercap waktu ke lokasi yang Anda pilih lewat pemilih file sistem dan lihat tanggal ekspor terakhir di Pengaturan |
+| **Snapshot lokal** | Simpan hingga tiga snapshot otomatis pustaka di penyimpanan privat aplikasi dan pulihkan dari Pengaturan |
 | **Pembersihan riwayat** | Opsional, pembersihan riwayat mendengarkan lama yang kamu konfirmasi sendiri di Pengaturan |
 
 ### Tampilan dan Bahasa

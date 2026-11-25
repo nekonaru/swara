@@ -16,6 +16,7 @@ import 'services/db_helper.dart';
 import 'services/equalizer_service.dart';
 import 'services/loudness_service.dart';
 import 'services/permission_service.dart';
+import 'services/snapshot_service.dart';
 import 'services/player_service.dart';
 import 'services/swara_audio_handler.dart';
 import 'screens/home_screen.dart';
@@ -61,6 +62,10 @@ void main() {
     languageProvider: languageProvider,
     bootFuture: bootFuture,
   ));
+
+  // Keep at most three recent local snapshots. The interval gate lives in
+  // SnapshotService, so timer and lifecycle callers cannot duplicate work.
+  unawaited(bootFuture.then((_) => _startAutoSnapshots()));
 
   // Dynamic launcher shortcuts are registered by the boot task after the
   // saved language is loaded, so their titles are localized.
@@ -140,6 +145,13 @@ class _WidgetBridge {
   }
 }
 
+void _startAutoSnapshots() {
+  Timer.periodic(SnapshotService.defaultInterval, (_) {
+    unawaited(SnapshotService.instance.createSnapshot());
+  });
+  unawaited(SnapshotService.instance.createSnapshot());
+}
+
 // Saves the playback position when the app is backgrounded, so a cold start
 // resumes paused at the exact minute:second the user left off.
 class _SwaraLifecycleObserver extends WidgetsBindingObserver {
@@ -147,6 +159,7 @@ class _SwaraLifecycleObserver extends WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       PlayerService.instance.saveResumeStateNow();
+      unawaited(SnapshotService.instance.createSnapshot());
     }
   }
 }

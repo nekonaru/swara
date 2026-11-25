@@ -6,8 +6,21 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 
-String normalizePathForBackup(String raw) =>
-    raw.replaceAll('\\', '/').trim().toLowerCase();
+String normalizePathForBackup(String raw) {
+  var value = raw.replaceAll('\\', '/').trim();
+  try {
+    value = Uri.decodeFull(value);
+  } catch (_) {
+    // Keep the raw value when it is not a valid URI escape sequence.
+  }
+  while (value.contains('//')) {
+    value = value.replaceAll('//', '/');
+  }
+  while (value.length > 1 && value.endsWith('/')) {
+    value = value.substring(0, value.length - 1);
+  }
+  return value.toLowerCase();
+}
 
 class DBHelper {
   // True when [table] already has [column]. Used by the migrations to
@@ -1067,6 +1080,8 @@ class DBHelper {
   }
 
   Future<void> markPlayed(int songId) async {
+    // lastPlayedAt drives the "never played" dashboard list.
+    invalidateDashboardCache();
     try {
       final database = await db;
       await database.update(
@@ -1993,15 +2008,19 @@ class DBHelper {
 
   /// Previous normalized paths for songs that were renamed on disk.
   Future<Map<int, List<String>>> getPathAliases() async {
-    final database = await db;
-    final rows = await database.query('song_path_aliases',
-        columns: ['songId', 'path']);
     final result = <int, List<String>>{};
-    for (final row in rows) {
-      final id = (row['songId'] as num?)?.toInt();
-      final path = row['path'] as String?;
-      if (id == null || path == null || path.isEmpty) continue;
-      result.putIfAbsent(id, () => <String>[]).add(normalizePathForBackup(path));
+    try {
+      final database = await db;
+      final rows = await database.query('song_path_aliases',
+          columns: ['songId', 'path']);
+      for (final row in rows) {
+        final id = (row['songId'] as num?)?.toInt();
+        final path = row['path'] as String?;
+        if (id == null || path == null || path.isEmpty) continue;
+        result.putIfAbsent(id, () => <String>[]).add(normalizePathForBackup(path));
+      }
+    } catch (_) {
+      // A failed v15 migration must not break backup export.
     }
     return result;
   }

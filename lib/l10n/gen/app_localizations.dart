@@ -3915,6 +3915,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The file was renamed but the library update failed; the library was reloaded to repair it'**
   String get songOptionsRenameRepairFailed;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Local snapshots'**
+  String get dataSnapshotsSection;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Take a snapshot now'**
+  String get dataSnapshotCreate;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'No snapshots yet'**
+  String get dataSnapshotEmpty;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {date} ({size})'**
+  String dataSnapshotItem(String date, String size);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get dataSnapshotRestore;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Restore snapshot'**
+  String get dataSnapshotRestoreTitle;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Restore the snapshot from {date}? Current data is kept; nothing is overwritten.'**
+  String dataSnapshotRestoreMessage(String date);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot restored'**
+  String get dataSnapshotRestored;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Delete snapshot'**
+  String get dataSnapshotDelete;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot deleted'**
+  String get dataSnapshotDeleted;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot failed: {error}'**
+  String dataSnapshotFailed(String error);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Restore local snapshot?'**
+  String get dataSnapshotAutoTitle;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'A snapshot from {date} was found. Restore it into this empty library?'**
+  String dataSnapshotAutoMessage(String date);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get dataSnapshotAutoAccept;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get dataSnapshotAutoDecline;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Also write tags to the music file'**
+  String get editMetadataWriteToFile;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Tags saved to the library and the file'**
+  String get editMetadataTagsWritten;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Tags saved to the library only: {error}'**
+  String editMetadataTagsDbOnly(String error);
 }
 
 class _AppLocalizationsDelegate

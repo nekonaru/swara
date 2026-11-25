@@ -80,10 +80,10 @@ jobs:
           SWARA_KEY_PASSWORD: ${{ secrets.SWARA_KEY_PASSWORD }}
         run: |
           set -eu
-          test -n "$SWARA_KEYSTORE_B64"
-          test -n "$SWARA_STORE_PASSWORD"
-          test -n "$SWARA_KEY_ALIAS"
-          test -n "$SWARA_KEY_PASSWORD"
+          test -n "${SWARA_KEYSTORE_B64//[[:space:]]/}"
+          test -n "${SWARA_STORE_PASSWORD//[[:space:]]/}"
+          test -n "${SWARA_KEY_ALIAS//[[:space:]]/}"
+          test -n "${SWARA_KEY_PASSWORD//[[:space:]]/}"
           umask 077
           mkdir -p "$RUNNER_TEMP/signing"
           printf '%s' "$SWARA_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/signing/swara-release.jks"
