@@ -2550,5 +2550,9 @@
     "playerBookmarkSongChanged":  "Lagu berubah, penanda tidak disimpan",
     "@playerBookmarkSongChanged":  {
                                    "description":  "Pesan saat sheet penanda dipakai setelah lagu berganti"
+                               },
+    "autoBrowsePlaylists":  "Daftar Putar",
+    "@autoBrowsePlaylists":  {
+                                   "description":  "Kategori jelajah Android Auto untuk daftar putar"
                                }
 }

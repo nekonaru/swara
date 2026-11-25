@@ -41,6 +41,7 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         const val KEY_PLAYING = "playing"
         const val KEY_ART = "art"
         const val KEY_POSITION = "position_ms"
+        const val KEY_NEXT_TITLE = "next_title"
 
         // Decodes artwork and rebinding on a single background thread so the
         // launcher's process is never blocked during onUpdate rebinds.
@@ -58,6 +59,7 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             playing: Boolean,
             artPath: String?,
             positionMs: Long,
+            nextTitle: String,
         ) {
             prefs(context).edit()
                 .putString(KEY_TITLE, title)
@@ -65,6 +67,7 @@ class SwaraWidgetProvider : AppWidgetProvider() {
                 .putBoolean(KEY_PLAYING, playing)
                 .putString(KEY_ART, artPath ?: "")
                 .putLong(KEY_POSITION, positionMs)
+                .putString(KEY_NEXT_TITLE, nextTitle)
                 .apply()
             val manager = AppWidgetManager.getInstance(context)
             val component = android.content.ComponentName(
@@ -82,6 +85,16 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.swara_widget)
             views.setTextViewText(R.id.widget_title, state.getString(KEY_TITLE, "Swara"))
             views.setTextViewText(R.id.widget_artist, state.getString(KEY_ARTIST, ""))
+            val nextTitle = state.getString(KEY_NEXT_TITLE, "") ?: ""
+            if (nextTitle.isNotEmpty()) {
+                views.setTextViewText(
+                    R.id.widget_next_line,
+                    context.getString(R.string.widget_next_label) + " " + nextTitle,
+                )
+                views.setViewVisibility(R.id.widget_next_line, android.view.View.VISIBLE)
+            } else {
+                views.setViewVisibility(R.id.widget_next_line, android.view.View.GONE)
+            }
             // Artwork: decode a downscaled bitmap on first build after a
             // state change. RemoteViews transactions have a size budget, so
             // never ship the full resolution image.

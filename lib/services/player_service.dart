@@ -573,6 +573,13 @@ class PlayerService extends ChangeNotifier {
     await target.setPitch(_pitch);
   }
 
+  /// Title of the next entry in play order, or null at the end of the queue.
+  /// The widget uses this as a lightweight "up next" hint.
+  String? get nextTitle {
+    if (_posInOrder < 0 || _posInOrder + 1 >= _playOrder.length) return null;
+    return _queue[_playOrder[_posInOrder + 1]].title;
+  }
+
   AudioPlayer get player => _activePlayer;
 
   Song? get currentSong {

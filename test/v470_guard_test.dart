@@ -11,7 +11,7 @@ void main() {
     final player = read('lib/screens/player_screen.dart');
     expect(player.contains('Future<void> _resetLrcOffset()'), isTrue);
     expect(player.contains('playerLyricTimingReset'), isTrue);
-    expect(player.contains('setSyncedLyricOffset(songId, 0)'), isTrue);
+    expect(player.contains('_writeLrcOffset(songId, 0)'), isTrue);
   });
 
   test('bookmarks can be renamed and stay bound to one song', () {

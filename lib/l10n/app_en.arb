@@ -2550,5 +2550,9 @@
     "playerBookmarkSongChanged":  "The song changed, bookmark not saved",
     "@playerBookmarkSongChanged":  {
                                    "description":  "Message when a bookmark sheet is used after the track changed"
+                               },
+    "autoBrowsePlaylists":  "Playlists",
+    "@autoBrowsePlaylists":  {
+                                   "description":  "Android Auto browse category for playlists"
                                }
 }

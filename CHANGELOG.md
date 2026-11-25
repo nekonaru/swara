@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.8.0
+
+Large native integration release: a real Android Auto browse tree and a next-up line in the home widget, with no new permission or dependency.
+
+## New features
+
+- **Android Auto browse tree.** Playlists, folders, songs and the current queue are browsable offline, with tappable leaves that play the intended song.
+- **Next up on the widget.** The home widget now shows the next title in play order and hides the line at the end of the queue.
+
+## Improvements
+
+- **Queue IDs are verified before playback.** A stale slot can no longer play the wrong song after a reorder or a cold restore; the file path remains the source of truth.
+- **Playlist replacement preserves order.** Auto playlists write positions in one transaction and dedupe members.
+- **Lyric offset writes are serialized.** A slow nudge can no longer land after a timing reset.
+- **Cover existence checks are cached per path.** Duplicate album and playlist art no longer repeats disk I/O for every visible row.
+- **Restored tags keep their scanned flag only when a tag was actually restored.**
+
+## Bug fixes
+
+- **Android Auto browse was empty.** The media handler now supplies real children instead of returning an empty list.
+- **The queue title follows the app language** on Android Auto and lockscreen instead of a hard-coded English string.
+
 ## v4.7.0
 
 Feature and performance release: named bookmarks, one-tap lyric reset, and a lighter backup and playback path, with no new permission.

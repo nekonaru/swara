@@ -42,6 +42,11 @@ class SongArtImage extends StatefulWidget {
 }
 
 class _SongArtImageState extends State<SongArtImage> {
+  // One existence check per path, shared by every visible row that points at
+  // the same cover (album and playlist art are heavily duplicated).
+  static final Set<String> _checkedCoverPaths = <String>{};
+  static final Set<String> _validCoverPaths = <String>{};
+
   // Resolved embedded path for this song, or null while unresolved/missing.
   String? _embeddedPath;
   // True once we know this song has no embedded art (checked on disk).
@@ -61,11 +66,14 @@ class _SongArtImageState extends State<SongArtImage> {
     // stale path or a remote URL must still let the embedded probe run.
     var hasRealCover = false;
     if (localPath.isNotEmpty) {
-      try {
-        hasRealCover = File(localPath).existsSync();
-      } catch (_) {
-        hasRealCover = false;
+      if (_checkedCoverPaths.add(localPath)) {
+        try {
+          if (File(localPath).existsSync()) _validCoverPaths.add(localPath);
+        } catch (_) {
+          // A stale or unreadable path simply allows the embedded probe.
+        }
       }
+      hasRealCover = _validCoverPaths.contains(localPath);
     }
     if (!_embeddedChecked && !hasRealCover) {
       _loadEmbedded();

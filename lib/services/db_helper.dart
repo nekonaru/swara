@@ -889,11 +889,16 @@ class DBHelper {
     await database.transaction((txn) async {
       await txn.delete('playlist_songs',
           where: 'playlistId = ?', whereArgs: [playlistId]);
+      final seen = <int>{};
+      var position = 0;
+      final now = DateTime.now().toIso8601String();
       for (final id in songIds) {
+        if (!seen.add(id)) continue;
         await txn.insert('playlist_songs', {
           'playlistId': playlistId,
           'songId': id,
-          'addedAt': DateTime.now().toIso8601String(),
+          'addedAt': now,
+          'position': position++,
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
@@ -1951,6 +1956,15 @@ class DBHelper {
   }
 
   // ---------- Backup identity helpers ----------
+  Future<Song?> getSongByFilePath(String filePath) async {
+    final database = await db;
+    final rows = await database.query('songs',
+        where: 'filePath = ?', whereArgs: [filePath], limit: 1);
+    if (rows.isEmpty) return null;
+    final songs = await _songsFromRows(rows);
+    return songs.isEmpty ? null : songs.first;
+  }
+
   Future<Map<String, Object?>?> querySongById(int id) async {
     final database = await db;
     final rows = await database.query('songs',

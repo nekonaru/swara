@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.8.0
+
+Rilis integrasi native besar: pohon jelajah Android Auto yang nyata dan baris lagu berikutnya di widget, tanpa izin atau dependensi baru.
+
+## Fitur baru
+
+- **Pohon jelajah Android Auto.** Daftar putar, folder, lagu, dan antrean saat ini bisa dijelajahi secara offline, dengan item yang bisa diputar ke lagu yang tepat.
+- **Lagu berikutnya di widget.** Widget layar home kini menampilkan judul berikutnya sesuai urutan putar dan menyembunyikannya di akhir antrean.
+
+## Peningkatan
+
+- **ID antrean diverifikasi sebelum pemutaran.** Slot lama tidak lagi memutar lagu salah setelah pengurutan ulang atau pemulihan dingin; jalur file tetap menjadi sumber kebenaran.
+- **Pengganti playlist mempertahankan urutan.** Playlist otomatis menulis posisi dalam satu transaksi dan menghapus duplikat anggota.
+- **Penulisan offset lirik berurutan.** Nudge yang lambat tidak lagi masuk setelah atur ulang waktu.
+- **Pemeriksaan sampul di-cache per jalur.** Sampul album dan playlist yang sama tidak mengulang I/O disk untuk setiap baris yang terlihat.
+- **Tag yang dipulihkan hanya ditandai sudah dipindai bila ada tag yang benar-benar dipulihkan.**
+
+## Perbaikan bug
+
+- **Jelajah Android Auto sebelumnya kosong.** Handler media kini mengirim anak-anak nyata, bukan daftar kosong.
+- **Judul antrean mengikuti bahasa aplikasi** di Android Auto dan layar kunci, bukan string Inggris yang ditulis tetap.
+
 ## v4.7.0
 
 Rilis fitur dan performa: penanda bernama, atur ulang waktu lirik sekali ketuk, serta jalur cadangan dan pemutaran yang lebih ringan tanpa izin baru.

@@ -4,8 +4,10 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/providers/language_provider.dart';
+import '../models/song.dart';
 import 'db_helper.dart';
 import 'player_service.dart';
+import 'swara_browse_catalog.dart';
 
 /// Thin adapter over [PlayerService]. Translates state into the Android
 /// MediaSession for notifications, the lockscreen, and the foreground service.
@@ -188,7 +190,8 @@ class SwaraAudioHandler extends BaseAudioHandler {
     try {
       queue.add(items);
       _publishedQueueLength = items.length;
-      queueTitle.add('Swara Queue');
+      queueTitle.add(
+          lookupAppLocalizations(LanguageProvider.instance.locale).queueTitle);
       // The active item index is relative to the published window; republish
       // it together with the window so it never points at the wrong song.
       final active = (current - start).clamp(0, items.isEmpty ? 0 : items.length - 1);
@@ -366,15 +369,39 @@ class SwaraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _playMediaItem(String mediaId) async {
-    final parts = mediaId.split('_');
-    if (parts.length < 2) return;
-    final slotId = int.tryParse(parts[1]);
-    if (slotId == null) return;
+    if (!mediaId.startsWith('queue_')) return;
+    final rest = mediaId.substring('queue_'.length);
+    final separator = rest.indexOf('_');
+    if (separator <= 0) return;
+    final slotId = int.tryParse(rest.substring(0, separator));
+    final path = rest.substring(separator + 1);
+    if (slotId == null || path.isEmpty) return;
     final ps = PlayerService.instance;
     final pos = ps.queuePosForSlot(slotId);
-    if (pos == null || pos < 0 || pos >= ps.queueOrderLength) return;
-    await ps.playAtQueueIndex(pos);
+    // Only trust the slot when it still points at the same file. A queue
+    // mutation or a cold restore can otherwise remap the id to a new song.
+    if (pos != null && pos >= 0 && pos < ps.queueOrderLength) {
+      if (ps.queue[pos].filePath == path) {
+        await ps.playAtQueueIndex(pos);
+        return;
+      }
+    }
+    // Browse leaves from the DB carry slot -1. Play them without disturbing
+    // the current queue order by looking up the file directly.
+    final song = await DBHelper.instance.getSongByFilePath(path);
+    if (song == null) return;
+    await ps.setQueueAndPlay(<Song>[song], 0);
   }
+
+  @override
+  Future<List<MediaItem>> getChildren(String parentMediaId,
+      [Map<String, dynamic>? options]) =>
+      SwaraBrowseCatalog.childrenFor(parentMediaId);
+
+  @override
+  Future<List<MediaItem>> search(String query,
+          [Map<String, dynamic>? extras]) =>
+      SwaraBrowseCatalog.search(query);
 
   @override
   Future<void> seek(Duration position) =>

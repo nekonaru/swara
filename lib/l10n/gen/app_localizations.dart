@@ -3891,6 +3891,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The song changed, bookmark not saved'**
   String get playerBookmarkSongChanged;
+
+  /// Android Auto browse category for playlists
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get autoBrowsePlaylists;
 }
 
 class _AppLocalizationsDelegate

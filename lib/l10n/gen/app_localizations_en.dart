@@ -2205,4 +2205,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get playerBookmarkSongChanged =>
       'The song changed, bookmark not saved';
+
+  @override
+  String get autoBrowsePlaylists => 'Playlists';
 }

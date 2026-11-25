@@ -60,9 +60,9 @@
 | **Penanda lagu** | Simpan hingga 20 posisi putar bernama per lagu, ganti namanya, dan lompat kembali setelah restart |
 | **Cabut headset** | Pemutaran jeda otomatis saat headset dicabut atau rute Bluetooth terputus |
 | **Pemutaran di latar belakang** | Foreground service Android asli dengan MediaSession: kontrol notifikasi dan layar kunci (putar/jeda/berikutnya/sebelumnya) |
-| **Widget layar home** | Sampul album, kontrol sebelumnya/putar/berikutnya, dan chronometer waktu berjalan langsung di layar home |
+| **Widget layar home** | Sampul album, kontrol sebelumnya/putar/berikutnya, chronometer waktu berjalan, dan baris lagu berikutnya di layar home |
 | **Ubin Quick Settings** | Putar/jeda dari panel notifikasi Android dengan judul dan status lagu langsung, bahkan saat aplikasi di latar belakang |
-| **Android Auto** | Jelajahi dan kontrol pustaka dari mobil lewat MediaSession Swara |
+| **Android Auto** | Jelajahi daftar putar, folder, lagu, dan antrean saat ini dari mobil, lalu putar item mana pun secara offline lewat MediaSession Swara |
 | **Aksi notifikasi** | Mulai timer tidur 15 menit atau tandai favorit langsung dari notifikasi media |
 | **Acak dan ulangi** | Acak, ulangi mati / semua / satu lagu, plus sleep timer berdasarkan durasi atau jumlah lagu |
 | **Mini player** | Selalu terlihat di setiap halaman dengan garis progres langsung; pengatur kecepatan dan pitch ada di layar pemutar |

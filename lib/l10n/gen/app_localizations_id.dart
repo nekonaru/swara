@@ -2204,4 +2204,7 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get playerBookmarkSongChanged =>
       'Lagu berubah, penanda tidak disimpan';
+
+  @override
+  String get autoBrowsePlaylists => 'Daftar Putar';
 }

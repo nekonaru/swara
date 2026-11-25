@@ -964,7 +964,15 @@ class BackupService {
             lyrics: newLyrics,
             // A restored tag set is already enriched; do not let a later
             // "scan missing metadata" fetch overwrites it.
-            metadataScanned: raw['metadataScanned'] == true ? true : null,
+            metadataScanned: raw['metadataScanned'] == true &&
+                    (newTitle != null ||
+                        newArtist != null ||
+                        newAlbum != null ||
+                        newGenre != null ||
+                        newRegion != null ||
+                        newLyrics != null)
+                ? true
+                : null,
           );
           if (newTitle != null ||
               newArtist != null ||

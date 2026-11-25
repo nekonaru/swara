@@ -59,6 +59,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   // Generations make an older lyric load harmless when lyrics are edited
   // while that load is still in flight.
   int _lrcLoadGeneration = 0;
+  // Serialize offset writes so a slow nudge cannot land after a reset.
+  Future<void> _offsetWrite = Future<void>.value();
   // Re-point the lyric follower when the audible player changes (repeat-one
   // crossfades keep the same song id but swap the AudioPlayer instance).
   int _lrcFlipCount = -1;
@@ -628,13 +630,21 @@ class _PlayerScreenState extends State<PlayerScreen>
   /// Write a pending timing correction immediately. Safe to call more than
   /// once. On failure the pending state is restored so a later reload or exit
   /// can retry instead of silently losing the correction.
+  Future<void> _writeLrcOffset(int songId, int value) {
+    final next = _offsetWrite
+        .then((_) => DBHelper.instance.setSyncedLyricOffset(songId, value));
+    // Keep the chain alive even when one write fails.
+    _offsetWrite = next.catchError((Object _) {});
+    return next;
+  }
+
   Future<void> _flushPendingLrcOffset() async {
     final songId = _pendingOffsetSongId;
     if (songId == null) return;
     final value = _pendingOffsetMs;
     _pendingOffsetSongId = null;
     try {
-      await DBHelper.instance.setSyncedLyricOffset(songId, value);
+      await _writeLrcOffset(songId, value);
     } catch (e) {
       debugPrint('Lyric offset save failed: $e');
       // A nudge made while the write was in flight is newer than this one.
@@ -652,7 +662,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     _lrcOffsetSaveTimer?.cancel();
     _pendingOffsetSongId = null;
     try {
-      await DBHelper.instance.setSyncedLyricOffset(songId, 0);
+      await _offsetWrite;
+      await _writeLrcOffset(songId, 0);
     } catch (e) {
       debugPrint('Lyric offset reset failed: $e');
       return;

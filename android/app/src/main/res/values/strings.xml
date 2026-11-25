@@ -8,4 +8,5 @@
     <string name="widget_description">Control playback from the home screen</string>
     <string name="widget_art">Album art</string>
     <string name="quick_tile_label">Swara playback</string>
+    <string name="widget_next_label">Next:</string>
 </resources>

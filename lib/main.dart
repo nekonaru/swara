@@ -124,7 +124,7 @@ class _WidgetBridge {
   }
 
   static Future<void> pushState(String title, String artist, bool playing,
-      String? artPath, int positionMs) async {
+      String? artPath, int positionMs, String nextTitle) async {
     try {
       await _channel.invokeMethod('updateWidget', {
         'title': title,
@@ -132,6 +132,7 @@ class _WidgetBridge {
         'playing': playing,
         'artPath': artPath,
         'positionMs': positionMs,
+        'nextTitle': nextTitle,
       });
     } catch (e) {
       debugPrint('Widget state push failed: $e');
@@ -229,6 +230,7 @@ void _startWidgetStatePush() {
   var lastArtist = '';
   var lastPlaying = false;
   var lastArt = '';
+  var lastNextTitle = '';
   var hasPushed = false;
   // Track the previous tick, not the last pushed value. Comparing against the
   // last push makes every 1.5 s of normal playback look like a seek and
@@ -252,23 +254,26 @@ void _startWidgetStatePush() {
     // keeps counting from the base on its own afterwards. Use the
     // cold-restore-aware getter so a post-restore push is never 0:00.
     final positionMs = song != null ? service.positionForWidget : 0;
+    final nextTitle = service.nextTitle ?? '';
     if (!force &&
         hasPushed &&
         title == lastTitle &&
         artist == lastArtist &&
         playing == lastPlaying &&
-        art == lastArt) {
+        art == lastArt &&
+        nextTitle == lastNextTitle) {
       return;
     }
     lastTitle = title;
     lastArtist = artist;
     lastPlaying = playing;
     lastArt = art;
+    lastNextTitle = nextTitle;
     lastTickPositionMs = positionMs;
     hasTick = true;
     hasPushed = true;
     await _WidgetBridge.pushState(
-        title, artist, playing, art.isEmpty ? null : art, positionMs);
+        title, artist, playing, art.isEmpty ? null : art, positionMs, nextTitle);
   }
 
   // Republish the widget whenever the position stream shows a discontinuity
