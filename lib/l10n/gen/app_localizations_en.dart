@@ -2208,4 +2208,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get autoBrowsePlaylists => 'Playlists';
+
+  @override
+  String get updateSignatureOnceHint =>
+      'If the installer reports a signature conflict, uninstall once; later updates will install directly';
+
+  @override
+  String songOptionsRenameFileOnlyTitle(String error) {
+    return 'Only the title was changed: $error';
+  }
 }

@@ -190,6 +190,9 @@ ThemeData _buildSwaraTheme({
     // screen forgets to ask for floating itself.
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
+      // A visible close button lets users dismiss feedback immediately
+      // instead of waiting for the timeout.
+      showCloseIcon: true,
       elevation: 0,
       backgroundColor: scheme.inverseSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

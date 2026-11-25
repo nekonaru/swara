@@ -573,6 +573,18 @@ class PlayerService extends ChangeNotifier {
     await target.setPitch(_pitch);
   }
 
+  /// Replace the queue entry for [source] with a rebuilt Song (for example
+  /// after a real file rename changed its immutable filePath).
+  void replaceQueueSong(Song source) {
+    for (var i = 0; i < _queue.length; i++) {
+      if (_queue[i].id != source.id) continue;
+      _queue[i] = source;
+      queueVersion++;
+      notifyListeners();
+      return;
+    }
+  }
+
   /// Title of the next entry in play order, or null at the end of the queue.
   /// The widget uses this as a lightweight "up next" hint.
   String? get nextTitle {

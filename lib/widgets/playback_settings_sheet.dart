@@ -91,7 +91,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
       await PlayerService.instance.refreshPlaybackSettings();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          SnackBar(duration: const Duration(seconds: 2),
               content: Text(
                   AppLocalizations.of(context)!.playbackSettingsSaved)),
         );
@@ -101,7 +101,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          SnackBar(duration: const Duration(seconds: 2),
               content: Text(
                   AppLocalizations.of(context)!.dataFailedGeneric)),
         );

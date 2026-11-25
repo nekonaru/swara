@@ -137,7 +137,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          SnackBar(duration: const Duration(seconds: 2),
               content: Text(AppLocalizations.of(context)!
                   .autoPlaylistError(e.toString()))),
         );
@@ -194,7 +194,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       } catch (e) {
         if (!ctx.mounted) return;
         ScaffoldMessenger.of(ctx).showSnackBar(
-          SnackBar(
+          SnackBar(duration: const Duration(seconds: 2),
               content: Text(
                   AppLocalizations.of(ctx)!.autoPlaylistError(e.toString()))),
         );
@@ -389,7 +389,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   void _showAutoError(Object e) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      SnackBar(duration: const Duration(seconds: 2),
           content: Text(
               AppLocalizations.of(context)!.autoPlaylistError(e.toString()))),
     );
@@ -559,7 +559,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       // skipped because the file name was shared by several songs.
       final unresolved = picked.match.unresolved;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!.m3uImportSummary(
               added,
               picked.match.matched.length,
@@ -570,7 +570,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .m3uImportFailed(e.toString())),
         ),
@@ -590,7 +590,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       if (!mounted) return;
       if (songs.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          SnackBar(duration: const Duration(seconds: 2),
             content: Text(l10n.m3uExportEmpty),
           ),
         );
@@ -601,14 +601,14 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           await M3uService.saveM3uToDownloads(playlistName, content);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(l10n.m3uExported(file.path)),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(l10n.m3uExportFailed(e.toString())),
         ),
       );
@@ -629,7 +629,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     final others = prov.playlists.where((p) => (p['id'] as int) != targetId).toList();
     if (others.isEmpty) {
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(ctx)!.mergeNoOthers),
         ),
       );
@@ -691,7 +691,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       _scheduleArtRefresh(prov, targetId);
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(ctx)!.mergeSummary(
               added, sourceName, targetName, skipped)),
         ),
@@ -699,7 +699,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     } catch (e) {
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(ctx)!
               .mergeFailed(e.toString())),
         ),

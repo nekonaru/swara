@@ -2554,5 +2554,18 @@
     "autoBrowsePlaylists":  "Daftar Putar",
     "@autoBrowsePlaylists":  {
                                    "description":  "Kategori jelajah Android Auto untuk daftar putar"
+                               },
+    "updateSignatureOnceHint":  "Jika pemasang melaporkan konflik tanda tangan, hapus aplikasi sekali; pembaruan berikutnya akan langsung terpasang",
+    "@updateSignatureOnceHint":  {
+                                   "description":  "Catatan sekali pakai sebelum pembaruan saat pengguna berpindah ke kunci tanda tangan tetap"
+                               },
+    "songOptionsRenameFileOnlyTitle":  "Hanya judul yang diubah: {error}",
+    "@songOptionsRenameFileOnlyTitle":  {
+                                   "description":  "Pesan saat OS menolak penggantian nama file nyata sehingga hanya judul database yang berubah",
+                                   "placeholders": {
+                                     "error": {
+                                       "type": "String"
+                                     }
+                                   }
                                }
 }

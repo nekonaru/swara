@@ -118,7 +118,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.settingsUpdateAvailableTitle),
-        content: Text(l10n.settingsUpdateAvailableBody(tag, current)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.settingsUpdateAvailableBody(tag, current)),
+            const SizedBox(height: 12),
+            Text(l10n.updateSignatureOnceHint,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant)),
+          ],
+        ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -284,15 +295,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Short snackbar helper with a mounted guard.
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    final messenger = ScaffoldMessenger.of(context);
+    // Replace the previous message instead of queueing a stack of them.
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+        SnackBar(duration: const Duration(seconds: 2), content: Text(message)));
   }
 
   void _showSnackWithAction(String message,
       {required String label, required VoidCallback onPressed}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      SnackBar(duration: const Duration(seconds: 2),
         content: Text(message),
         action: SnackBarAction(label: label, onPressed: onPressed),
       ),

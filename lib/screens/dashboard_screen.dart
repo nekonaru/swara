@@ -320,7 +320,7 @@ class DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .recapShareFailed(e.toString()))),
       );
@@ -521,7 +521,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     behavior: SnackBarBehavior.floating,
-                                    duration: const Duration(seconds: 5),
+                                    duration: const Duration(seconds: 2),
                                     content: Text(l.dashboardPlayFailed(e.toString()))),
                               );
                             }
@@ -638,8 +638,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                                 SnackBar(
                                     behavior:
                                         SnackBarBehavior.floating,
-                                    duration:
-                                        const Duration(seconds: 5),
+                                    duration: const Duration(seconds: 2),
                                     content: Text(l.dashboardPlayFailed(
                                         e.toString()))),
                               );
@@ -1031,7 +1030,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                                 behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 5),
+                                duration: const Duration(seconds: 2),
                                 content: Text(
                                     l.dashboardPlayFailed(e.toString()))),
                           );
@@ -1071,7 +1070,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                                 behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 5),
+                                duration: const Duration(seconds: 2),
                                 content: Text(
                                     l.dashboardPlayFailed(e.toString()))),
                           );

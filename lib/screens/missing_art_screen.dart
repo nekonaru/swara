@@ -75,7 +75,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
               .artRefreshFailed(e.toString())),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
     } finally {
@@ -145,7 +145,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
                   ? l10n.artFetchStopped(_done, _total)
                   : l10n.artFetchFinished(_done, _total)),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -156,7 +156,7 @@ class _MissingArtScreenState extends State<MissingArtScreen> {
               .artFetchFailed(e.toString())),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
     } finally {

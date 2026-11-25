@@ -41,7 +41,7 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     if (genre.isEmpty && artist.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content:
                 Text(AppLocalizations.of(context)!.bulkEditValidate)),
       );
@@ -99,7 +99,7 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .bulkEditSummary(ok, failed))),
     );

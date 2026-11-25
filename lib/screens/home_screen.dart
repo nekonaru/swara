@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     messenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 5),
+        duration: const Duration(seconds: 2),
         content: Text(err),
       ),
     );
@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .homeLoadLibraryFailed('$e'))),
       );
@@ -223,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             behavior: SnackBarBehavior.floating,
             content:
                 Text(AppLocalizations.of(context)!.homePressAgainToExit),
-            duration: const Duration(seconds: 3)),
+            duration: const Duration(seconds: 2)),
       );
       return false;
     }
@@ -537,7 +537,7 @@ class _TabSettingsSheetState extends State<_TabSettingsSheet> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                                 behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 3),
+                                duration: const Duration(seconds: 2),
                                 content: Text(l.homeMinOneTab)),
                           );
                           return;

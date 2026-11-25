@@ -4,6 +4,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// A stable release key is supplied by CI through GitHub Secrets. The file is
+// decoded into the runner temp directory and never lives in this repository.
+// Local builds without the env vars keep using the default debug key.
+val releaseKeystorePath = System.getenv("SWARA_KEYSTORE_PATH")
+val releaseStorePassword = System.getenv("SWARA_STORE_PASSWORD")
+val releaseKeyAlias = System.getenv("SWARA_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("SWARA_KEY_PASSWORD")
+
 android {
     namespace = "com.nikodwidharma.offline_music_player"
     compileSdk = flutter.compileSdkVersion
@@ -26,9 +34,28 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseKeystorePath != null &&
+            releaseStorePassword != null &&
+            releaseKeyAlias != null &&
+            releaseKeyPassword != null
+        ) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseKeystorePath != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             // R8 + resource shrinking: strips unused Java/Kotlin code and
             // resources from the release APK. Conservative keeps for the
             // plugins that touch the framework through reflection/JNI are in

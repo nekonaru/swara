@@ -109,7 +109,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  SnackBar(duration: const Duration(seconds: 2),
                     content: Text(AppLocalizations.of(context)!
                         .historyPlayFailed(e.toString())),
                   ),

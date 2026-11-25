@@ -4,7 +4,6 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/providers/language_provider.dart';
-import '../models/song.dart';
 import 'db_helper.dart';
 import 'player_service.dart';
 import 'swara_browse_catalog.dart';
@@ -386,11 +385,17 @@ class SwaraAudioHandler extends BaseAudioHandler {
         return;
       }
     }
-    // Browse leaves from the DB carry slot -1. Play them without disturbing
-    // the current queue order by looking up the file directly.
+    // Browse leaves from the DB carry slot -1. Never replace the queue here:
+    // an Android Auto tap must leave the user's playlist and order intact.
+    final inQueue = ps.queue.indexWhere((s) => s.filePath == path);
+    if (inQueue >= 0) {
+      await ps.playAtQueueIndex(inQueue);
+      return;
+    }
     final song = await DBHelper.instance.getSongByFilePath(path);
     if (song == null) return;
-    await ps.setQueueAndPlay(<Song>[song], 0);
+    await ps.addToQueueEnd(song);
+    await ps.playAtQueueIndex(ps.queueOrderLength - 1);
   }
 
   @override

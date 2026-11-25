@@ -161,7 +161,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       final err = PlayerService.instance.lastError;
       if (err != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          SnackBar(duration: const Duration(seconds: 2),
               content: Text(AppLocalizations.of(context)!
                   .dupPlayFailed(err.toString()))),
         );
@@ -169,7 +169,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .dupPlayFailed(e.toString()))),
       );
@@ -229,7 +229,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
         _working = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .dupRemoved(removed, toDelete.length))),
       );
@@ -237,7 +237,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       if (!mounted) return;
       setState(() => _working = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .dupDeleteFailed(e.toString()))),
       );
@@ -287,7 +287,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
         _working = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .dupRemovedAll(removed, groups.length))),
       );
@@ -295,7 +295,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       if (!mounted) return;
       setState(() => _working = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .dupDeleteFailed(e.toString()))),
       );

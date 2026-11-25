@@ -186,7 +186,7 @@ Widget buildSongTile(
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                           behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 5),
+                          duration: const Duration(seconds: 2),
                           content: Text(AppLocalizations.of(context)!
                               .libraryPlayFailed('$e'))),
                     );
@@ -291,7 +291,7 @@ Widget buildCollectionHeader({
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                   behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 5),
+                                  duration: const Duration(seconds: 2),
                                   content: Text(
                                       AppLocalizations.of(context)!
                                           .libraryPlayFailed('$e'))),
@@ -357,7 +357,7 @@ Widget buildGroupPlayActions(BuildContext context, List<Song> queue) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                           behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 5),
+                          duration: const Duration(seconds: 2),
                           content: Text(AppLocalizations.of(context)!
                               .libraryPlayFailed('$e'))),
                     );
@@ -483,7 +483,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 2),
             content: Text(AppLocalizations.of(context)!
                 .foldersLoadFailed('$e'))),
       );
@@ -500,7 +500,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
+              duration: const Duration(seconds: 2),
               content: Text(isHidden
                   ? AppLocalizations.of(context)!.foldersShownAgain
                   : AppLocalizations.of(context)!.foldersHidden)),
@@ -850,7 +850,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
+              duration: const Duration(seconds: 2),
               content: Text(
                   AppLocalizations.of(context)!.foldersAllScanned)),
         );
@@ -890,7 +890,7 @@ class _FolderSongsScreenState extends State<_FolderSongsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 2),
             content: Text(cancelled
                 ? AppLocalizations.of(context)!.scanStopped
                 : AppLocalizations.of(context)!.foldersScanDone)),
@@ -1513,7 +1513,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             content: Text(
                 AppLocalizations.of(context)!.bulkCreatePlaylistFirst),
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 2),
           ),
         );
         return;
@@ -1566,7 +1566,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 3),
+                              duration: const Duration(seconds: 2),
                               backgroundColor: failed > 0 ? Theme.of(context).colorScheme.error : null,
                               content: Text(failed > 0
                                   ? partial
@@ -1587,7 +1587,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .bulkActionFailed(e.toString())),
         ),
@@ -1607,7 +1607,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .bulkUnfavoriteFailed(e.toString())),
         ),
@@ -1767,8 +1767,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                         behavior: SnackBarBehavior.floating,
-                                        duration:
-                                            const Duration(seconds: 5),
+                                        duration: const Duration(seconds: 2),
                                         content: Text(
                                             AppLocalizations.of(context)!
                                                 .libraryPlayFailed('$e'))),
@@ -2043,7 +2042,7 @@ Future<void> _playQueue(BuildContext context, List<Song> queue, int index) async
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 2),
             content: Text(
                 AppLocalizations.of(context)!.libraryPlayFailed('$e'))),
       );
@@ -2088,7 +2087,7 @@ class _RecentlyAddedScreenState extends State<RecentlyAddedScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
+        SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
       );
     }
   }
@@ -2189,7 +2188,7 @@ class _MostPlayedScreenState extends State<MostPlayedScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
+        SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.dataFailedGeneric)),
       );
     }
   }

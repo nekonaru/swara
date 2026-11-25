@@ -2554,5 +2554,18 @@
     "autoBrowsePlaylists":  "Playlists",
     "@autoBrowsePlaylists":  {
                                    "description":  "Android Auto browse category for playlists"
+                               },
+    "updateSignatureOnceHint":  "If the installer reports a signature conflict, uninstall once; later updates will install directly",
+    "@updateSignatureOnceHint":  {
+                                   "description":  "One-time note shown before an in-app update while users move to the pinned signing key"
+                               },
+    "songOptionsRenameFileOnlyTitle":  "Only the title was changed: {error}",
+    "@songOptionsRenameFileOnlyTitle":  {
+                                   "description":  "Message when the OS refuses a real file rename and only the database title is updated",
+                                   "placeholders": {
+                                     "error": {
+                                       "type": "String"
+                                     }
+                                   }
                                }
 }

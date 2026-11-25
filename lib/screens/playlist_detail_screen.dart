@@ -79,7 +79,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 2),
             content: Text(l.playlistLoadFailed(e.toString()))),
       );
     }
@@ -122,7 +122,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 2),
             content: Text(l.playlistReorderFailed(e.toString()))),
       );
     }
@@ -139,7 +139,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
+            duration: const Duration(seconds: 2),
             content: Text(l.playlistRemoveFailed(e.toString()))),
       );
       return;
@@ -162,7 +162,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       if (songs.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          SnackBar(duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             content: Text(l10n.m3uExportEmpty),
           ),
@@ -174,7 +174,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           await M3uService.saveM3uToDownloads(widget.playlistName, content);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(l10n.m3uExported(file.path)),
         ),
@@ -182,7 +182,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(l10n.m3uExportFailed(e.toString())),
         ),
@@ -206,7 +206,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         .toList();
     if (others.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(AppLocalizations.of(context)!.mergeNoOthers),
         ),
@@ -269,7 +269,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       await _load();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           content: Text(AppLocalizations.of(context)!.mergeSummary(
               added, sourceName, widget.playlistName, skipped)),
@@ -280,7 +280,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .mergeFailed(e.toString())),
         ),

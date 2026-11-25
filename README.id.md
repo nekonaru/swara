@@ -100,6 +100,7 @@
 | **Segarkan metadata per lagu** | "Scan metadata" di menu lagu mengambil ulang satu lagu dari internet |
 | **Lirik sesuai permintaan** | Diambil lewat lrclib dengan lyrics.ovh sebagai cadangan, bisa diedit manual, ada cadangan pencarian Google |
 | **Edit manual** | Perbaiki metadata dan lirik per lagu saat hasil pemindaian salah |
+| **Ganti nama file nyata** | "Ganti nama lagu" mengganti nama file musik yang sebenarnya bila OS mengizinkan; jika ditolak, hanya judul pustaka yang berubah dan aplikasi memberitahunya |
 | **Lirik tersinkron** | Lirik baris demi baris yang mengikuti lagu, dengan tampilan teks biasa sebagai cadangan |
 | **Penyelarasan lirik** | Membaca tag offset dari file .lrc, menggeser lirik per 100 ms, menyimpan koreksi per lagu, dan mengaturnya ulang dalam satu ketukan |
 | **File .lrc lokal** | Impor file lirik .lrc dari penyimpanan sendiri atau bagikan lirik sinkron yang tersimpan, sepenuhnya offline |

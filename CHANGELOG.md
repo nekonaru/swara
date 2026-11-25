@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.9.0
+
+Large usability and reliability release: short dismissible feedback, real file rename where the OS allows it, and stable release signing for direct updates.
+
+## New features
+
+- **Real file rename.** "Rename song" now renames the music file on disk through MediaStore or the legacy filesystem path, then updates the library in one operation. If the OS refuses, the app falls back to a title-only edit and says so clearly.
+
+## Improvements
+
+- **Feedback no longer blocks the UI.** All snackbars last two seconds, show a close icon, and replace the previous message instead of stacking.
+- **Release signing is pinned in CI.** A single key is decoded from GitHub Secrets, so future in-app updates keep the same certificate.
+- **Update dialog explains the one-time move.** Users on older debug-signed installs see why a single uninstall may be needed before direct updates work.
+- **Android Auto taps preserve the queue.** Browse leaves play the chosen song without replacing the current queue.
+- **Artwork fallback recovers after a cache clear.** A failed cover reload retries embedded art instead of staying blank.
+
+## Bug fixes
+
+- **In-app update no longer fails from changing signatures** on releases built after this version.
+- **Renamed files survive uninstall and reinstall** because the real file, not only the database title, is changed.
+- **Old queue IDs cannot play the wrong song** after a reorder or a cold restore.
+
 ## v4.8.0
 
 Large native integration release: a real Android Auto browse tree and a next-up line in the home widget, with no new permission or dependency.

@@ -165,7 +165,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
     final duration = _durationUntilBedtime();
     if (duration <= Duration.zero) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
             content: Text(
                 AppLocalizations.of(context)!.bedtimePickFuture)),
       );
@@ -188,7 +188,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet> {
       final total   = hours * 60 + minutes;
       if (total == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.sleepSetTimeAboveZero)),
+        SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.sleepSetTimeAboveZero)),
         );
         return;
       }

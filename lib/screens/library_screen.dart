@@ -252,7 +252,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           content: Text(AppLocalizations.of(context)!
               .librarySelectAllTooMany(_selectAllLimit)),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4)));
+          duration: const Duration(seconds: 2)));
       return;
     }
     final allSelected =
@@ -278,7 +278,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               content: Text(err),
               backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 5)));
+              duration: const Duration(seconds: 2)));
     }
   }
 
@@ -373,7 +373,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           SnackBar(
               content: Text(l.libraryCreatePlaylistFirst),
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3)));
+              duration: const Duration(seconds: 2)));
       return;
     }
     await showModalBottomSheet(
@@ -423,7 +423,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         : '';
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 3),
+                        duration: const Duration(seconds: 2),
                         backgroundColor: failed > 0 ? Theme.of(context).colorScheme.error : null,
                         content: Text(failed > 0
                             ? partial
@@ -508,7 +508,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 3),
+                            duration: const Duration(seconds: 2),
                             backgroundColor: Theme.of(context).colorScheme.error,
                             content: Text(l.bulkActionFailed('$e'))));
                         return;
@@ -539,7 +539,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             l.libraryFavoritesAdded(selected.length);
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 3),
+                            duration: const Duration(seconds: 2),
                             backgroundColor:
                                 error != null ? Theme.of(context).colorScheme.error : null,
                             content: Text(error != null
@@ -549,7 +549,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 3),
+                            duration: const Duration(seconds: 2),
                             backgroundColor: Theme.of(context).colorScheme.error,
                             content: Text(l.bulkFavoriteFailed('$e'))));
                       }

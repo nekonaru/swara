@@ -1956,6 +1956,39 @@ class DBHelper {
   }
 
   // ---------- Backup identity helpers ----------
+  /// Change a song's stored path and title only when the row still matches
+  /// [oldPath] and no other row already uses [newPath].
+  Future<bool> updateSongFilePath(
+    int id, {
+    required String oldPath,
+    required String newPath,
+    required String newTitle,
+  }) async {
+    final database = await db;
+    try {
+      return await database.transaction((txn) async {
+        final rows = await txn.query('songs',
+            columns: ['filePath'], where: 'id = ?', whereArgs: [id], limit: 1);
+        if (rows.isEmpty || rows.first['filePath'] != oldPath) return false;
+        final colliding = await txn.query('songs',
+            columns: ['id'],
+            where: 'filePath = ? COLLATE NOCASE AND id != ?',
+            whereArgs: [newPath, id],
+            limit: 1);
+        if (colliding.isNotEmpty) return false;
+        await txn.update(
+          'songs',
+          {'filePath': newPath, 'title': newTitle},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        return true;
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Song?> getSongByFilePath(String filePath) async {
     final database = await db;
     final rows = await database.query('songs',

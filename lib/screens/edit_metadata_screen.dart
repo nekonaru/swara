@@ -53,7 +53,7 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       if (mounted) {
         final l = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.editMetadataValidationEmpty)),
+          SnackBar(duration: const Duration(seconds: 2),content: Text(l.editMetadataValidationEmpty)),
         );
       }
       return;
@@ -84,7 +84,7 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       if (mounted) {
         final l = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.editMetadataSaveFailed(e.toString()))),
+          SnackBar(duration: const Duration(seconds: 2),content: Text(l.editMetadataSaveFailed(e.toString()))),
         );
       }
       return;
@@ -121,7 +121,7 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       if (!mounted) return;
       setState(() => _isScanning = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l.editMetadataRescanFailed(e.toString()))),
+        SnackBar(duration: const Duration(seconds: 2),content: Text(l.editMetadataRescanFailed(e.toString()))),
       );
       return;
     }
@@ -135,7 +135,7 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       _region.text = widget.song.region ?? '';
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      SnackBar(duration: const Duration(seconds: 2),
         content: Text(limited
             ? AppLocalizations.of(context)!.editMetadataRescanRateLimited
             : l.editMetadataRescanSuccess),

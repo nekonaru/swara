@@ -91,7 +91,7 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
               .lyrRefreshFailed(e.toString())),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
     } finally {
@@ -161,7 +161,7 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
                   ? l10n.lyrFetchStopped(_done, _total)
                   : l10n.lyrFetchFinished(_done, _total)),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -172,7 +172,7 @@ class _MissingLyricsScreenState extends State<MissingLyricsScreen> {
               .lyrFetchFailed(e.toString())),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
         ),
       );
     } finally {

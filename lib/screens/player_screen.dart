@@ -406,13 +406,13 @@ class _PlayerScreenState extends State<PlayerScreen>
           await launchUrl(url, mode: LaunchMode.externalApplication);
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.playerCannotOpenBrowser)),
+          SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.playerCannotOpenBrowser)),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.playerSearchOpenFailed)),
+          SnackBar(duration: const Duration(seconds: 2),content: Text(AppLocalizations.of(context)!.playerSearchOpenFailed)),
         );
       }
     }
@@ -719,7 +719,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                           onPressed: () async {
                             if (_player.currentSong?.id != bookmarkSongId) {
                               if (ctx.mounted) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(duration: const Duration(seconds: 2),
                                     content: Text(
                                         l10n.playerBookmarkSongChanged)));
                               }
@@ -730,7 +730,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                             final saved = await DBHelper.instance.addBookmark(
                                 bookmarkSongId, pos, formatDuration(pos));
                             if (!ctx.mounted) return;
-                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(duration: const Duration(seconds: 2),
                               content: Text(saved
                                   ? l10n.playerBookmarkSaved
                                   : l10n.playerBookmarkLimit),

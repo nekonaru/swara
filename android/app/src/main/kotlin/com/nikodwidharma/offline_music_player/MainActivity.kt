@@ -45,6 +45,7 @@ class MainActivity : AudioServiceFragmentActivity() {
         // session broadcasts, noisy listener). External plugins are added by
         // the generated plugin registrant; this one is ours.
         flutterEngine.plugins.add(SwaraAudioEffects())
+        flutterEngine.plugins.add(SwaraFileRename())
         // Home screen widget: Dart pushes title/artist/playing on every
         // playback change, and the native side keeps the widget up to date.
         // The reverse direction is used for button taps coming back in.

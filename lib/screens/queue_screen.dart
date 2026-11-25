@@ -142,7 +142,7 @@ class _QueueScreenState extends State<QueueScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .queueSaveFailed(e.toString())),
         ),
@@ -161,7 +161,7 @@ class _QueueScreenState extends State<QueueScreen> {
     }
     if (found == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!.queueNotFound),
         ),
       );
@@ -177,7 +177,7 @@ class _QueueScreenState extends State<QueueScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .queueSaved(added, queue.length, finalName)),
         ),
@@ -185,7 +185,7 @@ class _QueueScreenState extends State<QueueScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .queueSaveFailed(e.toString())),
         ),
@@ -237,7 +237,7 @@ class _QueueScreenState extends State<QueueScreen> {
     final removed = await _player.removeQueueTail(last);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      SnackBar(duration: const Duration(seconds: 2),
         content: Text(l10n.queueCleared(removed)),
       ),
     );

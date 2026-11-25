@@ -6,6 +6,7 @@ import 'package:swara/providers/language_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 import '../services/db_helper.dart';
+import '../services/file_rename_service.dart';
 import '../services/library_scanner.dart';
 import '../services/metadata_service.dart';
 import '../services/player_service.dart';
@@ -727,6 +728,61 @@ class LibraryProvider extends ChangeNotifier {
     _applySort();
     _songsVersion++;
     notifyListeners();
+  }
+
+  /// Rename the real file first, then update the database path in the same
+  /// operation. A failed OS call falls back to a title-only edit in the caller.
+  Future<FileRenameResult> renameSongFile(Song song, String newDisplayName) async {
+    final result = await FileRenameService.instance.rename(
+      id: song.id,
+      oldPath: song.filePath,
+      newDisplayName: newDisplayName,
+    );
+    if (result.status != FileRenameStatus.renamed ||
+        result.path == null ||
+        result.path == song.filePath) {
+      return result;
+    }
+    final title = result.displayName?.isEmpty == false
+        ? result.displayName!
+        : newDisplayName;
+    final applied = await DBHelper.instance.updateSongFilePath(
+      song.id,
+      oldPath: song.filePath,
+      newPath: result.path!,
+      newTitle: title,
+    );
+    if (!applied) {
+      return const FileRenameResult(
+          status: FileRenameStatus.failed, error: 'Database path update failed');
+    }
+    final rebuilt = Song(
+      id: song.id,
+      filePath: result.path!,
+      title: title,
+      artist: song.artist,
+      album: song.album,
+      genre: song.genre,
+      region: song.region,
+      albumArtPath: song.albumArtPath,
+      albumArtUrl: song.albumArtUrl,
+      lyrics: song.lyrics,
+      durationMs: song.durationMs,
+      isFavorite: song.isFavorite,
+      addedAt: song.addedAt,
+      metadataScanned: song.metadataScanned,
+    );
+    final index = songs.indexWhere((s) => s.id == song.id);
+    if (index < 0) {
+      await loadFromDb();
+      return result;
+    }
+    songs[index] = rebuilt;
+    PlayerService.instance.replaceQueueSong(rebuilt);
+    _applySort();
+    _songsVersion++;
+    notifyListeners();
+    return result;
   }
 
   Map<String, List<Song>> get groupedByArtist {

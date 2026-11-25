@@ -296,7 +296,7 @@ class _SearchScreenState extends State<SearchScreen> {
             content: Text(
                 AppLocalizations.of(context)!.bulkCreatePlaylistFirst),
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 2),
           ),
         );
         return;
@@ -351,7 +351,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 3),
+                              duration: const Duration(seconds: 2),
                               backgroundColor: failed > 0 ? Theme.of(context).colorScheme.error : null,
                               content: Text(failed > 0
                                   ? partial
@@ -372,7 +372,7 @@ class _SearchScreenState extends State<SearchScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .bulkActionFailed(e.toString())),
         ),
@@ -396,7 +396,7 @@ class _SearchScreenState extends State<SearchScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
           backgroundColor: error != null ? Theme.of(context).colorScheme.error : null,
           content: Text(error != null
               ? AppLocalizations.of(context)!.bulkFavoriteFailed(error)
@@ -408,7 +408,7 @@ class _SearchScreenState extends State<SearchScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 2),
           backgroundColor: Theme.of(context).colorScheme.error,
           content: Text(AppLocalizations.of(context)!
               .bulkFavoriteFailed(e.toString())),
@@ -738,7 +738,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                     behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 5),
+                    duration: const Duration(seconds: 2),
                     content: Text(AppLocalizations.of(context)!
                         .libraryPlayFailed('$e'))),
               );

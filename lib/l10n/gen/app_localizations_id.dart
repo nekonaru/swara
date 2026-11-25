@@ -2207,4 +2207,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get autoBrowsePlaylists => 'Daftar Putar';
+
+  @override
+  String get updateSignatureOnceHint =>
+      'Jika pemasang melaporkan konflik tanda tangan, hapus aplikasi sekali; pembaruan berikutnya akan langsung terpasang';
+
+  @override
+  String songOptionsRenameFileOnlyTitle(String error) {
+    return 'Hanya judul yang diubah: $error';
+  }
 }

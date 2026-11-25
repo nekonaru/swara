@@ -100,6 +100,7 @@
 | **Per-song metadata refresh** | "Scan metadata" in the song menu refetches one song from the internet |
 | **On-demand lyrics** | Fetched via lrclib with lyrics.ovh as fallback, editable manually, Google search fallback |
 | **Manual editing** | Fix metadata and lyrics per song when the scan gets it wrong |
+| **Real file rename** | "Rename song" renames the actual music file where the OS allows it; if the OS refuses, only the library title changes and the app says so |
 | **Synced lyrics** | Line-by-line lyrics that follow the song, with plain view fallback |
 | **Lyric timing** | Reads the offset tag from .lrc files, lets you nudge lyrics by 100 ms, remembers the correction per song, and resets it in one tap |
 | **Local .lrc files** | Import a sidecar .lrc file from your own storage or share the stored synced lyrics back out, fully offline |

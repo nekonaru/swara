@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.9.0
+
+Rilis besar untuk kenyamanan dan keandalan: umpan balik singkat yang bisa ditutup, penggantian nama file nyata bila OS mengizinkan, dan tanda tangan rilis tetap agar pembaruan langsung berhasil.
+
+## Fitur baru
+
+- **Ganti nama file nyata.** "Ganti nama lagu" kini mengganti nama file musik di penyimpanan lewat MediaStore atau jalur file lama, lalu memperbarui pustaka dalam satu operasi. Jika OS menolak, aplikasi hanya mengubah judul pustaka dan memberitahunya dengan jelas.
+
+## Peningkatan
+
+- **Pesan tidak lagi mengganggu.** Semua snackbar berlangsung dua detik, memiliki tombol tutup, dan menggantikan pesan sebelumnya, bukan menumpuk.
+- **Tanda tangan rilis dipin di CI.** Satu kunci didekode dari GitHub Secrets, sehingga pembaruan berikutnya memakai sertifikat yang sama.
+- **Dialog pembaruan menjelaskan perpindahan sekali pakai.** Pengguna instal lama yang memakai tanda tangan debug melihat alasan satu kali uninstall sebelum pembaruan langsung bekerja.
+- **Ketukan Android Auto mempertahankan antrean.** Item jelajah memutar lagu pilihan tanpa mengganti antrean saat ini.
+- **Sampul pulih setelah cache dibersihkan.** Cover yang gagal dimuat mencoba lagi sampul tersemat, bukan tetap kosong.
+
+## Perbaikan bug
+
+- **Pembaruan dalam aplikasi tidak lagi gagal karena tanda tangan berubah** pada rilis setelah versi ini.
+- **Nama file hasil penggantian bertahan setelah uninstall dan instal ulang** karena file nyata yang diubah, bukan hanya judul database.
+- **ID antrean lama tidak lagi memutar lagu salah** setelah pengurutan ulang atau pemulihan dingin.
+
 ## v4.8.0
 
 Rilis integrasi native besar: pohon jelajah Android Auto yang nyata dan baris lagu berikutnya di widget, tanpa izin atau dependensi baru.

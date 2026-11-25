@@ -3897,6 +3897,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playlists'**
   String get autoBrowsePlaylists;
+
+  /// One-time note shown before an in-app update while users move to the pinned signing key
+  ///
+  /// In en, this message translates to:
+  /// **'If the installer reports a signature conflict, uninstall once; later updates will install directly'**
+  String get updateSignatureOnceHint;
+
+  /// Message when the OS refuses a real file rename and only the database title is updated
+  ///
+  /// In en, this message translates to:
+  /// **'Only the title was changed: {error}'**
+  String songOptionsRenameFileOnlyTitle(String error);
 }
 
 class _AppLocalizationsDelegate

@@ -8,10 +8,12 @@ import 'package:provider/provider.dart';
 // with Share.share(text) as fallback. Verify against the installed
 // share_plus version if the API differs.
 import 'package:share_plus/share_plus.dart';
+import 'package:path/path.dart' as p;
 import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/db_helper.dart';
+import '../services/file_rename_service.dart';
 import '../services/player_service.dart';
 import '../screens/edit_metadata_screen.dart';
 import '../widgets/playback_settings_sheet.dart';
@@ -65,7 +67,7 @@ Future<void> showSongOptions(
               PlayerService.instance.playNext(song);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l.songOptionsAddedPlayNext)),
+                SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsAddedPlayNext)),
               );
             },
           ),
@@ -76,7 +78,7 @@ Future<void> showSongOptions(
               PlayerService.instance.addToQueueEnd(song);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l.songOptionsAddedToQueue)),
+                SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsAddedToQueue)),
               );
             },
           ),
@@ -90,7 +92,7 @@ Future<void> showSongOptions(
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l.songOptionsFavoriteFailed(e.toString()))),
+                    SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsFavoriteFailed(e.toString()))),
                   );
                 }
                 return;
@@ -151,12 +153,12 @@ Future<void> showSongOptions(
                     ? l.editMetadataRescanRateLimited
                     : l.artRefreshed;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(snack)),
+                  SnackBar(duration: const Duration(seconds: 2),content: Text(snack)),
                 );
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  SnackBar(duration: const Duration(seconds: 2),
                       content: Text(l.editMetadataRescanFailed(e.toString()))),
                 );
               }
@@ -188,7 +190,7 @@ Future<void> showSongOptions(
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l.songOptionsRemoveFromPlaylistFailed(e.toString()))),
+                      SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsRemoveFromPlaylistFailed(e.toString()))),
                     );
                   }
                   return;
@@ -196,7 +198,7 @@ Future<void> showSongOptions(
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l.songOptionsRemovedFromPlaylist)),
+                  SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsRemovedFromPlaylist)),
                 );
               },
             ),
@@ -223,7 +225,7 @@ Future<void> showSongOptions(
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l.songOptionsDeleteFailed(e.toString()))),
+                        SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsDeleteFailed(e.toString()))),
                       );
                     }
                   }
@@ -334,7 +336,7 @@ Future<void> _shareSong(BuildContext context, Song song) async {
   } catch (e) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      SnackBar(duration: const Duration(seconds: 2),
           content: Text(AppLocalizations.of(context)!
               .songShareFailed(e.toString()))),
     );
@@ -358,6 +360,13 @@ Future<void> _renameSong(BuildContext context, Song song, LibraryProvider lib) a
     );
     final trimmed = newName?.trim() ?? '';
     if (trimmed.isEmpty || trimmed == song.title) return;
+    final safeBase = trimmed.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+    if (safeBase.isEmpty) return;
+    final displayName = safeBase + p.extension(song.filePath);
+    final result = await lib.renameSongFile(song, displayName);
+    if (result.status == FileRenameStatus.renamed) return;
+    // The OS refused the real rename. Keep the database title edit and say so
+    // explicitly so the user is not misled into thinking the file changed.
     final oldTitle = song.title;
     song.title = trimmed;
     try {
@@ -366,9 +375,19 @@ Future<void> _renameSong(BuildContext context, Song song, LibraryProvider lib) a
       song.title = oldTitle;
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l.songOptionsRenameFailed(e.toString()))),
+          SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsRenameFailed(e.toString()))),
         );
       }
+      return;
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(l.songOptionsRenameFileOnlyTitle(
+              result.error ?? result.status.name)),
+        ),
+      );
     }
   } finally {
     controller.dispose();
@@ -401,7 +420,7 @@ Future<void> pickPlaylist(BuildContext context, Song song, PlaylistProvider prov
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l.songOptionsAddToPlaylistFailed(e.toString()))),
+                      SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsAddToPlaylistFailed(e.toString()))),
                     );
                   }
                   return;
@@ -439,7 +458,7 @@ Future<void> pickPlaylist(BuildContext context, Song song, PlaylistProvider prov
                   await provider.addSong(newId, song.id);
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l.songOptionsPlaylistCreated(trimmed))),
+                    SnackBar(duration: const Duration(seconds: 2),content: Text(l.songOptionsPlaylistCreated(trimmed))),
                   );
                 } catch (e) {
                   if (!context.mounted) return;
@@ -447,7 +466,7 @@ Future<void> pickPlaylist(BuildContext context, Song song, PlaylistProvider prov
                       ? l.songOptionsPlaylistExists(trimmed)
                       : l.songOptionsCreatePlaylistFailed(e.toString());
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg)),
+                    SnackBar(duration: const Duration(seconds: 2),content: Text(msg)),
                   );
                 }
               } finally {

@@ -101,6 +101,15 @@ class _SongArtImageState extends State<SongArtImage> {
       cacheWidth: widget.cacheWidth,
       gaplessPlayback: widget.gaplessPlayback,
       errorBuilder: (_, __, ___) {
+        // The file may have been cleared or re-extracted since the cached
+        // existence check. Drop the cached answer and retry the embedded art.
+        _checkedCoverPaths.remove(path);
+        _validCoverPaths.remove(path);
+        if (_embeddedPath == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _loadEmbedded();
+          });
+        }
         // A referenced local file that fails to decode must not strand the
         // row on a placeholder while embedded or network art is available.
         if (path != _embeddedPath && _embeddedPath != null) {

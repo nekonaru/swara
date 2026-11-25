@@ -19,7 +19,7 @@ Future<void> stopBulkMetadataScan(BuildContext context) async {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 2),
       content: Text(AppLocalizations.of(context)!.scanStopped),
     ),
   );
