@@ -4023,6 +4023,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tags saved to the library only: {error}'**
   String editMetadataTagsDbOnly(String error);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'New smart playlist'**
+  String get smartPlaylistNew;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Edit rule'**
+  String get smartPlaylistEditRule;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh playlist'**
+  String get smartPlaylistRefresh;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist rules'**
+  String get smartRuleTitle;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Match all'**
+  String get smartRuleMatchAll;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Match any'**
+  String get smartRuleMatchAny;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Field'**
+  String get smartRuleField;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Condition'**
+  String get smartRuleOp;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get smartRuleValue;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Days'**
+  String get smartRuleDays;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Limit'**
+  String get smartRuleLimit;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Add condition'**
+  String get smartRuleAdd;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get smartRuleRemove;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid rule'**
+  String get smartRuleInvalid;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'{count} condition(s)'**
+  String smartRuleSummary(int count);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get smartFieldTitle;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get smartFieldArtist;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Album'**
+  String get smartFieldAlbum;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Genre'**
+  String get smartFieldGenre;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get smartFieldFavorite;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Play count'**
+  String get smartFieldPlayCount;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Last played'**
+  String get smartFieldLastPlayed;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Date added'**
+  String get smartFieldAddedAt;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get smartFieldDuration;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Contains'**
+  String get smartOpContains;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Equals'**
+  String get smartOpEquals;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Starts with'**
+  String get smartOpStartsWith;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Does not contain'**
+  String get smartOpNotContains;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Is true'**
+  String get smartOpIsTrue;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Is false'**
+  String get smartOpIsFalse;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Is empty'**
+  String get smartOpIsNull;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Is set'**
+  String get smartOpIsNotNull;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Before days ago'**
+  String get smartOpBeforeDays;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'After days ago'**
+  String get smartOpAfterDays;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Equals'**
+  String get smartOpEq;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Not equals'**
+  String get smartOpNeq;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Greater than'**
+  String get smartOpGt;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'At least'**
+  String get smartOpGte;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Less than'**
+  String get smartOpLt;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'At most'**
+  String get smartOpLte;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist name'**
+  String get smartRuleName;
 }
 
 class _AppLocalizationsDelegate

@@ -78,9 +78,10 @@ void main() {
   test('dashboard invalidation covers playback and aliases are canonical', () {
     final db = read('lib/services/db_helper.dart');
     expect(db.contains('invalidateDashboardCache();'), isTrue);
-    final normalized = db.split('String normalizePathForBackup(')[1].split('class DBHelper')[0];
+    final normalized = read('lib/utils/backup_paths.dart');
     expect(normalized.contains('Uri.decodeFull'), isTrue);
     expect(normalized.contains("replaceAll('//', '/')"), isTrue);
+    expect(db.contains('normalizeBackupPath(path)'), isTrue);
   });
 
   test('search isolate disposes safely', () {

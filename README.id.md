@@ -137,6 +137,7 @@
 | **Simpan antrean** | Simpan antrean putar sebagai playlist dengan satu ketukan |
 | **Playlist dan favorit** | Playlist kustom, favorit, baru diputar |
 | **Playlist otomatis pintar** | Daily Mix (25 lagu segar setiap hari) dan Unplayed, dikelola otomatis |
+| **Playlist berbasis aturan** | Tentukan kondisi offline sendiri pada tag, favorit, jumlah putar, dan tanggal, dengan aturan bawaan yang bisa diedit |
 | **Sampul playlist** | Kolase otomatis dari sampul album anggota playlist |
 | **Folder playlist** | Kelompokkan playlist ke dalam folder |
 | **Gabung playlist** | Gabungkan playlist lain, duplikat dilewati |

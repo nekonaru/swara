@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.12.0
+
+Rilis besar untuk daftar putar dan keandalan: playlist pintar berbasis aturan yang bisa diedit, plus perbaikan audit native terbaru tanpa dependensi baru.
+
+## Fitur baru
+
+- **Playlist pintar berbasis aturan.** Buat daftar putar, tentukan kondisi pada judul, artis, album, genre, favorit, jumlah putar, terakhir diputar, tanggal ditambahkan, atau durasi, lalu aplikasi menjaga anggotanya secara offline. Daily Mix, Unplayed, dan Forgotten Favorites bawaan kini menjadi aturan yang bisa diedit.
+
+## Peningkatan
+
+- **Aturan playlist pintar ikut cadangkan dan pulihkan.** Aturan masuk dalam payload v3 dan anggota dibangun ulang setelah impor.
+- **Satu fungsi kanonik untuk jalur.** Normalisasi identitas cadangan tinggal satu util bersama, bukan dua salinan.
+
+## Perbaikan bug
+
+- **Keluar dari Search saat isolate mulai tidak lagi memicu error tak tertangani.**
+- **Membuat snapshot di pustaka kosong kini menampilkan pesan**, bukan diam-diam tidak melakukan apa pun.
+- **Hasil penulisan tag tidak lagi memakai pesan fallback yang menyesatkan**, dan antrean tetap diperbarui walau hanya database yang berubah.
+- **Pembatalan dashboard terjadi setelah penulisan pemutaran**, sehingga lagu yang baru diputar langsung keluar dari daftar belum diputar.
+- **Snackbar dengan aksi direset saat ditutup**, sehingga pesan berikutnya menggantikan, bukan mengantre.
+- **Snapshot paksa dan otomatis tidak lagi bertabrakan** pada nama file yang sama.
+
 ## v4.11.0
 
 Rilis data offline besar: snapshot lokal, penulisan tag ke file, dan beberapa perbaikan keandalan native tanpa dependensi baru.

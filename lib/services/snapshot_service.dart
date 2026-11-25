@@ -101,12 +101,12 @@ class SnapshotService {
     bool force = false,
     Duration minInterval = defaultInterval,
   }) async {
-    if (!force) {
-      final existing = _creatingValue;
-      if (existing != null) {
-        await existing;
-        return _lastCreated;
-      }
+    // Always coalesce, including forced calls: two writers in the same
+    // second would otherwise race on the timestamped filename.
+    final existing = _creatingValue;
+    if (existing != null) {
+      await existing;
+      return _lastCreated;
     }
     final completer = Completer<SnapshotInfo?>();
     _creatingValue = completer.future;
@@ -135,7 +135,8 @@ class SnapshotService {
       final name = 'swara-snapshot-${now.year}${two(now.month)}${two(now.day)}-'
           '${two(now.hour)}${two(now.minute)}${two(now.second)}.json';
       final dir = await _dir();
-      final temp = File('${dir.path}${Platform.pathSeparator}$name.tmp');
+      final temp = File('${dir.path}${Platform.pathSeparator}'
+          '$name.${now.microsecondsSinceEpoch}.tmp');
       final finalFile = File('${dir.path}${Platform.pathSeparator}$name');
       await temp.writeAsString(content, flush: true);
       if (await finalFile.exists()) await finalFile.delete();

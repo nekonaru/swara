@@ -2284,4 +2284,129 @@ class AppLocalizationsId extends AppLocalizations {
   String editMetadataTagsDbOnly(String error) {
     return 'Tag hanya tersimpan di pustaka: $error';
   }
+
+  @override
+  String get smartPlaylistNew => 'Daftar putar pintar baru';
+
+  @override
+  String get smartPlaylistEditRule => 'Ubah aturan';
+
+  @override
+  String get smartPlaylistRefresh => 'Segarkan daftar putar';
+
+  @override
+  String get smartRuleTitle => 'Aturan daftar putar';
+
+  @override
+  String get smartRuleMatchAll => 'Cocokkan semua';
+
+  @override
+  String get smartRuleMatchAny => 'Cocokkan salah satu';
+
+  @override
+  String get smartRuleField => 'Bidang';
+
+  @override
+  String get smartRuleOp => 'Kondisi';
+
+  @override
+  String get smartRuleValue => 'Nilai';
+
+  @override
+  String get smartRuleDays => 'Hari';
+
+  @override
+  String get smartRuleLimit => 'Batas';
+
+  @override
+  String get smartRuleAdd => 'Tambah kondisi';
+
+  @override
+  String get smartRuleRemove => 'Hapus';
+
+  @override
+  String get smartRuleInvalid => 'Aturan tidak valid';
+
+  @override
+  String smartRuleSummary(int count) {
+    return '$count kondisi';
+  }
+
+  @override
+  String get smartFieldTitle => 'Judul';
+
+  @override
+  String get smartFieldArtist => 'Artis';
+
+  @override
+  String get smartFieldAlbum => 'Album';
+
+  @override
+  String get smartFieldGenre => 'Genre';
+
+  @override
+  String get smartFieldFavorite => 'Favorit';
+
+  @override
+  String get smartFieldPlayCount => 'Jumlah diputar';
+
+  @override
+  String get smartFieldLastPlayed => 'Terakhir diputar';
+
+  @override
+  String get smartFieldAddedAt => 'Tanggal ditambahkan';
+
+  @override
+  String get smartFieldDuration => 'Durasi';
+
+  @override
+  String get smartOpContains => 'Mengandung';
+
+  @override
+  String get smartOpEquals => 'Sama dengan';
+
+  @override
+  String get smartOpStartsWith => 'Dimulai dengan';
+
+  @override
+  String get smartOpNotContains => 'Tidak mengandung';
+
+  @override
+  String get smartOpIsTrue => 'Benar';
+
+  @override
+  String get smartOpIsFalse => 'Salah';
+
+  @override
+  String get smartOpIsNull => 'Kosong';
+
+  @override
+  String get smartOpIsNotNull => 'Sudah diisi';
+
+  @override
+  String get smartOpBeforeDays => 'Sebelum hari ini';
+
+  @override
+  String get smartOpAfterDays => 'Setelah hari ini';
+
+  @override
+  String get smartOpEq => 'Sama dengan';
+
+  @override
+  String get smartOpNeq => 'Tidak sama';
+
+  @override
+  String get smartOpGt => 'Lebih dari';
+
+  @override
+  String get smartOpGte => 'Minimal';
+
+  @override
+  String get smartOpLt => 'Kurang dari';
+
+  @override
+  String get smartOpLte => 'Maksimal';
+
+  @override
+  String get smartRuleName => 'Nama daftar putar';
 }

@@ -2659,5 +2659,173 @@
                                    "placeholders": {
                                      "error": {"type": "String"}
                                    }
+                               },
+    "smartPlaylistNew":  "New smart playlist",
+    "@smartPlaylistNew":  {
+                                   "description":  "English locale string"
+                               },
+    "smartPlaylistEditRule":  "Edit rule",
+    "@smartPlaylistEditRule":  {
+                                   "description":  "English locale string"
+                               },
+    "smartPlaylistRefresh":  "Refresh playlist",
+    "@smartPlaylistRefresh":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleTitle":  "Playlist rules",
+    "@smartRuleTitle":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleMatchAll":  "Match all",
+    "@smartRuleMatchAll":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleMatchAny":  "Match any",
+    "@smartRuleMatchAny":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleField":  "Field",
+    "@smartRuleField":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleOp":  "Condition",
+    "@smartRuleOp":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleValue":  "Value",
+    "@smartRuleValue":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleDays":  "Days",
+    "@smartRuleDays":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleLimit":  "Limit",
+    "@smartRuleLimit":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleAdd":  "Add condition",
+    "@smartRuleAdd":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleRemove":  "Remove",
+    "@smartRuleRemove":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleInvalid":  "Invalid rule",
+    "@smartRuleInvalid":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleSummary":  "{count} condition(s)",
+    "@smartRuleSummary":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+
+                               },
+    "smartFieldTitle":  "Title",
+    "@smartFieldTitle":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldArtist":  "Artist",
+    "@smartFieldArtist":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldAlbum":  "Album",
+    "@smartFieldAlbum":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldGenre":  "Genre",
+    "@smartFieldGenre":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldFavorite":  "Favorite",
+    "@smartFieldFavorite":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldPlayCount":  "Play count",
+    "@smartFieldPlayCount":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldLastPlayed":  "Last played",
+    "@smartFieldLastPlayed":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldAddedAt":  "Date added",
+    "@smartFieldAddedAt":  {
+                                   "description":  "English locale string"
+                               },
+    "smartFieldDuration":  "Duration",
+    "@smartFieldDuration":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpContains":  "Contains",
+    "@smartOpContains":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpEquals":  "Equals",
+    "@smartOpEquals":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpStartsWith":  "Starts with",
+    "@smartOpStartsWith":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpNotContains":  "Does not contain",
+    "@smartOpNotContains":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpIsTrue":  "Is true",
+    "@smartOpIsTrue":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpIsFalse":  "Is false",
+    "@smartOpIsFalse":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpIsNull":  "Is empty",
+    "@smartOpIsNull":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpIsNotNull":  "Is set",
+    "@smartOpIsNotNull":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpBeforeDays":  "Before days ago",
+    "@smartOpBeforeDays":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpAfterDays":  "After days ago",
+    "@smartOpAfterDays":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpEq":  "Equals",
+    "@smartOpEq":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpNeq":  "Not equals",
+    "@smartOpNeq":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpGt":  "Greater than",
+    "@smartOpGt":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpGte":  "At least",
+    "@smartOpGte":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpLt":  "Less than",
+    "@smartOpLt":  {
+                                   "description":  "English locale string"
+                               },
+    "smartOpLte":  "At most",
+    "@smartOpLte":  {
+                                   "description":  "English locale string"
+                               },
+    "smartRuleName":  "Playlist name",
+    "@smartRuleName":  {
+                                   "description":  "English locale string"
                                }
 }

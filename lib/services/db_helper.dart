@@ -5,22 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
-
-String normalizePathForBackup(String raw) {
-  var value = raw.replaceAll('\\', '/').trim();
-  try {
-    value = Uri.decodeFull(value);
-  } catch (_) {
-    // Keep the raw value when it is not a valid URI escape sequence.
-  }
-  while (value.contains('//')) {
-    value = value.replaceAll('//', '/');
-  }
-  while (value.length > 1 && value.endsWith('/')) {
-    value = value.substring(0, value.length - 1);
-  }
-  return value.toLowerCase();
-}
+import '../utils/backup_paths.dart';
 
 class DBHelper {
   // True when [table] already has [column]. Used by the migrations to
@@ -55,7 +40,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 15,
+      version: 16,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -101,7 +86,8 @@ class DBHelper {
             name TEXT UNIQUE,
             createdAt TEXT,
             folder TEXT DEFAULT '',
-            isAuto INTEGER DEFAULT 0
+            isAuto INTEGER DEFAULT 0,
+            rule TEXT
           )
         ''');
         await db.execute('''
@@ -415,6 +401,42 @@ class DBHelper {
               await db.execute(sql);
             } catch (e) {
               debugPrint('DBHelper: v15 path alias migration failed: $e');
+            }
+          }
+        }
+        if (oldVersion < 16) {
+          if (!await _hasColumn(db, 'playlists', 'rule')) {
+            try {
+              await db.execute('ALTER TABLE playlists ADD COLUMN rule TEXT');
+            } catch (e) {
+              debugPrint('DBHelper: v16 rule column migration failed: $e');
+            }
+          }
+          // Give the existing auto playlists real rules so they can be
+          // edited and rebuilt by the generic smart playlist engine.
+          const seedRules = <(String, String)>[
+            (
+              'Unplayed',
+              '{"schema":1,"match":"all","criteria":[{"field":"lastPlayed","op":"isNull","value":null}],"order":"title_asc","limit":null,"salt":0}',
+            ),
+            (
+              'Forgotten Favorites',
+              '{"schema":1,"match":"all","criteria":[{"field":"favorite","op":"isTrue","value":null},{"field":"lastPlayed","op":"beforeDays","value":90}],"order":"lastPlayed_asc","limit":null,"salt":0}',
+            ),
+            (
+              'Daily Mix',
+              '{"schema":1,"match":"all","criteria":[],"order":"random_daily","limit":25,"salt":0}',
+            ),
+          ];
+          for (final (name, rule) in seedRules) {
+            try {
+              await db.execute(
+                'UPDATE playlists SET rule = ?, isAuto = 1 '
+                'WHERE name = ? AND rule IS NULL',
+                [rule, name],
+              );
+            } catch (e) {
+              debugPrint('DBHelper: v16 rule seed failed for $name: $e');
             }
           }
         }
@@ -1080,13 +1102,13 @@ class DBHelper {
   }
 
   Future<void> markPlayed(int songId) async {
-    // lastPlayedAt drives the "never played" dashboard list.
-    await invalidateDashboardCache();
     try {
       final database = await db;
       await database.update(
           'songs', {'lastPlayedAt': DateTime.now().toIso8601String()},
           where: 'id = ?', whereArgs: [songId]);
+      // Invalidate only after the write it invalidates.
+      await invalidateDashboardCache();
     } catch (e) {
       // A failed marker write must never abort a track change: playback
       // depends on this being best-effort.
@@ -1314,12 +1336,14 @@ class DBHelper {
   }
 
   // ---------- Playlists ----------
-  Future<int> createPlaylist(String name, {bool isAuto = false}) async {
+  Future<int> createPlaylist(String name,
+      {bool isAuto = false, String? rule}) async {
     final database = await db;
     return database.insert('playlists', {
       'name': name,
       'createdAt': DateTime.now().toIso8601String(),
-      'isAuto': isAuto ? 1 : 0,
+      'isAuto': isAuto || rule != null ? 1 : 0,
+      'rule': rule,
     });
   }
 
@@ -1331,12 +1355,25 @@ class DBHelper {
 
   /// Create a playlist dated [createdAt] instead of now. Used by the backup
   /// restore to keep the original ordering of playlists across devices.
-  Future<int> createPlaylistWithDate(String name, String createdAt) async {
+  Future<int> createPlaylistWithDate(String name, String createdAt,
+      {String? rule}) async {
     final database = await db;
     return database.insert('playlists', {
       'name': name,
       'createdAt': createdAt,
+      'rule': rule,
+      'isAuto': rule != null ? 1 : 0,
     });
+  }
+
+  Future<void> setPlaylistRule(int playlistId, String? rule) async {
+    final database = await db;
+    await database.update(
+      'playlists',
+      {'rule': rule},
+      where: 'id = ?',
+      whereArgs: [playlistId],
+    );
   }
 
   Future<List<Map<String, dynamic>>> getPlaylists() async {
@@ -2017,7 +2054,7 @@ class DBHelper {
         final id = (row['songId'] as num?)?.toInt();
         final path = row['path'] as String?;
         if (id == null || path == null || path.isEmpty) continue;
-        result.putIfAbsent(id, () => <String>[]).add(normalizePathForBackup(path));
+        result.putIfAbsent(id, () => <String>[]).add(normalizeBackupPath(path));
       }
     } catch (_) {
       // A failed v15 migration must not break backup export.

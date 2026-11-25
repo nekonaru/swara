@@ -2286,4 +2286,129 @@ class AppLocalizationsEn extends AppLocalizations {
   String editMetadataTagsDbOnly(String error) {
     return 'Tags saved to the library only: $error';
   }
+
+  @override
+  String get smartPlaylistNew => 'New smart playlist';
+
+  @override
+  String get smartPlaylistEditRule => 'Edit rule';
+
+  @override
+  String get smartPlaylistRefresh => 'Refresh playlist';
+
+  @override
+  String get smartRuleTitle => 'Playlist rules';
+
+  @override
+  String get smartRuleMatchAll => 'Match all';
+
+  @override
+  String get smartRuleMatchAny => 'Match any';
+
+  @override
+  String get smartRuleField => 'Field';
+
+  @override
+  String get smartRuleOp => 'Condition';
+
+  @override
+  String get smartRuleValue => 'Value';
+
+  @override
+  String get smartRuleDays => 'Days';
+
+  @override
+  String get smartRuleLimit => 'Limit';
+
+  @override
+  String get smartRuleAdd => 'Add condition';
+
+  @override
+  String get smartRuleRemove => 'Remove';
+
+  @override
+  String get smartRuleInvalid => 'Invalid rule';
+
+  @override
+  String smartRuleSummary(int count) {
+    return '$count condition(s)';
+  }
+
+  @override
+  String get smartFieldTitle => 'Title';
+
+  @override
+  String get smartFieldArtist => 'Artist';
+
+  @override
+  String get smartFieldAlbum => 'Album';
+
+  @override
+  String get smartFieldGenre => 'Genre';
+
+  @override
+  String get smartFieldFavorite => 'Favorite';
+
+  @override
+  String get smartFieldPlayCount => 'Play count';
+
+  @override
+  String get smartFieldLastPlayed => 'Last played';
+
+  @override
+  String get smartFieldAddedAt => 'Date added';
+
+  @override
+  String get smartFieldDuration => 'Duration';
+
+  @override
+  String get smartOpContains => 'Contains';
+
+  @override
+  String get smartOpEquals => 'Equals';
+
+  @override
+  String get smartOpStartsWith => 'Starts with';
+
+  @override
+  String get smartOpNotContains => 'Does not contain';
+
+  @override
+  String get smartOpIsTrue => 'Is true';
+
+  @override
+  String get smartOpIsFalse => 'Is false';
+
+  @override
+  String get smartOpIsNull => 'Is empty';
+
+  @override
+  String get smartOpIsNotNull => 'Is set';
+
+  @override
+  String get smartOpBeforeDays => 'Before days ago';
+
+  @override
+  String get smartOpAfterDays => 'After days ago';
+
+  @override
+  String get smartOpEq => 'Equals';
+
+  @override
+  String get smartOpNeq => 'Not equals';
+
+  @override
+  String get smartOpGt => 'Greater than';
+
+  @override
+  String get smartOpGte => 'At least';
+
+  @override
+  String get smartOpLt => 'Less than';
+
+  @override
+  String get smartOpLte => 'At most';
+
+  @override
+  String get smartRuleName => 'Playlist name';
 }

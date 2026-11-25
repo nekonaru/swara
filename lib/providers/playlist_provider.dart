@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/providers/language_provider.dart';
+import '../models/smart_rule.dart';
 import '../models/song.dart';
 import '../services/db_helper.dart';
+import '../services/smart_playlist_service.dart';
 
 class PlaylistProvider extends ChangeNotifier {
   List<Map<String, dynamic>> playlists = [];
@@ -38,6 +40,27 @@ class PlaylistProvider extends ChangeNotifier {
       }
       rethrow;
     }
+  }
+
+  Future<void> createSmart(String name, SmartRule rule) async {
+    await DBHelper.instance.createPlaylist(name, rule: rule.serialize());
+    await load();
+    await SmartPlaylistService.instance.rebuildAll();
+  }
+
+  Future<void> updateRule(int playlistId, SmartRule? rule) async {
+    await SmartPlaylistService.instance.setRule(playlistId, rule);
+    await load();
+  }
+
+  Future<void> refreshSmart(int playlistId) async {
+    await SmartPlaylistService.instance.rebuild(playlistId);
+    await load();
+  }
+
+  Future<void> refreshAllSmart({bool playStatsOnly = false}) async {
+    await SmartPlaylistService.instance.rebuildAll(playStatsOnly: playStatsOnly);
+    await load();
   }
 
   /// Add many songs with a single write and a single notification.

@@ -106,6 +106,9 @@ class SearchIsolateClient {
   Future<void> _start() async {
     if (_disposed) return;
     final ready = Completer<SendPort>();
+    // Attach an error listener immediately: dispose may complete this before
+    // _start() reaches the await and an unhandled zone error would surface.
+    ready.future.then((SendPort _) {}, onError: (Object _) {});
     _readyCompleter = ready;
     _replySub = _replies.listen((message) {
       if (message is! Map<String, dynamic>) return;

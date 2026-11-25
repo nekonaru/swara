@@ -137,6 +137,7 @@
 | **Save queue** | Save the play queue as a playlist in one tap |
 | **Playlists and favorites** | Custom playlists, favorites, recently played |
 | **Smart auto-playlists** | Daily Mix (25 fresh songs every day) and Unplayed, maintained automatically |
+| **Rule-based playlists** | Define your own offline conditions on tags, favorites, play count and dates, with editable built-in rules |
 | **Playlist covers** | Auto-generated collages from member album art |
 | **Playlist folders** | Group playlists into folders |
 | **Merge playlists** | Combine another playlist in, skipping duplicates |

@@ -82,6 +82,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _showSnack(AppLocalizations.of(context)!
             .dataSnapshotItem(_formatExportStamp(info.createdAt),
                 _formatBytes(info.bytes)));
+      } else {
+        _showSnack(AppLocalizations.of(context)!.dataSnapshotEmpty);
       }
       await _loadSnapshots();
     } catch (e) {
@@ -411,15 +413,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Do not hide an existing actionable snackbar: the retry-install action
     // must remain available while other messages come and go.
     _actionableSnackVisible = true;
-    ScaffoldMessenger.of(context).showSnackBar(
+    final handle = ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(duration: const Duration(seconds: 10),
         content: Text(message),
-        action: SnackBarAction(label: label, onPressed: () {
-          _actionableSnackVisible = false;
-          onPressed();
-        }),
+        action: SnackBarAction(label: label, onPressed: onPressed),
       ),
     );
+    // Reset on timeout or swipe as well, otherwise later messages would
+    // keep queueing behind an already closed actionable snackbar.
+    handle.closed.then((_) {
+      if (mounted) _actionableSnackVisible = false;
+    });
   }
 
   // Human readable byte count for the art cache row.

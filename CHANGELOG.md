@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.12.0
+
+Large playlist and reliability release: editable rule-based smart playlists, plus fixes from the latest native audit, with no new dependency.
+
+## New features
+
+- **Rule-based smart playlists.** Create a playlist, define conditions on title, artist, album, genre, favorite, play count, last played, date added or duration, then let the app maintain membership offline. The built-in Daily Mix, Unplayed and Forgotten Favorites become editable rules.
+
+## Improvements
+
+- **Smart playlist rules survive backup and restore.** Rules travel in the v3 payload and members are rebuilt after import.
+- **One canonical path function.** Backup identity normalization lives in one shared utility instead of two copies.
+
+## Bug fixes
+
+- **Leaving Search during isolate startup no longer raises an unhandled error.**
+- **Taking a snapshot on an empty library now shows feedback** instead of silently doing nothing.
+- **Tag write results no longer report a misleading fallback message**, and the queue refreshes even for a database-only edit.
+- **Dashboard invalidation happens after the playback write**, so a just-played song leaves the never-played list immediately.
+- **Actionable snackbars reset when they close**, so later messages replace them instead of queueing.
+- **Forced and automatic snapshots no longer race** on the same filename.
+
 ## v4.11.0
 
 Large offline data release: local snapshots, tag writeback, and several native reliability fixes, with no new dependency.

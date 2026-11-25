@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
+import '../models/smart_rule.dart';
 import '../services/db_helper.dart';
 import '../services/m3u_service.dart';
 import '../services/playlist_art_service.dart';
@@ -14,6 +15,7 @@ import 'duplicates_screen.dart';
 import 'history_screen.dart';
 import 'playlist_detail_screen.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/smart_rule_editor.dart';
 import '../widgets/entrance_fade.dart';
 import '../widgets/sort_chip.dart';
 
@@ -518,6 +520,50 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   // comes from the file name; on a duplicate name error (UNIQUE
   // constraint from the existing DB layer) a numeric suffix is added
   // and creation is retried until it succeeds.
+  Future<void> _createSmartPlaylist() async {
+    final l = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.smartPlaylistNew),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l.collectionsPlaylistNameHint),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: Text(l.create)),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null || name.isEmpty || !mounted) return;
+    final rule = await showSmartRuleEditor(context, const SmartRule());
+    if (rule == null || !mounted) return;
+    final prov = context.read<PlaylistProvider>();
+    await prov.createSmart(name, rule);
+  }
+
+  Future<void> _editSmartRule(Map<String, dynamic> playlist) async {
+    final id = (playlist['id'] as num?)?.toInt();
+    if (id == null) return;
+    final initial = SmartRule.tryParse(playlist['rule'] as String?) ??
+        const SmartRule();
+    final edited = await showSmartRuleEditor(context, initial);
+    if (edited == null || !mounted) return;
+    await context.read<PlaylistProvider>().updateRule(id, edited);
+  }
+
+  Future<void> _refreshSmart(Map<String, dynamic> playlist) async {
+    final id = (playlist['id'] as num?)?.toInt();
+    if (id == null) return;
+    await context.read<PlaylistProvider>().refreshSmart(id);
+  }
+
   Future<void> _importM3u() async {
     try {
       final lib = context.read<LibraryProvider>();
@@ -737,6 +783,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     final name = p['name'] as String;
     final isAuto = _isAutoPlaylist(p);
     final isDaily = name == _dailyMixName;
+    final isSmart = (p['rule'] as String?)?.isNotEmpty == true;
     return EntranceFade(
       index: animIndex,
       key: ValueKey('pl_${p['id']}'),
@@ -783,9 +830,23 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                 } else if (action == 'merge' && !isAuto) {
                   _mergePlaylist(
                       context, playlists, p['id'] as int, name);
+                } else if (action == 'edit_rule' && isSmart) {
+                  _editSmartRule(p);
+                } else if (action == 'refresh_rule' && isSmart) {
+                  _refreshSmart(p);
                 }
               },
               itemBuilder: (_) => [
+                if (isSmart)
+                  PopupMenuItem(
+                      value: 'edit_rule',
+                      child: Text(AppLocalizations.of(context)!
+                          .smartPlaylistEditRule)),
+                if (isSmart)
+                  PopupMenuItem(
+                      value: 'refresh_rule',
+                      child: Text(AppLocalizations.of(context)!
+                          .smartPlaylistRefresh)),
                 if (isDaily)
                   PopupMenuItem(
                       value: 'reshuffle',
@@ -1139,12 +1200,38 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
               right: 16,
               bottom: 16,
               child: FloatingActionButton(
-                heroTag: 'fab_new_playlist',
-                tooltip: AppLocalizations.of(context)!.collectionsNewPlaylist,
-                onPressed: _createPlaylist,
-                child: const Icon(Icons.add),
-              ),
-            ),
+            heroTag: 'fab_new_playlist',
+            tooltip: AppLocalizations.of(context)!.collectionsNewPlaylist,
+            onPressed: () async {
+              final size = MediaQuery.sizeOf(context);
+              final choice = await showMenu<String>(
+                context: context,
+                position: RelativeRect.fromLTRB(
+                  size.width - 200,
+                  size.height - 180,
+                  16,
+                  16,
+                ),
+                items: [
+                  PopupMenuItem(
+                      value: 'normal',
+                      child: Text(AppLocalizations.of(context)!
+                          .collectionsNewPlaylist)),
+                  PopupMenuItem(
+                      value: 'smart',
+                      child: Text(
+                          AppLocalizations.of(context)!.smartPlaylistNew)),
+                ],
+              );
+              if (choice == 'smart') {
+                _createSmartPlaylist();
+              } else if (choice == 'normal') {
+                _createPlaylist();
+              }
+            },
+            child: const Icon(Icons.add),
+          ),
+          ),
           ],
         );
       },

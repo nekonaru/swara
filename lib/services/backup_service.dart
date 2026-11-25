@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
+import '../utils/backup_paths.dart';
 import '../providers/language_provider.dart';
 import '../services/art_cache_service.dart';
 import '../services/embedded_art_service.dart';
@@ -13,6 +14,7 @@ import '../utils/backup_settings_codec.dart';
 
 import '../services/db_helper.dart';
 import 'player_service.dart';
+import 'smart_playlist_service.dart';
 
 // Backup format version. Bump when the JSON schema changes.
 const int kBackupFormatVersion = 3;
@@ -33,22 +35,6 @@ String _encodeBackup(Map<String, dynamic> payload) => jsonEncode(payload);
 
 /// Canonical path key for cross-device matching. IDs from MediaStore are not
 /// stable, so the path (with a basename + duration fallback) is the identity.
-String normalizeBackupPath(String raw) {
-  var value = raw.replaceAll('\\', '/').trim();
-  try {
-    value = Uri.decodeFull(value);
-  } catch (_) {
-    // Keep the raw value when it is not a valid URI escape sequence.
-  }
-  while (value.contains('//')) {
-    value = value.replaceAll('//', '/');
-  }
-  while (value.length > 1 && value.endsWith('/')) {
-    value = value.substring(0, value.length - 1);
-  }
-  return value.toLowerCase();
-}
-
 String backupBasename(String raw) {
   final normalized = normalizeBackupPath(raw);
   final index = normalized.lastIndexOf('/');
@@ -191,6 +177,7 @@ class BackupService {
           'songIds': memberIds,
           'folder': (row['folder'] ?? '').toString(),
           'createdAt': (row['createdAt'] ?? '').toString(),
+          'rule': (row['rule'] ?? '').toString(),
         });
       }
 
@@ -597,19 +584,31 @@ class BackupService {
           if (rawIds != null && rawIds is! List) continue;
           final itemCreatedAt = (item['createdAt'] ?? '').toString().trim();
           final createdAt = DateTime.tryParse(itemCreatedAt)?.toIso8601String();
+          final backupRule = (item['rule'] as String?)?.trim();
           final isNew = !idByName.containsKey(name);
           int playlistId;
           if (!isNew) {
             playlistId = idByName[name]!;
             playlistsAlreadyPresent++;
+            final local = existingRows.firstWhere(
+              (row) => (row['id'] as num?)?.toInt() == playlistId,
+              orElse: () => const <String, dynamic>{},
+            );
+            if ((local['rule'] as String?)?.isNotEmpty != true &&
+                backupRule != null &&
+                backupRule.isNotEmpty) {
+              await dbHelper.setPlaylistRule(playlistId, backupRule);
+            }
           } else if (createdAt != null) {
             // Preserve the original ordering: insert with the export's
             // timestamp instead of "now".
-            playlistId = await dbHelper.createPlaylistWithDate(name, createdAt);
+            playlistId = await dbHelper.createPlaylistWithDate(name, createdAt,
+                rule: backupRule?.isNotEmpty == true ? backupRule : null);
             idByName[name] = playlistId;
             playlistsCreated++;
           } else {
-            playlistId = await dbHelper.createPlaylist(name);
+            playlistId = await dbHelper.createPlaylist(name,
+                rule: backupRule?.isNotEmpty == true ? backupRule : null);
             idByName[name] = playlistId;
             playlistsCreated++;
           }
@@ -1093,6 +1092,7 @@ class BackupService {
 
     // A restore changed the listening history, so the dashboard aggregate
     // cache must not survive to show pre-restore numbers.
+    await SmartPlaylistService.instance.rebuildAll();
     await DBHelper.invalidateDashboardCache();
 
     return BackupImportResult(

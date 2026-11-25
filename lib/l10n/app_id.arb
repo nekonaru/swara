@@ -2659,5 +2659,173 @@
                                    "placeholders": {
                                      "error": {"type": "String"}
                                    }
+                               },
+    "smartPlaylistNew":  "Daftar putar pintar baru",
+    "@smartPlaylistNew":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartPlaylistEditRule":  "Ubah aturan",
+    "@smartPlaylistEditRule":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartPlaylistRefresh":  "Segarkan daftar putar",
+    "@smartPlaylistRefresh":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleTitle":  "Aturan daftar putar",
+    "@smartRuleTitle":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleMatchAll":  "Cocokkan semua",
+    "@smartRuleMatchAll":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleMatchAny":  "Cocokkan salah satu",
+    "@smartRuleMatchAny":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleField":  "Bidang",
+    "@smartRuleField":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleOp":  "Kondisi",
+    "@smartRuleOp":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleValue":  "Nilai",
+    "@smartRuleValue":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleDays":  "Hari",
+    "@smartRuleDays":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleLimit":  "Batas",
+    "@smartRuleLimit":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleAdd":  "Tambah kondisi",
+    "@smartRuleAdd":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleRemove":  "Hapus",
+    "@smartRuleRemove":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleInvalid":  "Aturan tidak valid",
+    "@smartRuleInvalid":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleSummary":  "{count} kondisi",
+    "@smartRuleSummary":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+
+                               },
+    "smartFieldTitle":  "Judul",
+    "@smartFieldTitle":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldArtist":  "Artis",
+    "@smartFieldArtist":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldAlbum":  "Album",
+    "@smartFieldAlbum":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldGenre":  "Genre",
+    "@smartFieldGenre":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldFavorite":  "Favorit",
+    "@smartFieldFavorite":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldPlayCount":  "Jumlah diputar",
+    "@smartFieldPlayCount":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldLastPlayed":  "Terakhir diputar",
+    "@smartFieldLastPlayed":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldAddedAt":  "Tanggal ditambahkan",
+    "@smartFieldAddedAt":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartFieldDuration":  "Durasi",
+    "@smartFieldDuration":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpContains":  "Mengandung",
+    "@smartOpContains":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpEquals":  "Sama dengan",
+    "@smartOpEquals":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpStartsWith":  "Dimulai dengan",
+    "@smartOpStartsWith":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpNotContains":  "Tidak mengandung",
+    "@smartOpNotContains":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpIsTrue":  "Benar",
+    "@smartOpIsTrue":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpIsFalse":  "Salah",
+    "@smartOpIsFalse":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpIsNull":  "Kosong",
+    "@smartOpIsNull":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpIsNotNull":  "Sudah diisi",
+    "@smartOpIsNotNull":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpBeforeDays":  "Sebelum hari ini",
+    "@smartOpBeforeDays":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpAfterDays":  "Setelah hari ini",
+    "@smartOpAfterDays":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpEq":  "Sama dengan",
+    "@smartOpEq":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpNeq":  "Tidak sama",
+    "@smartOpNeq":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpGt":  "Lebih dari",
+    "@smartOpGt":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpGte":  "Minimal",
+    "@smartOpGte":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpLt":  "Kurang dari",
+    "@smartOpLt":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartOpLte":  "Maksimal",
+    "@smartOpLte":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "smartRuleName":  "Nama daftar putar",
+    "@smartRuleName":  {
+                                   "description":  "Indonesian locale string"
                                }
 }
