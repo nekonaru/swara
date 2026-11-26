@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.14.1
+
+Patch release after review: shared audio imports work while the app is already open and behave correctly across Android versions.
+
+## Bug fixes
+
+- **Shares sent while Swara is open are imported** instead of waiting for a process restart.
+- **API 26 and 27 devices complete an import** instead of hanging on a missing main-executor API.
+- **Imported files appear in the running library immediately** because the app and the import callback share one provider instance.
+- **Duplicate files are reported as skipped**, not failed, and dedupe only applies inside the Swara import folder.
+- **Only read access is taken from a share grant**, and EXTRA_STREAM senders are supported.
+
 ## v4.14.0
 
 Large native integration release: audio files shared from other apps can be imported into the offline library, with no new install-time permission.

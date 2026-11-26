@@ -1,5 +1,17 @@
 # Changelog
 
+## v4.14.1
+
+Rilis patch setelah review: impor audio dari Bagikan bekerja saat aplikasi sudah terbuka dan berlaku benar di berbagai versi Android.
+
+## Perbaikan bug
+
+- **Bagian yang dikirim saat Swara terbuka langsung diimpor**, tidak menunggu proses dimulai ulang.
+- **Perangkat API 26 dan 27 menyelesaikan impor**, bukan menggantung pada API main-executor yang belum ada.
+- **File hasil impor langsung muncul di pustaka yang berjalan** karena aplikasi dan callback memakai satu instance provider yang sama.
+- **File duplikat dilaporkan sebagai terlewat**, bukan gagal, dan pengecekan duplikat hanya di folder impor Swara.
+- **Hanya akses baca yang diambil dari izin Bagikan**, dan pengirim EXTRA_STREAM juga didukung.
+
 ## v4.14.0
 
 Rilis integrasi native besar: file audio yang dibagikan aplikasi lain bisa diimpor ke pustaka offline tanpa izin pemasangan baru.
