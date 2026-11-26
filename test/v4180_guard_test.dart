@@ -38,7 +38,7 @@ void main() {
         .split('Future<void> _startCrossfadeToNext() async {')[1]
         .split('final playGen = _playGeneration;')[0];
     expect(fade.contains('SwaraRepeatMode.one'), isTrue);
-    expect(fade.contains('_onTrackFinished();'), isTrue);
+    expect(fade.contains('_handleCompletionOnce();'), isTrue);
     final handler = read('lib/services/swara_audio_handler.dart');
     expect(handler.contains('ps.songAtOrderIndex(i)?.filePath == path'), isTrue);
   });

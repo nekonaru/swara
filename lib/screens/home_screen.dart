@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             context: context,
             builder: (ctx) => AlertDialog(
               title: Text(l10n.dataSnapshotAutoTitle),
-              content: Text(l10n.dataSnapshotAutoMessage(
+              content: Text(l10n.dataSnapshotRestoreMessage(
                   latest.createdAt.toIso8601String().substring(0, 10))),
               actions: [
                 TextButton(
@@ -195,7 +195,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           await RecoveryService.instance.markOffered();
           if (accept == true && mounted) {
             await SnapshotService.instance.restoreSnapshot(latest.name);
-            await lib.loadFromDb();
             if (!mounted) return;
             await context.read<PlaylistProvider>().load();
           }

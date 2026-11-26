@@ -575,6 +575,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return;
                 }
                 final bytes = await pickedFile.readAsBytes();
+                if (bytes.length > 32 * 1024 * 1024) {
+                  if (ctx.mounted) _showSnack(l10n.dataFailedGeneric);
+                  return;
+                }
                 final text = utf8.decode(bytes, allowMalformed: true);
                 if (ctx.mounted) Navigator.pop(ctx, text.trim());
               } catch (_) {

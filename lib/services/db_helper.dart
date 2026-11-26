@@ -1116,7 +1116,8 @@ class DBHelper {
       } else {
         await database.rawUpdate(
           'UPDATE songs SET lastPlayedAt = '
-          '(SELECT MAX(timestamp) FROM listening_entries WHERE songId = id) '
+          '(SELECT MAX(timestamp) FROM listening_entries '
+          'WHERE songId = songs.id) '
           'WHERE id = ? AND lastPlayedAt IS NULL',
           [songId],
         );

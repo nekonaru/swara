@@ -5,6 +5,7 @@ import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
+import '../services/recovery_service.dart';
 import '../services/snapshot_service.dart';
 import '../widgets/mini_player.dart';
 
@@ -225,6 +226,8 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    // An intentional delete must not look like data loss at the next boot.
+    await RecoveryService.instance.markOffered();
     // Keep a recoverable copy of the library data before the delete.
     final safety = await SnapshotService.instance.createSnapshot(force: true);
     if (!mounted) return;
@@ -250,14 +253,26 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
                 : SnackBarAction(
                     label: l10n.dataSnapshotRestore,
                     onPressed: () async {
-                      await SnapshotService.instance.restoreSnapshot(safety.name);
-                      if (!mounted) return;
-                      await context.read<LibraryProvider>().loadFromDb();
-                      if (!mounted) return;
-                      await context.read<PlaylistProvider>().load();
+                      try {
+                        await SnapshotService.instance
+                            .restoreSnapshot(safety.name);
+                        if (!mounted) return;
+                        await context.read<LibraryProvider>().loadFromDb();
+                        if (!mounted) return;
+                        await context.read<PlaylistProvider>().load();
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(SnackBar(
+                              content: Text(
+                                  l10n.dataSnapshotFailed(e.toString()))));
+                      }
                     },
                   ),
-            duration: const Duration(seconds: 8),
+            duration: safety == null
+                ? const Duration(seconds: 2)
+                : const Duration(seconds: 8),
             content: Text(l10n.dupRemoved(removed, toDelete.length))),
       );
     } catch (e) {
@@ -303,6 +318,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    await RecoveryService.instance.markOffered();
     final safety = await SnapshotService.instance.createSnapshot(force: true);
     if (!mounted) return;
     setState(() => _working = true);
@@ -326,14 +342,26 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
                 : SnackBarAction(
                     label: l10n.dataSnapshotRestore,
                     onPressed: () async {
-                      await SnapshotService.instance.restoreSnapshot(safety.name);
-                      if (!mounted) return;
-                      await context.read<LibraryProvider>().loadFromDb();
-                      if (!mounted) return;
-                      await context.read<PlaylistProvider>().load();
+                      try {
+                        await SnapshotService.instance
+                            .restoreSnapshot(safety.name);
+                        if (!mounted) return;
+                        await context.read<LibraryProvider>().loadFromDb();
+                        if (!mounted) return;
+                        await context.read<PlaylistProvider>().load();
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(SnackBar(
+                              content: Text(
+                                  l10n.dataSnapshotFailed(e.toString()))));
+                      }
                     },
                   ),
-            duration: const Duration(seconds: 8),
+            duration: safety == null
+                ? const Duration(seconds: 2)
+                : const Duration(seconds: 8),
             content: Text(l10n.dupRemovedAll(removed, groups.length))),
       );
     } catch (e) {

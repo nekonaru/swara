@@ -891,8 +891,9 @@ class PlayerService extends ChangeNotifier {
     // Repeat one must replay this song. Crossfading here would flip to the
     // next track, so hand the natural end to the normal handler instead.
     if (_repeatMode == SwaraRepeatMode.one) {
-      _completionHandled = true;
-      _onTrackFinished();
+      // Route through the once-only handler so repeat loops still record
+      // listening history and cannot re-enter on every position tick.
+      _handleCompletionOnce();
       return;
     }
     final playGen = _playGeneration;
