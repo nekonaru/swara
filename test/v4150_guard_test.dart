@@ -32,7 +32,7 @@ void main() {
   test('Dart builds and verifies the queue snapshot', () {
     final main = read('lib/main.dart');
     expect(main.contains("'queueJson': queueJson"), isTrue);
-    expect(main.contains('queueJson == lastQueueJson'), isTrue);
+    expect(main.contains('fingerprint != lastQueueFingerprint'), isTrue);
     expect(main.contains("action.startsWith('swara.widget.PLAY_SLOT:')"), isTrue);
     expect(main.contains('service.queuePosForSlot(slotId)'), isTrue);
     expect(main.contains('service.songAtOrderIndex(i)?.filePath == path'), isTrue);

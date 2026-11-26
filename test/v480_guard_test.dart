@@ -36,7 +36,7 @@ void main() {
     expect(service.contains('String? get nextTitle'), isTrue);
     final main = read('lib/main.dart');
     expect(main.contains("'nextTitle': nextTitle"), isTrue);
-    expect(main.contains('nextTitle == lastNextTitle'), isTrue);
+    expect(main.contains('nextTitle != lastNextTitle'), isTrue);
     final activity =
         read('android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/MainActivity.kt');
     expect(activity.contains('args?.get("nextTitle")'), isTrue);
@@ -67,11 +67,12 @@ void main() {
     expect(player.contains('await _offsetWrite;'), isTrue);
   });
 
-  test('art existence checks are cached per path', () {
+  test('decoded cover paths are remembered without blocking the UI', () {
     final art = read('lib/widgets/song_art_image.dart');
-    expect(art.contains('_checkedCoverPaths'), isTrue);
+    expect(art.contains('noteValidCover('), isTrue);
     expect(art.contains('_validCoverPaths'), isTrue);
-    expect(art.contains('existsSync()'), isTrue);
+    expect(art.contains('frameBuilder:'), isTrue);
+    expect(art.contains('existsSync()'), isFalse);
   });
 
   test('backup only marks restored tags as scanned', () {

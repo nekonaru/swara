@@ -1231,9 +1231,10 @@ class PlayerService extends ChangeNotifier {
       _posInOrder = clampedStart;
     }
 
-    notifyListeners(); // so the mini-player shows immediately, without waiting for the file to finish loading
-    await _playCurrent();
+    // Early notify gives immediate mini-player feedback; _playCurrent
+    // notifies again when the new track is actually ready.
     notifyListeners();
+    await _playCurrent();
   }
 
   List<int> _buildShuffledOrder(int length, int startIndex) {

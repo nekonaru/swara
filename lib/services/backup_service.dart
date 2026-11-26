@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
 import '../utils/backup_paths.dart';
+import '../widgets/song_art_image.dart';
 import '../providers/language_provider.dart';
 import '../services/art_cache_service.dart';
 import '../services/embedded_art_service.dart';
@@ -1192,6 +1193,7 @@ class BackupService {
       // straight back after a "clear".
       deleted += await EmbeddedArtService.clearCache();
       await ArtCacheService.instance.clearAll();
+      SongArtImage.clearCoverCache();
       // Nudge every listener so the in-memory queue snapshots and the home
       // widget both forget the deleted art immediately.
       PlayerService.instance.rebroadcastState();

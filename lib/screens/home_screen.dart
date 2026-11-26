@@ -167,8 +167,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     late final LibraryProvider lib;
     try {
       lib = context.read<LibraryProvider>();
-      // Offer recovery before the startup scan repopulates a wiped DB and
-      // pushes the pre-loss snapshot out of the rotation.
+      // Load the DB first so the first usable frame already has a library.
+      // The recovery question is asked after that, never over the splash.
+      await lib.loadFromDb();
+      if (!mounted) return;
+      // Offer recovery before the startup scan can rewrite stored state.
       if (await RecoveryService.instance.shouldOffer()) {
         final latest =
             (await SnapshotService.instance.listSnapshots()).firstOrNull;

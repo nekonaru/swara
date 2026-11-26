@@ -56,7 +56,7 @@ void main() {
   test('art probing skips songs with a usable cover', () {
     final art = read('lib/widgets/song_art_image.dart');
     expect(art.contains('hasRealCover'), isTrue);
-    expect(art.contains('existsSync()'), isTrue);
+    expect(art.contains('frameBuilder:'), isTrue);
     expect(art.contains('!hasRealCover'), isTrue);
   });
 

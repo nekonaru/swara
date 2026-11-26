@@ -37,16 +37,25 @@ class SongArtImage extends StatefulWidget {
     this.gaplessPlayback = true,
   });
 
+  // Paths that were seen to decode successfully. Bounded, because a long
+  // session can visit far more covers than the art cache keeps on disk.
+  static final Set<String> _validCoverPaths = <String>{};
+  static const int _maxValidPaths = 4096;
+
+  static void noteValidCover(String path) {
+    if (_validCoverPaths.length >= _maxValidPaths) _validCoverPaths.clear();
+    _validCoverPaths.add(path);
+  }
+
+  /// Forget remembered paths after the art cache is cleared, so rows probe
+  /// again instead of trusting a path that no longer exists.
+  static void clearCoverCache() => _validCoverPaths.clear();
+
   @override
   State<SongArtImage> createState() => _SongArtImageState();
 }
 
 class _SongArtImageState extends State<SongArtImage> {
-  // One existence check per path, shared by every visible row that points at
-  // the same cover (album and playlist art are heavily duplicated).
-  static final Set<String> _checkedCoverPaths = <String>{};
-  static final Set<String> _validCoverPaths = <String>{};
-
   // Resolved embedded path for this song, or null while unresolved/missing.
   String? _embeddedPath;
   // True once we know this song has no embedded art (checked on disk).
@@ -78,17 +87,10 @@ class _SongArtImageState extends State<SongArtImage> {
     final localPath = (widget.song.albumArtPath ?? '').trim();
     // Only a real on-disk cover can replace the embedded-art fallback. A
     // stale path or a remote URL must still let the embedded probe run.
-    var hasRealCover = false;
-    if (localPath.isNotEmpty) {
-      if (_checkedCoverPaths.add(localPath)) {
-        try {
-          if (File(localPath).existsSync()) _validCoverPaths.add(localPath);
-        } catch (_) {
-          // A stale or unreadable path simply allows the embedded probe.
-        }
-      }
-      hasRealCover = _validCoverPaths.contains(localPath);
-    }
+    // Never stat a path on the UI isolate. Image.file already decodes
+    // off-isolate and reports a bad path through errorBuilder; remembering
+    // decoded paths avoids repeating the work for duplicated album art.
+    final hasRealCover = localPath.isNotEmpty;
     // A file existing does not prove it decodes. Keep the embedded probe
     // available as a fallback until an image actually renders.
     if (!_embeddedChecked && !hasRealCover) {
@@ -116,11 +118,14 @@ class _SongArtImageState extends State<SongArtImage> {
       fit: widget.fit,
       cacheWidth: widget.cacheWidth,
       gaplessPlayback: widget.gaplessPlayback,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (frame != null) SongArtImage.noteValidCover(path);
+        return child;
+      },
       errorBuilder: (_, __, ___) {
-        // The file may have been cleared or re-extracted since the cached
-        // existence check. Drop the cached answer and retry the embedded art.
-        _checkedCoverPaths.remove(path);
-        _validCoverPaths.remove(path);
+        // The file may have been cleared or re-extracted since it was last
+        // decoded. Forget it and retry the embedded art.
+        SongArtImage._validCoverPaths.remove(path);
         _localArtFailed = true;
         _embeddedChecked = false;
         if (_embeddedPath == null) {

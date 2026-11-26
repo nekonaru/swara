@@ -1,5 +1,21 @@
 # Changelog
 
+## v4.20.0
+
+Rilis kelancaran native: jalur widget, sampul, dan notifikasi lebih ringan, tanpa fitur baru.
+
+## Peningkatan
+
+- **Push widget membangun satu pohon tampilan** untuk semua instance, memakai ulang sampul yang sudah didekode, dan mengikat ulang antrean hanya saat snapshot berubah.
+- **Sampul tidak lagi memeriksa file di isolate UI.** Jalur yang berhasil didekode diingat dengan batas, dan pengosongan cache sampul juga menghapusnya.
+- **Payload widget dan pembaruan sesi media diberi sidik jari**, sehingga perubahan favorit, acakan, kecepatan, dan trim tidak mempublikasikan ulang.
+- **Geser pertama pada folder tanpa tag hanya memeriksa sekali**, bukan sekali per baris.
+- **Putar semua memberi satu notifikasi**, dan pengulangan A-B tidak lagi mengganti widget berulang.
+
+## Perbaikan bug
+
+- **Pertanyaan pemulihan tidak lagi memblokir mulai dingin** karena pustaka dimuat lebih dulu.
+
 ## v4.19.0
 
 Rilis persetujuan: tidak ada yang dihapus otomatis. Setiap tindakan merusak memvalidasi sasaran dan meminta konfirmasi eksplisit.

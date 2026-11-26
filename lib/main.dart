@@ -314,6 +314,20 @@ Future<void> _handleAppShortcut(String shortcutType) async {
 // PlayerService and AudioService are safe to start together: the audio
 // handler only attaches a listener to the existing PlayerService singleton
 // and reads its state lazily at runtime.
+/// Up-next snapshot for the home widget. Called only when the queue
+/// fingerprint changes, never on ordinary notification ticks.
+String _widgetQueueJson(PlayerService service) => jsonEncode(<Map<String, Object?>>[
+      for (var i = service.currentIndex + 1;
+          i < service.queueOrderLength && i <= service.currentIndex + 5;
+          i++)
+        {
+          'slotId': service.queueSlotIdAt(i) ?? -1,
+          'path': service.songAtOrderIndex(i)?.filePath ?? '',
+          'title': service.songAtOrderIndex(i)?.title ?? '',
+          'artist': service.songAtOrderIndex(i)?.artist ?? '',
+        },
+    ]);
+
 // Subscribe to playback state and mirror it into the home screen widget.
 void _startWidgetStatePush() {
   var lastTitle = '';
@@ -322,6 +336,7 @@ void _startWidgetStatePush() {
   var lastArt = '';
   var lastNextTitle = '';
   var lastQueueJson = '';
+  var lastQueueFingerprint = '';
   var hasPushed = false;
   // Track the previous tick, not the last pushed value. Comparing against the
   // last push makes every 1.5 s of normal playback look like a seek and
@@ -346,27 +361,22 @@ void _startWidgetStatePush() {
     // cold-restore-aware getter so a post-restore push is never 0:00.
     final positionMs = song != null ? service.positionForWidget : 0;
     final nextTitle = service.nextTitle ?? '';
-    final queueJson = jsonEncode(<Map<String, Object?>>[
-      for (var i = service.currentIndex + 1;
-          i < service.queueOrderLength && i <= service.currentIndex + 5;
-          i++)
-        {
-          'slotId': service.queueSlotIdAt(i) ?? -1,
-          'path': service.songAtOrderIndex(i)?.filePath ?? '',
-          'title': service.songAtOrderIndex(i)?.title ?? '',
-          'artist': service.songAtOrderIndex(i)?.artist ?? '',
-        },
-    ]);
-    if (!force &&
-        hasPushed &&
-        title == lastTitle &&
-        artist == lastArtist &&
-        playing == lastPlaying &&
-        art == lastArt &&
-        nextTitle == lastNextTitle &&
-        queueJson == lastQueueJson) {
-      return;
-    }
+    // Cheap fingerprint first. jsonEncode and five queue lookups are wasted
+    // on every favorite, shuffle or speed toggle otherwise.
+    final fingerprint = '${service.queueVersion}|${service.currentIndex}|'
+        '${service.queueOrderLength}';
+    final stateChanged = !hasPushed ||
+        title != lastTitle ||
+        artist != lastArtist ||
+        playing != lastPlaying ||
+        art != lastArt ||
+        nextTitle != lastNextTitle;
+    final queueChanged = fingerprint != lastQueueFingerprint;
+    if (!force && !stateChanged && !queueChanged) return;
+    final queueJson = queueChanged || lastQueueJson.isEmpty
+        ? _widgetQueueJson(service)
+        : lastQueueJson;
+    lastQueueFingerprint = fingerprint;
     lastTitle = title;
     lastArtist = artist;
     lastPlaying = playing;
@@ -391,9 +401,17 @@ void _startWidgetStatePush() {
     final player = PlayerService.instance.player;
     lastSubscribedPlayerId = player.hashCode.toString();
     positionSub = player.positionStream.listen((_) {
-      final positionMs = PlayerService.instance.positionForWidget;
+      final service = PlayerService.instance;
+      final positionMs = service.positionForWidget;
       if (hasTick && (positionMs - lastTickPositionMs).abs() > jumpThresholdMs) {
-        unawaited(push(force: true));
+        // An A-B loop jumps back to point A on every repetition. The widget
+        // state did not otherwise change, so do not republish it each time.
+        final a = service.abRepeatA;
+        final looping = service.hasABRepeat &&
+            a != null &&
+            (positionMs - a.inMilliseconds).abs() <
+                (PlayerService.abRepeatTolerance.inMilliseconds + 300);
+        if (!looping) unawaited(push(force: true));
       }
       lastTickPositionMs = positionMs;
       hasTick = true;

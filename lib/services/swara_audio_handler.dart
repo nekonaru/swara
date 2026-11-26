@@ -22,6 +22,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
   // between a cheap position update and a full state sync.
   int? _lastSongId;
   bool? _lastPlaying;
+  String _lastNotifyFingerprint = '';
   // Fingerprint of the last queue pushed to the MediaSession.
   // Used to avoid re-sending a large queue on every tick.
   String? _lastQueueFingerprint;
@@ -223,6 +224,18 @@ class SwaraAudioHandler extends BaseAudioHandler {
       });
     }
     final currentIndex = ps.currentIndex;
+    final playing = ps.player.playing;
+    // Most PlayerService notifications change nothing the notification shows
+    // (favourite, speed, trim edits). Skip the whole media item and control
+    // republish in that case; the 1 s ticker keeps the clock current.
+    final notifyFingerprint = '${song?.id}|$playing|${ps.isShuffle}|'
+        '${ps.repeatMode.index}|$currentIndex|${song?.albumArtPath ?? ''}';
+    if (notifyFingerprint == _lastNotifyFingerprint) {
+      _lastSongId = song?.id;
+      _lastPlaying = playing;
+      return;
+    }
+    _lastNotifyFingerprint = notifyFingerprint;
     // The media item id is built with queueSlotIdAt, an O(1) lookup; the
     // materialized slot id list only exists inside the branch above.
     final currentItem = song == null
@@ -237,7 +250,6 @@ class SwaraAudioHandler extends BaseAudioHandler {
           );
     mediaItem.add(currentItem);
 
-    final playing = ps.player.playing;
     // The window start is owned by the debounced _publishQueue. Until it
     // catches up, clamp the relative index so a wrap or a fast jump cannot
     // point at a negative slot or one beyond the published window.

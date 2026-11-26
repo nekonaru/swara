@@ -25,8 +25,11 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         // rebinding on the background executor instead.
         val appContext = context.applicationContext
         widgetExecutor.execute {
+            // One RemoteViews tree for every placed instance. Rebuilding it
+            // per id decoded the artwork and re-bound the list each time.
+            val views = buildViews(appContext)
             for (id in appWidgetIds) {
-                appWidgetManager.updateAppWidget(id, buildViews(appContext))
+                appWidgetManager.updateAppWidget(id, views)
             }
         }
     }
@@ -49,6 +52,12 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         // launcher's process is never blocked during onUpdate rebinds.
         private val widgetExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
+        // One decoded cover per path, reused across state pushes and widget
+        // ids. Only the widgetExecutor touches these fields.
+        private var cachedArtPath: String? = null
+        private var cachedArt: android.graphics.Bitmap? = null
+        private var lastQueueJson: String? = null
+
         private fun prefs(context: Context) =
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -64,26 +73,36 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             nextTitle: String,
             queueJson: String,
         ) {
-            prefs(context).edit()
-                .putString(KEY_TITLE, title)
-                .putString(KEY_ARTIST, artist)
-                .putBoolean(KEY_PLAYING, playing)
-                .putString(KEY_ART, artPath ?: "")
-                .putLong(KEY_POSITION, positionMs)
-                .putString(KEY_NEXT_TITLE, nextTitle)
-                .putString(KEY_QUEUE, queueJson)
-                .apply()
-            val manager = AppWidgetManager.getInstance(context)
-            val component = android.content.ComponentName(
-                context,
-                SwaraWidgetProvider::class.java,
-            )
-            val ids = manager.getAppWidgetIds(component)
-            for (id in ids) {
-                manager.updateAppWidget(id, buildViews(context))
-                // The adapter intent never changes; without this the list
-                // stays frozen at its first snapshot.
-                manager.notifyAppWidgetViewDataChanged(id, R.id.widget_queue)
+            widgetExecutor.execute {
+                prefs(context).edit()
+                    .putString(KEY_TITLE, title)
+                    .putString(KEY_ARTIST, artist)
+                    .putBoolean(KEY_PLAYING, playing)
+                    .putString(KEY_ART, artPath ?: "")
+                    .putLong(KEY_POSITION, positionMs)
+                    .putString(KEY_NEXT_TITLE, nextTitle)
+                    .putString(KEY_QUEUE, queueJson)
+                    .apply()
+                val manager = AppWidgetManager.getInstance(context)
+                val component = android.content.ComponentName(
+                    context,
+                    SwaraWidgetProvider::class.java,
+                )
+                val ids = manager.getAppWidgetIds(component)
+                if (ids.isEmpty()) return@execute
+                // Rebuild once, not once per widget instance.
+                val views = buildViews(context)
+                // Rebinding the list reparses the whole queue in the launcher
+                // process. Only do it when the snapshot actually changed.
+                val queueChanged = lastQueueJson != queueJson
+                lastQueueJson = queueJson
+                for (id in ids) {
+                    manager.updateAppWidget(id, views)
+                    if (queueChanged) {
+                        manager.notifyAppWidgetViewDataChanged(
+                            id, R.id.widget_queue)
+                    }
+                }
             }
         }
 
@@ -136,7 +155,16 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             // state change. RemoteViews transactions have a size budget, so
             // never ship the full resolution image.
             val artPath = state.getString(KEY_ART, "") ?: ""
-            val art = if (artPath.isNotEmpty()) decodeArt(artPath, 192) else null
+            val art = if (artPath.isEmpty()) {
+                null
+            } else if (artPath == cachedArtPath) {
+                cachedArt
+            } else {
+                decodeArt(artPath, 192).also {
+                    cachedArtPath = artPath
+                    cachedArt = it
+                }
+            }
             if (art != null) {
                 views.setImageViewBitmap(R.id.widget_art, art)
             } else {

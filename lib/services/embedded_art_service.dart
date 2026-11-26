@@ -37,6 +37,10 @@ class EmbeddedArtService {
   final Set<int> _missing = {};
   // Concurrent calls for the same id share one MediaStore query.
   final Map<int, Future<String?>> _inFlight = {};
+  // A folder that reported no sidecar once will not be probed again during
+  // the same session. The first fling through an untagged album otherwise
+  // issues one native call per row.
+  final Set<String> _noSidecarFolders = <String>{};
   bool _indexPrimed = false;
 
   // Sync fast path: only the in memory index, safe to call from build.
@@ -156,10 +160,12 @@ class EmbeddedArtService {
     File cacheFile,
   ) async {
     if (filePath == null || filePath.isEmpty) return null;
+    final folder = p.dirname(filePath);
+    if (_noSidecarFolders.contains(folder)) return null;
     String? path;
     try {
       path = await _channel.invokeMethod<String>('folderArt', {
-        'folderPath': p.dirname(filePath),
+        'folderPath': folder,
         'names': const [
           'cover.jpg',
           'folder.jpg',
@@ -175,6 +181,7 @@ class EmbeddedArtService {
       return null;
     }
     if (path == null || path.isEmpty) {
+      _noSidecarFolders.add(folder);
       await _discard(cacheFile);
       return null;
     }
@@ -280,6 +287,7 @@ class EmbeddedArtService {
     instance._knownPaths.clear();
     instance._missing.clear();
     instance._inFlight.clear();
+    instance._noSidecarFolders.clear();
     instance._indexPrimed = false;
     instance._dirPath = null;
     return deleted;

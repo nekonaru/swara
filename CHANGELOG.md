@@ -1,5 +1,21 @@
 # Changelog
 
+## v4.20.0
+
+Native smoothness release: widget, cover art and notification hot paths are cheaper, with no new feature.
+
+## Improvements
+
+- **Widget pushes build one view tree** for every instance, reuse the decoded cover, and rebind the queue only when its snapshot changes.
+- **Cover art no longer checks files on the UI isolate.** Decoded paths are remembered with a bound, and clearing the art cache also forgets them.
+- **Widget payloads and media session updates are fingerprinted**, so favourite, shuffle, speed and trim changes no longer republish them.
+- **First fling through an untagged folder probes once** instead of once per row.
+- **Play all notifies once**, and A-B repeat loops no longer churn the widget.
+
+## Bug fixes
+
+- **The recovery question no longer blocks cold start** because the library loads first.
+
 ## v4.19.0
 
 Consent release: nothing is removed automatically. Every destructive action validates its target and asks for explicit confirmation.
