@@ -205,8 +205,9 @@ class SnapshotService {
     final dir = await _dir();
     var deleted = 0;
     final pattern = RegExp(r'^swara-snapshot-\d{8}-\d{6}\.json$');
+    final known = (await listSnapshots()).map((s) => s.name).toSet();
     for (final name in names) {
-      if (!pattern.hasMatch(name)) continue;
+      if (!pattern.hasMatch(name) || !known.contains(name)) continue;
       try {
         final file = File('${dir.path}${Platform.pathSeparator}$name');
         if (await file.exists()) {

@@ -19,6 +19,8 @@ class _QueueScreenState extends State<QueueScreen> {
   final ScrollController _scrollController = ScrollController();
   static const double _itemHeight = 68;
   bool _scrolledOnce = false;
+  // Bumped when a dismissal is cancelled so the dismissed row is rebuilt.
+  int _dismissEpoch = 0;
 
   @override
   void initState() {
@@ -94,7 +96,11 @@ class _QueueScreenState extends State<QueueScreen> {
         ],
       ),
     );
-    if (ok != true || !mounted) return;
+    if (ok != true) {
+      if (mounted) setState(() => _dismissEpoch++);
+      return;
+    }
+    if (!mounted) return;
     // Verify again: the queue may have changed while the dialog was open.
     final current = _player.queuePosForSlot(slotId);
     if (current == null ||
@@ -363,7 +369,8 @@ class _QueueScreenState extends State<QueueScreen> {
                             key: ValueKey('queue_slot_$slotId'),
                             height: scaledRowHeight(context, _itemHeight),
                             child: Dismissible(
-                              key: ValueKey('queue_dismiss_slot_$slotId'),
+                              key: ValueKey(
+                                  'queue_dismiss_slot_${slotId}_$_dismissEpoch'),
                               direction: isPlaying ? DismissDirection.none : DismissDirection.endToStart,
                               onDismissed: (_) => _removeSlot(slotId, song.filePath),
                               background: Container(

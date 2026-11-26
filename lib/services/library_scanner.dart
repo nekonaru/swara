@@ -218,6 +218,8 @@ class LibraryScanner {
       uriType: UriType.EXTERNAL,
     );
 
+    final allDeviceIdsOnMain = tracks.map((t) => t.id).toSet();
+
     // A scan never deletes anything. MediaStore can return a partial result
     // after a permission change or a storage hiccup, and a row removal also
     // drops favorites, playlists and listening history. Rows whose files are
@@ -254,9 +256,19 @@ class LibraryScanner {
     final allDeviceIds = scanResult.allDeviceIds;
     // Move detection MUST run before the insert batch or matched new files
     // would be inserted as duplicates of their own ghost rows.
-    if (pendingMaps.isNotEmpty) {
-      // Re-path moved files so they are not inserted as duplicates. No row is
-      // removed here; cleanup is an explicit user action elsewhere.
+    // Re-pathing changes a row's file path and inherits its user data. Do it
+    // only when the device result is almost complete; a partial MediaStore
+    // read must never repath an unrelated old row.
+    int? dbCountForMove;
+    try {
+      dbCountForMove = await DBHelper.instance.getSongCount();
+    } catch (_) {}
+    final safeToRepath = allDeviceIdsOnMain.isNotEmpty &&
+        (dbCountForMove == null ||
+            dbCountForMove == 0 ||
+            allDeviceIdsOnMain.length >= (dbCountForMove * 0.95).ceil());
+    if (pendingMaps.isNotEmpty && safeToRepath) {
+      // No row is removed here; cleanup is an explicit user action elsewhere.
       await _suppressMovedGhosts(
         pendingMaps: pendingMaps,
         dbIdsAtScanStart: dbIdsAtScanStart,
@@ -334,7 +346,14 @@ class LibraryScanner {
       final path = row['filePath'] as String?;
       final dur = (row['durationMs'] as num?)?.toInt() ?? 0;
       if (path == null || dur <= 0) continue;
-      ghostByKey[_moveKey(path, dur)] = row;
+      final key = _moveKey(path, dur);
+      // Two rows with the same name and duration are ambiguous. Never bind
+      // one of them to a new file by guesswork.
+      if (ghostByKey.containsKey(key)) {
+        ghostByKey.remove(key);
+      } else {
+        ghostByKey[key] = row;
+      }
     }
     final toRemove = <int>[];
     for (var i = 0; i < pendingMaps.length; i++) {

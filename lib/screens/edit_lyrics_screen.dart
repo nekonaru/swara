@@ -113,10 +113,19 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
   Future<void> _importLrc() async {
     final l = AppLocalizations.of(context)!;
     try {
-      final imported = await LrcImportService.pickAndApply(widget.song);
+      final imported = await LrcImportService.pick(widget.song);
       final count = imported.count;
       if (!mounted || count == 0) return;
-      // An existing timed lyric set would be replaced. Ask first.
+      if (count < 0) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsLrcTooLarge)),
+        );
+        return;
+      }
+      // An existing timed lyric set would be replaced. Ask first, before any
+      // write happens, so cancelling leaves the stored lyrics untouched.
       final hadLrc =
           await DBHelper.instance.getSyncedLyrics(widget.song.id) != null;
       if (!mounted) return;
@@ -140,15 +149,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
         );
         if (ok != true || !mounted) return;
       }
-      if (count < 0) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2),content: Text(l.editLyricsLrcTooLarge)),
-        );
-        return;
-      }
+      await LrcImportService.apply(widget.song, imported);
       final s = widget.song;
       final updated = Song(
         id: s.id,

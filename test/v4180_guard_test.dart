@@ -11,7 +11,7 @@ void main() {
     final service = read('lib/services/recovery_service.dart');
     expect(service.contains('class RecoveryService'), isTrue);
     expect(service.contains('latestSongCount()'), isTrue);
-    expect(service.contains('snapshotCount * 0.7'), isTrue);
+    expect(service.contains('dbIds.difference(deviceIds)'), isTrue);
     final home = read('lib/screens/home_screen.dart');
     expect(home.indexOf('RecoveryService.instance.shouldOffer()') <
         home.indexOf('autoLoadAndScanIfNeeded()'), isTrue);

@@ -17,42 +17,59 @@ class LrcImportService {
 
   static const int maxBytes = 100 * 1024;
 
-  /// Pick a `.lrc` file and attach it to [song]. Returns the number of timed
-  /// lines, `0` on cancel or an unusable file, and `-1` when the file is too
-  /// large to store safely.
-  static Future<({int count, String plain})> pickAndApply(Song song) async {
+  /// A parsed LRC that has not been written to the database yet.
+  static Future<({int count, String plain, String text, int offsetMs})> pick(
+      Song song) async {
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['lrc'],
     );
-    if (picked.isEmpty) return (count: 0, plain: '');
+    if (picked.isEmpty) return (count: 0, plain: '', text: '', offsetMs: 0);
     final file = picked.first;
-    int? length;
     List<int> bytes;
     try {
-      length = await file.length();
+      final length = await file.length();
       if (length == null || length <= 0 || length > maxBytes) {
-        return (count: -1, plain: '');
+        return (count: -1, plain: '', text: '', offsetMs: 0);
       }
       bytes = await file.readAsBytes();
     } catch (_) {
-      return (count: 0, plain: '');
+      return (count: 0, plain: '', text: '', offsetMs: 0);
     }
     if (bytes.isEmpty || bytes.length > maxBytes) {
-      return (count: -1, plain: '');
+      return (count: -1, plain: '', text: '', offsetMs: 0);
     }
     final text = utf8.decode(bytes, allowMalformed: true);
     final lines = parseLrc(text);
-    if (lines.isEmpty) return (count: 0, plain: '');
+    if (lines.isEmpty) {
+      return (count: 0, plain: '', text: '', offsetMs: 0);
+    }
     // An imported LRC must not wipe the user's saved timing correction.
     final offset = await DBHelper.instance.getSyncedLyricOffset(song.id);
-    await DBHelper.instance.setSyncedLyrics(song.id, text, offsetMs: offset);
-    // Do not mutate the Song here: the caller mutates it only after the
-    // database write succeeds.
     return (
       count: lines.length,
       plain: lines.map((line) => line.text).join('\n'),
+      text: text,
+      offsetMs: offset,
     );
+  }
+
+  /// Write a parsed LRC. Called only after the UI has asked for consent.
+  static Future<void> apply(Song song,
+      ({int count, String plain, String text, int offsetMs}) imported) async {
+    final offset = imported.offsetMs;
+    await DBHelper.instance.setSyncedLyrics(song.id, imported.text,
+        offsetMs: offset);
+  }
+
+  /// Convenience path for callers without a confirmation step.
+  static Future<({int count, String plain})> pickAndApply(Song song) async {
+    final imported = await pick(song);
+    if (imported.count <= 0) {
+      return (count: imported.count, plain: imported.plain);
+    }
+    await apply(song, imported);
+    return (count: imported.count, plain: imported.plain);
   }
 
   /// Share the stored LRC as a real `.lrc` file the user can save anywhere.

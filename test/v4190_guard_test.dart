@@ -27,9 +27,11 @@ void main() {
       'Future<void> _deleteSnapshot(',
       'Future<void> _pruneOldSnapshots()',
     ]) {
-      expect(settings.contains(needle), isTrue);
+      final block = settings
+          .split(needle)[1]
+          .split(RegExp(r'\n  Future<|\n  Widget build')).first;
+      expect(block.contains('showDialog<bool>'), isTrue, reason: needle);
     }
-    expect(settings.contains('showDialog<bool>'), isTrue);
     final playlist = read('lib/screens/playlist_detail_screen.dart');
     expect(playlist.contains('playlistRemoveConfirmTitle'), isTrue);
     final player = read('lib/screens/player_screen.dart');
@@ -44,10 +46,33 @@ void main() {
     expect(queue.contains('destructiveConfirmMessage'), isTrue);
   });
 
+  test('LRC import confirms before writing', () {
+    final service = read('lib/services/lrc_import_service.dart');
+    final pick = service
+        .split('static Future<({int count, String plain, String text, int offsetMs})> pick(')[1]
+        .split('static Future<void> apply(')[0];
+    expect(pick.contains('setSyncedLyrics('), isFalse);
+    final screen = read('lib/screens/edit_lyrics_screen.dart');
+    expect(screen.indexOf('LrcImportService.pick(') <
+        screen.indexOf('LrcImportService.apply('), isTrue);
+    expect(screen.indexOf('showDialog<bool>') <
+        screen.indexOf('LrcImportService.apply('), isTrue);
+  });
+
+  test('moved-file repath needs a near-complete device result', () {
+    final scanner = read('lib/services/library_scanner.dart');
+    expect(scanner.contains('safeToRepath'), isTrue);
+    expect(scanner.contains('(dbCountForMove * 0.95).ceil()'), isTrue);
+    expect(scanner.contains('ghostByKey.remove(key)'), isTrue);
+  });
+
   test('snapshot deletion validates the name against the known list', () {
     final snapshot = read('lib/services/snapshot_service.dart');
-    expect(snapshot.contains('deleteSnapshots(List<String> names)'), isTrue);
-    expect(snapshot.contains('RegExp(r\'^swara-snapshot-'), isTrue);
+    final bulk = snapshot
+        .split('Future<int> deleteSnapshots(List<String> names)')[1]
+        .split('Future<void> deleteSnapshot(')[0];
+    expect(bulk.contains('RegExp(r\'^swara-snapshot-'), isTrue);
+    expect(bulk.contains('known.contains(name)'), isTrue);
     expect(snapshot.contains('any((s) => s.name == name)'), isTrue);
   });
 
