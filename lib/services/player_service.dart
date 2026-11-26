@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'extra_features_service.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:swara/providers/language_provider.dart';
@@ -354,6 +355,11 @@ class PlayerService extends ChangeNotifier {
       );
       await prefs.setBool(_prefsResumeShuffleKey, _shuffle);
       await prefs.setInt(_prefsResumeRepeatKey, _repeatMode.index);
+      await prefs.setString('resume_ab_a_ms', '${_abRepeatA?.inMilliseconds ?? ''}');
+      await prefs.setString('resume_ab_b_ms', '${_abRepeatB?.inMilliseconds ?? ''}');
+      await prefs.setString('resume_sleep_end',
+          sleepTimerEndTime?.toIso8601String() ?? '');
+      await prefs.setInt('resume_sleep_songs', sleepSongsRemaining ?? 0);
     } catch (e) {
       debugPrint('Failed to persist resume state: $e');
     }
@@ -429,6 +435,20 @@ class PlayerService extends ChangeNotifier {
       _syncSpeedPitch(_player).catchError((Object e) {
         debugPrint('Resume speed/pitch sync failed: $e');
       });
+      // A-B and sleep settings travel with the resume session. Re-arm after
+      // the guards are set so neither can advance playback by itself.
+      final aMs = int.tryParse(prefs.getString('resume_ab_a_ms') ?? '');
+      final bMs = int.tryParse(prefs.getString('resume_ab_b_ms') ?? '');
+      if (aMs != null && bMs != null && bMs > aMs) {
+        setABRepeat(Duration(milliseconds: aMs), Duration(milliseconds: bMs));
+      }
+      final sleepEnd = DateTime.tryParse(prefs.getString('resume_sleep_end') ?? '');
+      if (sleepEnd != null && sleepEnd.isAfter(DateTime.now())) {
+        setSleepTimer(sleepEnd.difference(DateTime.now()));
+      } else {
+        final sleepSongs = prefs.getInt('resume_sleep_songs') ?? 0;
+        if (sleepSongs > 0) setSleepTimerBySongs(sleepSongs);
+      }
     } catch (e) {
       debugPrint('Failed to restore resume state: $e');
       // Roll the phantom session back: an unplayable restored file must not
@@ -609,6 +629,33 @@ class PlayerService extends ChangeNotifier {
 
   bool get isShuffle => _shuffle;
   SwaraRepeatMode get repeatMode => _repeatMode;
+  /// Songs played in this process, newest last. Only session scoped: nothing
+  /// is written to disk and nothing is deleted automatically.
+  final List<Song> _sessionHistory = <Song>[];
+
+  List<Song> get sessionHistory => List<Song>.unmodifiable(_sessionHistory);
+
+  void _recordHistory(Song song) {
+    if (_sessionHistory.isNotEmpty && _sessionHistory.last.id == song.id) {
+      return;
+    }
+    _sessionHistory.add(song);
+    if (_sessionHistory.length > 100) _sessionHistory.removeAt(0);
+  }
+
+  void clearSessionHistory() => _sessionHistory.clear();
+
+  /// Replay a song from session history without discarding the current queue.
+  Future<void> playSongAgain(Song song) async {
+    final pos = _playOrder.indexWhere((i) => _queue[i].id == song.id);
+    if (pos >= 0) {
+      await playAtQueueIndex(pos);
+      return;
+    }
+    await addToQueueEnd(song);
+    await playAtQueueIndex(_playOrder.length - 1);
+  }
+
   /// Incremented once for every A-B loop seek. Consumers can ignore exactly
   /// the position event caused by that seek without guessing from position.
   int abLoopSeekSerial = 0;
@@ -1337,6 +1384,7 @@ class PlayerService extends ChangeNotifier {
     } catch (e) {
       if (playGen != _playGeneration || _disposed) return;
       debugPrint('Failed to play song: $e');
+      DiagnosticsService.instance.add('play', e.toString());
       lastError = '${lookupAppLocalizations(LanguageProvider.instance.locale).corePlayFailed} "${song.title}": $e';
       notifyListeners();
       // The file may have been moved or deleted outside the app. Skip it
@@ -1364,6 +1412,7 @@ class PlayerService extends ChangeNotifier {
     _playStartedAt = DateTime.now();
     _accumulatedListenedMs = 0;
     _markSongPlayed(song);
+    _recordHistory(song);
     await DBHelper.instance.markPlayed(song.id);
       unawaited(SmartPlaylistService.instance
           .rebuildAll(playStatsOnly: true)

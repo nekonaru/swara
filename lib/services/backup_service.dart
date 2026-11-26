@@ -363,6 +363,23 @@ class BackupService {
   // Validate the JSON structure and write it back with a replace-safe
   // additive strategy. Each section is guarded by try/catch so one
   // bad section does not abort the others.
+  /// Dry run: decode a backup and report what could be restored, without
+  /// writing anything to the database.
+  static Future<({int songs, int playlists, int lyrics})> verifyBackup(
+      String rawJson) async {
+    final decoded = await compute(_decodeBackup, rawJson);
+    final songRows = decoded['songs'] as List? ?? const [];
+    var lyrics = 0;
+    for (final row in songRows) {
+      if (row is Map && row['syncedLyrics'] != null) lyrics++;
+    }
+    return (
+      songs: songRows.length,
+      playlists: (decoded['playlists'] as List? ?? const []).length,
+      lyrics: lyrics,
+    );
+  }
+
   static Future<BackupImportResult> importLibrary(String rawJson) async {
     final decoded = await compute(_decodeBackup, rawJson);
     // Reject backups from a newer format instead of silently restoring a

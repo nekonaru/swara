@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as p;
 import '../models/song.dart';
 import '../services/db_helper.dart';
+import '../services/extra_features_service.dart';
 import '../services/file_rename_service.dart';
 import '../services/tag_write_service.dart';
 import '../services/library_scanner.dart';
@@ -50,6 +51,10 @@ class LibraryProvider extends ChangeNotifier {
   // permission, so the UI uses this to offer a shortcut to app settings.
   bool permissionDenied = false;
   SortOption sortOption = SortOption.titleAZ;
+  // User labels, loaded once with the library. Keys are MediaStore song ids.
+  Map<int, String> labels = const <int, String>{};
+  // Null = all volumes, 'internal' or 'sd'. Pure path based, no new permission.
+  String? volumeFilter;
 
   // Monotonic counter bumped every time the song list is replaced, reordered
   // or has a row removed. Consumers use it to invalidate derived caches (A-Z
@@ -79,6 +84,7 @@ class LibraryProvider extends ChangeNotifier {
   Map<int, Song>? _byIdCache;
   int _byIdCacheVersion = -1;
 
+  static const _kVolumeFilter = 'lib_volume_filter_v5';
   static const _kSortOption = 'lib_sort_option';
   static const _kLastDeviceScan = 'last_device_scan_ms';
   // Auto scan only when more than 30 minutes have passed
@@ -116,6 +122,7 @@ class LibraryProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final idx = prefs.getInt(_kSortOption) ?? 0;
       sortOption = SortOption.values[idx.clamp(0, SortOption.values.length - 1)];
+      volumeFilter = prefs.getString(_kVolumeFilter);
     } catch (e) {
       // A prefs failure must never abort the whole library load.
       debugPrint('LibraryProvider prefs read failed: $e');
@@ -132,6 +139,7 @@ class LibraryProvider extends ChangeNotifier {
     // The stored sort option must be in place before the first sort.
     await _prefsFuture;
     final all = await DBHelper.instance.getAllSongs();
+    labels = await DBHelper.instance.getSongLabels();
     final excluded = await DBHelper.instance.getExcludedFolders();
     songs = excluded.isEmpty
         ? all
@@ -139,6 +147,17 @@ class LibraryProvider extends ChangeNotifier {
             final folder = folderOf(s.filePath);
             return !excluded.contains(folder);
           }).toList();
+    if (volumeFilter == 'internal') {
+      songs = songs
+          .where((s) => !s.filePath.startsWith('/storage/') ||
+              s.filePath.startsWith('/storage/emulated/'))
+          .toList();
+    } else if (volumeFilter == 'sd') {
+      songs = songs
+          .where((s) => s.filePath.startsWith('/storage/') &&
+              !s.filePath.startsWith('/storage/emulated/'))
+          .toList();
+    }
     _applySort();
     // Sum the durations once here instead of folding the whole library on
     // every rebuild. The header reads this value on every notification and
@@ -224,6 +243,7 @@ class LibraryProvider extends ChangeNotifier {
         permissionDenied = false;
       }
       debugPrint('LibraryProvider scanDevice failed: $e');
+      DiagnosticsService.instance.add('scan', e.toString());
     }
     _scanning = false;
     isScanning = false;
@@ -711,6 +731,54 @@ class LibraryProvider extends ChangeNotifier {
     }
     return deleted.length;
   }
+
+  /// Move a song into the local trash instead of dropping it permanently.
+  Future<bool> moveToTrash(Song song) async {
+    final ok = await DBHelper.instance.moveSongToTrash(song.id);
+    if (!ok) return false;
+    _removeSongsFromMemory([song]);
+    unawaited(PlayerService.instance
+        .onLibrarySongsRemoved({song.id})
+        .catchError((Object e) => debugPrint('Queue reconcile after trash failed: $e')));
+    return true;
+  }
+
+  Future<void> setVolumeFilter(String? value) async {
+    volumeFilter = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (value == null) {
+        await prefs.remove(_kVolumeFilter);
+      } else {
+        await prefs.setString(_kVolumeFilter, value);
+      }
+    } catch (_) {}
+    await loadFromDb();
+  }
+
+  Future<void> setLabel(int songId, String label) async {
+    await DBHelper.instance.setSongLabel(songId, label);
+    final next = Map<int, String>.of(labels);
+    if (label.trim().isEmpty) {
+      next.remove(songId);
+    } else {
+      next[songId] = label.trim();
+    }
+    labels = next;
+    _songsVersion++;
+    notifyListeners();
+  }
+
+  Future<bool> restoreFromTrash(int songId) async {
+    final ok = await DBHelper.instance.restoreFromTrash(songId);
+    if (ok) await loadFromDb();
+    return ok;
+  }
+
+  Future<void> deleteTrashEntry(int songId) =>
+      DBHelper.instance.deleteTrashEntry(songId);
+
+  Future<void> clearTrash() => DBHelper.instance.clearTrash();
 
   /// Drop deleted songs from the cached lists and bump the version once.
   void _removeSongsFromMemory(List<Song> toRemove) {

@@ -1,9 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
+import 'package:swara/l10n/v5_strings.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../services/tag_write_service.dart';
+import '../services/db_helper.dart';
+import '../services/extra_features_service.dart';
 import 'edit_lyrics_screen.dart';
 
 class EditMetadataScreen extends StatefulWidget {
@@ -42,6 +50,27 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
     _genre.dispose();
     _region.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCustomCover() async {
+    try {
+      final picked = await FilePicker.pickFiles(type: FileType.image);
+      if (picked.isEmpty) return;
+      final bytes = await picked.first.readAsBytes();
+      if (bytes.isEmpty || bytes.length > 20 * 1024 * 1024) return;
+      final docs = await getApplicationDocumentsDirectory();
+      final dir = Directory('${docs.path}${Platform.pathSeparator}custom_covers');
+      if (!await dir.exists()) await dir.create(recursive: true);
+      final file = File('${dir.path}${Platform.pathSeparator}${widget.song.id}.jpg');
+      await file.writeAsBytes(bytes);
+      await DBHelper.instance.setAlbumArtPath(widget.song.id, file.path);
+      widget.song.albumArtPath = file.path;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+          const SnackBar(content: Text('Cover updated')));
+    } catch (_) {}
   }
 
   Future<void> _save() async {
@@ -193,6 +222,42 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
             title: Text(l.editMetadataWriteToFile),
             value: _writeToFile,
             onChanged: (value) => setState(() => _writeToFile = value),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _pickCustomCover,
+            icon: const Icon(Icons.image_outlined),
+            label: Text(V5.customCover),
+          ),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final parsed = FilenameTagService.parse(
+                  p.basename(widget.song.filePath));
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(V5.parseFilename),
+                  content: Text(V5.parsedPreview(parsed.artist, parsed.title)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text(l.cancel),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text(V5.applyParsed),
+                    ),
+                  ],
+                ),
+              );
+              if (ok != true) return;
+              setState(() {
+                _title.text = parsed.title;
+                if (parsed.artist.isNotEmpty) _artist.text = parsed.artist;
+              });
+            },
+            icon: const Icon(Icons.text_snippet_outlined),
+            label: Text(V5.parseFilename),
           ),
           const SizedBox(height: 8),
           TextField(controller: _title, decoration: InputDecoration(labelText: l.editMetadataFieldTitle)),

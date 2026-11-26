@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
+import 'package:swara/l10n/v5_strings.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../services/db_helper.dart';
+import '../utils/lrc.dart';
 import '../services/lrc_import_service.dart';
 import '../services/player_service.dart';
 
@@ -108,6 +110,76 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
 
   void _clear() {
     setState(() => _controller.clear());
+  }
+
+  Future<void> _openTimelineEditor() async {
+    final existing = await DBHelper.instance.getSyncedLyrics(widget.song.id);
+    final lines = (existing == null || existing.isEmpty)
+        ? _controller.text
+            .split('\n')
+            .where((line) => line.trim().isNotEmpty)
+            .map((line) => LrcLine(timeMs: 0, text: line.trim()))
+            .toList()
+        : parseLrc(existing);
+    if (lines.isEmpty || !mounted) return;
+    final working = List<LrcLine>.of(lines);
+    final l = AppLocalizations.of(context)!;
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateSheet) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(V5.lrcTimeline,
+                    style: Theme.of(ctx).textTheme.titleMedium),
+              ),
+              SizedBox(
+                height: MediaQuery.of(ctx).size.height * 0.5,
+                child: ListView.builder(
+                  itemCount: working.length,
+                  itemBuilder: (context, i) => ListTile(
+                    title: Text(working[i].text),
+                    trailing: Text(
+                      '${working[i].timeMs ~/ 60000}:'
+                      '${((working[i].timeMs ~/ 1000) % 60).toString().padLeft(2, '0')}',
+                    ),
+                    onTap: () {
+                      final ms = PlayerService.instance.positionForWidget;
+                      working[i] = LrcLine(timeMs: ms, text: working[i].text);
+                      setStateSheet(() {});
+                    },
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l.save),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (saved != true) return;
+    String two(int n) => n.toString().padLeft(2, '0');
+    final buffer = StringBuffer();
+    for (final line in working) {
+      final minutes = line.timeMs ~/ 60000;
+      final seconds = (line.timeMs ~/ 1000) % 60;
+      final centis = (line.timeMs % 1000) ~/ 10;
+      buffer.writeln('[${two(minutes)}:${two(seconds)}.${two(centis)}]${line.text}');
+    }
+    final offset = await DBHelper.instance.getSyncedLyricOffset(widget.song.id);
+    await DBHelper.instance.setSyncedLyrics(
+        widget.song.id, buffer.toString(), offsetMs: offset);
   }
 
   Future<void> _importLrc() async {
@@ -294,6 +366,11 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
                   onPressed: _shareLrc,
                   icon: const Icon(Icons.ios_share),
                   label: Text(l.editLyricsShareLrc),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _openTimelineEditor,
+                  icon: const Icon(Icons.timeline),
+                  label: Text(V5.lrcTimeline),
                 ),
                 OutlinedButton.icon(
                   onPressed: _clear,

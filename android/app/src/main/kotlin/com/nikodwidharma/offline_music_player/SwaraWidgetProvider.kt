@@ -136,7 +136,12 @@ class SwaraWidgetProvider : AppWidgetProvider() {
 
         private fun buildViews(context: Context): RemoteViews {
             val state = prefs(context)
+            val compact = state.getBoolean("widget_compact_v5", false)
             val views = RemoteViews(context.packageName, R.layout.swara_widget)
+            views.setViewVisibility(
+                R.id.widget_artist,
+                if (compact) android.view.View.GONE else android.view.View.VISIBLE,
+            )
             views.setTextViewText(R.id.widget_title, state.getString(KEY_TITLE, "Swara"))
             views.setTextViewText(R.id.widget_artist, state.getString(KEY_ARTIST, ""))
             val nextTitle = state.getString(KEY_NEXT_TITLE, "") ?: ""

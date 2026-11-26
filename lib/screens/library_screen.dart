@@ -5,10 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
+import 'package:swara/l10n/v5_strings.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
+import '../services/db_helper.dart';
+import '../services/m3u_service.dart';
 import '../widgets/az_scrollbar.dart';
 import '../widgets/playing_indicator.dart';
 import '../widgets/song_art_image.dart';
@@ -460,6 +464,61 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
   }
 
+  Future<void> _bulkLabel(List<Song> songs) async {
+    final controller = TextEditingController();
+    final l = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(V5.setLabel),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(labelText: V5.labelHint),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true), child: Text(l.save)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final lib = context.read<LibraryProvider>();
+    for (final song in songs) {
+      await lib.setLabel(song.id, controller.text.trim());
+    }
+    _exitMultiSelect();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+        content: Text(V5.labelApplied(songs.length))));
+  }
+
+  Future<void> _bulkTrash(List<Song> songs) async {
+    final l = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(V5.trash),
+        content: Text(V5.trashConfirm('${songs.length} ${l.librarySelectedCount(songs.length)}')),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true), child: Text(l.delete)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final lib = context.read<LibraryProvider>();
+    for (final song in songs) {
+      await lib.moveToTrash(song);
+    }
+    _exitMultiSelect();
+  }
+
   Widget _buildMultiSelectBar(LibraryProvider lib, List<Song> visible) {
     final l = AppLocalizations.of(context)!;
     if (!_multiSelectMode) return const SizedBox.shrink();
@@ -568,6 +627,57 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             content: Text(l.bulkFavoriteFailed('$e'))));
                       }
                     }),
+          IconButton(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              icon: const Icon(Icons.label_outline),
+              tooltip: V5.setLabel,
+              onPressed: selected.isEmpty ? null : () => _bulkLabel(selected)),
+          IconButton(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              icon: const Icon(Icons.play_arrow_outlined),
+              tooltip: V5.sessionHistory,
+              onPressed: selected.isEmpty
+                  ? null
+                  : () async {
+                      for (final s in selected) {
+                        await DBHelper.instance.markPlayed(s.id);
+                      }
+                      _exitMultiSelect();
+                    }),
+          IconButton(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              icon: const Icon(Icons.download_outlined),
+              tooltip: V5.exportM3u,
+              onPressed: selected.isEmpty
+                  ? null
+                  : () async {
+                      final file = await M3uService.saveM3uToDownloads(
+                          'Swara Selection',
+                          M3uService.buildM3uContent(selected));
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+                          content: Text('${V5.m3uSaved}: ${file.path}')));
+                      _exitMultiSelect();
+                    }),
+          IconButton(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              icon: const Icon(Icons.share_outlined),
+              tooltip: V5.share,
+              onPressed: selected.isEmpty
+                  ? null
+                  : () async {
+                      await SharePlus.instance.share(ShareParams(
+                          text: selected
+                              .map((s) => '${s.artist} - ${s.title}')
+                              .join('\n')));
+                    }),
+          IconButton(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              icon: const Icon(Icons.delete_outline),
+              tooltip: V5.trash,
+              onPressed: selected.isEmpty ? null : () => _bulkTrash(selected)),
           IconButton(
               constraints:
                   const BoxConstraints(minWidth: 48, minHeight: 48),

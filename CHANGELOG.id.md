@@ -1,5 +1,41 @@
 # Changelog
 
+## v5.0.0
+
+Rilis fitur besar yang sepenuhnya offline. Kemampuan baru hanya menambah data dan tampilan lokal. Tidak ada yang dihapus tanpa validasi dan konfirmasi eksplisit.
+
+## Fitur baru
+
+- **Label pengguna.** Beri nama dan warna pada lagu, lalu saring berdasarkan label. Beri label banyak lagu sekaligus dari Pustaka.
+- **Tempat sampah pustaka.** Menghapus lagu memindahkannya ke sampah lokal, dengan pulihkan atau hapus permanen berkonsirmasi.
+- **Koleksi pintar.** Baru Ditambahkan dan Paling Sering bergabung dengan playlist aturan bawaan.
+- **Pencarian lanjutan.** Saring hasil berdasarkan genre, tahun ditambahkan, dan label, ditambah riwayat query tersimpan.
+- **Aksi massal.** Tandai sudah diputar, ekspor M3U, bagikan, dan pindahkan ke sampah dari mode pilih banyak.
+- **Riwayat sesi.** Putar ulang lagu yang sudah diputar sesi ini dari player, tanpa membuang antrean saat ini.
+- **Preset kecepatan.** Chip cepat 0.75x, 1x, 1.25x, 1.5x, dan 2x di panel kecepatan.
+- **A-B dan timer tidur persisten.** Titik pengulangan dan timer aktif ikut state resume.
+- **Editor lirik berwaktu.** Ketuk baris pada posisi putar untuk memberi cap waktu, lalu simpan LRC.
+- **Nama file jadi tag.** Pratinjau pola `Artis - Judul` sebelum diterapkan.
+- **Sampul khusus.** Pilih gambar dari aplikasi lain dan simpan secara privat untuk lagu tersebut.
+- **Filter volume penyimpanan.** Tampilkan internal, kartu SD, atau keduanya, hanya berdasarkan jalur.
+- **Laporan mendengarkan.** Deret harian, distribusi per jam, dan peta panas hari dalam minggu dari riwayat yang ada.
+- **Target harian.** Atur target menit dan lihat progres hari ini di layar alat tambahan.
+- **Verifikasi cadangan.** Uji kering cadangan dan lihat jumlah lagu, playlist, dan lirik yang bisa dipulihkan.
+- **Rincian penyimpanan.** Folder terbesar berdasarkan jumlah lagu, serta ukuran cache dan snapshot.
+- **Ekspor M3U.** Simpan pustaka atau pilihan dengan jalur absolut atau relatif.
+- **Diagnostik.** Log aplikasi untuk kegagalan pemutaran dan pemindaian, bisa dibagikan sebagai teks.
+- **Tata letak widget.** Pilih 3, 5, atau 8 baris lagu berikutnya dan gaya ringkas.
+- **Telusur Android Auto.** Kategori Baru, Belum Diputar, dan Genre, dengan daftar genre per halaman.
+
+## Peningkatan
+
+- **Penghapusan pustaka dapat dipulihkan.** Aksi hapus kini menyiapkan baris di sampah sebelum data dihapus.
+- **Snapshot widget mengikuti tata letak** sehingga 3, 5, atau 8 baris benar-benar dikirim ke launcher.
+
+## Perbaikan bug
+
+- **Tidak ada penghapusan otomatis baru.** Pemindaian dan boot tetap hanya membaca data tersimpan.
+
 ## v4.20.0
 
 Rilis kelancaran native: jalur widget, sampul, dan notifikasi lebih ringan, tanpa fitur baru.

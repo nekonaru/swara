@@ -241,8 +241,9 @@ class M3uService {
   // by an #EXTINF line plus the file path per song. Duration is in
   // whole seconds, or -1 when unknown. Pure function, never touches
   // the file system.
-  static String buildM3uContent(List<Song> songs) {
+  static String buildM3uContent(List<Song> songs, {bool relative = false}) {
     final buf = StringBuffer()..writeln('#EXTM3U');
+    const musicRoot = 'Music';
     for (final song in songs) {
       final seconds = song.durationMs > 0 ? song.durationMs ~/ 1000 : -1;
       // Commas and newlines would break the EXTINF format, so flatten them.
@@ -251,7 +252,14 @@ class M3uService {
           .replaceAll('\r', ' ')
           .replaceAll(',', ' ');
       buf.writeln('#EXTINF:$seconds,$title');
-      buf.writeln(song.filePath);
+      if (!relative) {
+        buf.writeln(song.filePath);
+      } else {
+        final idx = song.filePath.lastIndexOf('/Music/');
+        buf.writeln(idx >= 0
+            ? song.filePath.substring(idx + 1)
+            : '$musicRoot/${p.basename(song.filePath)}');
+      }
     }
     return buf.toString();
   }

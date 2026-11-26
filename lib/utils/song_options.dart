@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
+import 'package:swara/l10n/v5_strings.dart';
 import 'package:provider/provider.dart';
 // Requires adding share_plus to pubspec dependencies to compile.
 // Standard API used below: Share.shareXFiles([XFile(path)], text: ...)
@@ -216,6 +217,39 @@ Future<void> showSongOptions(
                 );
               },
             ),
+          ListTile(
+            leading: const Icon(Icons.label_outline),
+            title: Text(V5.setLabel),
+            onTap: () async {
+              Navigator.pop(ctx);
+              final current = context.read<LibraryProvider>().labels[song.id] ?? '';
+              final controller = TextEditingController(text: current);
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: Text(V5.setLabel),
+                  content: TextField(
+                    controller: controller,
+                    decoration: InputDecoration(labelText: V5.labelHint),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(c, false),
+                      child: Text(l.cancel),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(c, true),
+                      child: Text(l.save),
+                    ),
+                  ],
+                ),
+              );
+              if (ok != true || !context.mounted) return;
+              await context
+                  .read<LibraryProvider>()
+                  .setLabel(song.id, controller.text.trim());
+            },
+          ),
           if (showFullDelete)
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
@@ -226,7 +260,7 @@ Future<void> showSongOptions(
                   context: context,
                   builder: (c) => AlertDialog(
                     title: Text(l.songOptionsDeleteTitle),
-                    content: Text(l.songOptionsDeleteConfirm(song.title)),
+                    content: Text(V5.trashConfirm(song.title)),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(c, false), child: Text(l.cancel)),
                       TextButton(onPressed: () => Navigator.pop(c, true), child: Text(l.delete)),
@@ -235,7 +269,7 @@ Future<void> showSongOptions(
                 );
                 if (confirm == true) {
                   try {
-                    await lib.deleteSong(song);
+                    await lib.moveToTrash(song);
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context)

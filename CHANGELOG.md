@@ -1,5 +1,41 @@
 # Changelog
 
+## v5.0.0
+
+Large feature release built entirely offline. New capabilities add local data and UI only. Nothing is deleted without validation and explicit confirmation.
+
+## New features
+
+- **User labels.** Name and colour a song, then filter by label. Bulk label a selection from the library.
+- **Library trash.** Removing a song moves it to a local trash with restore or confirmed permanent deletion.
+- **Smart collections.** Newly Added and Most Played join the built-in rule playlists.
+- **Advanced search.** Filter results by genre, added year and label, alongside saved recent queries.
+- **Bulk actions.** Mark played, export M3U, share and move to trash from multi-select mode.
+- **Session history.** Replay any song played in this session from the player, without dropping the current queue.
+- **Speed presets.** Quick 0.75x, 1x, 1.25x, 1.5x and 2x chips in the speed sheet.
+- **A-B and sleep persistence.** Repeat points and the active sleep timer travel with the resume state.
+- **Timed lyrics editor.** Tap a line at the current playhead to stamp it, then save the LRC.
+- **Filename to tags.** Preview `Artist - Title` parsed from a filename before applying.
+- **Custom covers.** Pick an image from another app and store it privately for that song.
+- **Storage volume filter.** Show internal storage, SD card, or both, using paths only.
+- **Listening reports.** Daily series, hourly distribution and weekday heatmap from existing history.
+- **Daily goal.** Set a minutes target and see today's progress on the extras screen.
+- **Backup verification.** Dry-run a backup and see how many songs, playlists and lyrics can be restored.
+- **Storage breakdown.** Largest folders by song count, plus cache and snapshot sizes.
+- **M3U export.** Save the library or a selection with absolute or relative paths.
+- **Diagnostics.** In-app log of playback and scan failures, shareable as text.
+- **Widget layout.** Choose 3, 5 or 8 up-next rows and a compact style.
+- **Android Auto browse.** New, Unplayed and Genre categories, with paged genre leaves.
+
+## Improvements
+
+- **Library removal is recoverable.** The delete action now stages a row in the trash before anything is dropped.
+- **Widget snapshot follows the layout** so 3, 5 or 8 up-next rows are actually delivered to the launcher.
+
+## Bug fixes
+
+- **No new automatic deletion was introduced.** Scan and boot still only read stored data.
+
 ## v4.20.0
 
 Native smoothness release: widget, cover art and notification hot paths are cheaper, with no new feature.

@@ -28,6 +28,14 @@ class SmartPlaylistService {
       'Daily Mix',
       '{"schema":1,"match":"all","criteria":[],"order":"random_daily","limit":25,"salt":0}',
     ),
+    (
+      'Newly Added',
+      '{"schema":1,"match":"all","criteria":[{"field":"addedAt","op":"afterDays","value":30}],"order":"added_desc","limit":100,"salt":0}',
+    ),
+    (
+      'Most Played',
+      '{"schema":1,"match":"all","criteria":[{"field":"playCount","op":"gte","value":1}],"order":"title_asc","limit":100,"salt":0}',
+    ),
   ];
 
   static const String _textFields = 'title artist album genre';

@@ -2,6 +2,7 @@ import 'dart:async';
 import '../utils/motion.dart';
 import 'package:flutter/material.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
+import 'package:swara/l10n/v5_strings.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
@@ -171,6 +172,31 @@ class _PlayerScreenState extends State<PlayerScreen>
     await showSleepTimerSheet(context);
   }
 
+  Future<void> _showSessionHistory() async {
+    final history = _player.sessionHistory.reversed.toList();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: history.length,
+          itemBuilder: (context, i) {
+            final song = history[i];
+            return ListTile(
+              title: Text(song.title),
+              subtitle: Text(song.artist),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _player.playSongAgain(song);
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickPlaybackSpeed() async {
     final l10n = AppLocalizations.of(context)!;
     // Mutable locals so the StatefulBuilder readouts follow the sliders.
@@ -202,6 +228,22 @@ class _PlayerScreenState extends State<PlayerScreen>
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          for (final preset in const [0.75, 1.0, 1.25, 1.5, 2.0])
+                            FilterChip(
+                              label: Text('${preset.toStringAsFixed(2).replaceFirst('.00', '.0')}x'),
+                              selected: (speed - preset).abs() < 0.01,
+                              onSelected: (_) async {
+                                speed = preset;
+                                await _player.setPlaybackSpeed(preset);
+                                setSheetState(() {});
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           SizedBox(
@@ -1526,6 +1568,15 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                   );
                 },
+              ),
+              Center(
+                child: ActionChip(
+                  avatar: const Icon(Icons.history, size: 14),
+                  label: Text(V5.sessionHistory,
+                      style: const TextStyle(fontSize: 11)),
+                  tooltip: V5.sessionHistory,
+                  onPressed: _showSessionHistory,
+                ),
               ),
               // Small A-B repeat button. Active (looping) state uses the
               // primary color, idle uses grey.

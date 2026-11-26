@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
+import 'package:swara/l10n/v5_strings.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
@@ -91,6 +92,10 @@ class _SearchScreenState extends State<SearchScreen> {
   static const _historyKey = 'search_history';
   static const _historyMax = 10;
   List<String> _history = [];
+  // Advanced offline filters applied after the isolate returns its matches.
+  String? _genreFilter;
+  int? _yearFilter;
+  String? _labelFilter;
 
   @override
   void initState() {
@@ -248,10 +253,25 @@ class _SearchScreenState extends State<SearchScreen> {
       );
       if (!mounted || gen != _queryGen) return;
       setState(() {
-        _results = [
+        final foundSongs = <Song>[
           for (final i in found.indices)
             if (i >= 0 && i < source.length) source[i],
         ];
+        _results = foundSongs.where((song) {
+          if (_genreFilter != null &&
+              (song.genre ?? '') != _genreFilter) {
+            return false;
+          }
+          if (_yearFilter != null &&
+              song.addedAt?.year != _yearFilter) {
+            return false;
+          }
+          if (_labelFilter != null &&
+              context.read<LibraryProvider>().labels[song.id] != _labelFilter) {
+            return false;
+          }
+          return true;
+        }).toList();
         _suggestion = found.suggestion;
         _resultsLibVersion = version;
         _searching = false;
@@ -605,6 +625,69 @@ class _SearchScreenState extends State<SearchScreen> {
             showCheckmark: false,
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildAdvancedFilters() {
+    final lib = context.read<LibraryProvider>();
+    final genres = <String>{
+      for (final song in lib.songs)
+        if ((song.genre ?? '').isNotEmpty) song.genre!,
+    }.toList()..sort();
+    final years = <int>{
+      for (final song in lib.songs)
+        if (song.addedAt != null) song.addedAt!.year,
+    }.toList()..sort((a, b) => b.compareTo(a));
+    final labels = lib.labels.values.toSet().toList()..sort();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          DropdownButton<String>(
+            value: _genreFilter,
+            hint: Text(V5.advancedFilters),
+            underline: const SizedBox.shrink(),
+            items: [
+              const DropdownMenuItem<String>(value: null, child: Text('All')),
+              for (final g in genres)
+                DropdownMenuItem<String>(value: g, child: Text(g)),
+            ],
+            onChanged: (v) {
+              setState(() => _genreFilter = v);
+              _startSearch();
+            },
+          ),
+          DropdownButton<int>(
+            value: _yearFilter,
+            hint: Text(V5.advancedFilters),
+            underline: const SizedBox.shrink(),
+            items: [
+              const DropdownMenuItem<int>(value: null, child: Text('All')),
+              for (final y in years)
+                DropdownMenuItem<int>(value: y, child: Text('$y')),
+            ],
+            onChanged: (v) {
+              setState(() => _yearFilter = v);
+              _startSearch();
+            },
+          ),
+          DropdownButton<String>(
+            value: _labelFilter,
+            hint: Text(V5.label),
+            underline: const SizedBox.shrink(),
+            items: [
+              const DropdownMenuItem<String>(value: null, child: Text('All')),
+              for (final label in labels)
+                DropdownMenuItem<String>(value: label, child: Text(label)),
+            ],
+            onChanged: (v) {
+              setState(() => _labelFilter = v);
+              _startSearch();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -991,6 +1074,7 @@ class _SearchScreenState extends State<SearchScreen> {
         children: [
           const SizedBox(height: 8),
           _buildFilterChips(),
+          _buildAdvancedFilters(),
           _buildHistoryChips(),
           const SizedBox(height: 8),
           _buildMultiSelectBar(results),

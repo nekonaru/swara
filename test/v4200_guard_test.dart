@@ -36,7 +36,7 @@ void main() {
 
   test('widget payload and media session are fingerprinted', () {
     final main = read('lib/main.dart');
-    expect(main.contains('String _widgetQueueJson('), isTrue);
+    expect(main.contains('Future<String> _widgetQueueJson('), isTrue);
     final push = main.split('Future<void> push({bool force = false})')[1]
         .split('// Republish the widget')[0];
     expect(push.indexOf('final fingerprint') < push.indexOf('_widgetQueueJson('),

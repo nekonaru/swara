@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/providers/language_provider.dart';
@@ -41,7 +43,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 16,
+      version: 17,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -155,6 +157,19 @@ class DBHelper {
         ''');
         await db.execute(
             'CREATE INDEX IF NOT EXISTS idx_path_aliases_song ON song_path_aliases(songId)');
+        await db.execute('''
+          CREATE TABLE song_labels(
+            songId INTEGER PRIMARY KEY,
+            label TEXT DEFAULT ''
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE trash_songs(
+            songId INTEGER PRIMARY KEY,
+            payload TEXT,
+            deletedAt TEXT
+          )
+        ''');
         // Per-track and per-folder playback overrides. Separate tables keep
         // rescans from overwriting user settings on the songs table.
         await db.execute('''
@@ -438,6 +453,25 @@ class DBHelper {
               );
             } catch (e) {
               debugPrint('DBHelper: v16 rule seed failed for $name: $e');
+            }
+          }
+        }
+        if (oldVersion < 17) {
+          for (final sql in <String>[
+            '''CREATE TABLE IF NOT EXISTS song_labels(
+              songId INTEGER PRIMARY KEY,
+              label TEXT DEFAULT ''
+            )''',
+            '''CREATE TABLE IF NOT EXISTS trash_songs(
+              songId INTEGER PRIMARY KEY,
+              payload TEXT,
+              deletedAt TEXT
+            )''',
+          ]) {
+            try {
+              await db.execute(sql);
+            } catch (e) {
+              debugPrint('DBHelper: v17 migration failed: $e');
             }
           }
         }
@@ -1400,6 +1434,40 @@ class DBHelper {
   /// Total listening time (ms) per hour of day (0-23).
   /// No schema change: groups listening_entries by strftime hour.
   /// Missing hours are returned as 0.
+  /// Listening milliseconds grouped by weekday (1 = Monday, 7 = Sunday).
+  Future<Map<int, int>> getWeekdayDistribution() async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      'SELECT CAST(strftime("%w", timestamp) AS INTEGER) AS weekday, '
+      'SUM(listenedMs) AS ms FROM listening_entries GROUP BY weekday',
+    );
+    final out = <int, int>{};
+    for (final row in rows) {
+      final day = (row['weekday'] as num?)?.toInt();
+      final ms = (row['ms'] as num?)?.toInt();
+      if (day == null || ms == null) continue;
+      // strftime gives 0 for Sunday, map it to 7.
+      out[day == 0 ? 7 : day] = ms;
+    }
+    return out;
+  }
+
+  /// One row per day for the last [days] days, including days with no play.
+  Future<List<Map<String, Object?>>> getDailyListeningSeries(int days) async {
+    final database = await db;
+    final start = DateTime.now()
+        .subtract(Duration(days: days > 0 ? days - 1 : 0))
+        .toIso8601String()
+        .substring(0, 10);
+    final rows = await database.rawQuery(
+      'SELECT substr(timestamp, 1, 10) AS day, SUM(listenedMs) AS ms '
+      'FROM listening_entries WHERE substr(timestamp, 1, 10) >= ? '
+      'GROUP BY day ORDER BY day ASC',
+      [start],
+    );
+    return rows;
+  }
+
   Future<Map<int, int>> getHourlyDistribution() async {
     final database = await db;
     final rows = await database.rawQuery('''
@@ -1874,6 +1942,75 @@ class DBHelper {
     }
   }
 
+  Future<List<String>> getDistinctGenres() async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      "SELECT DISTINCT genre FROM songs WHERE genre IS NOT NULL AND genre != '' "
+      'ORDER BY genre ASC LIMIT 100',
+    );
+    return rows
+        .map((r) => r['genre'] as String?)
+        .whereType<String>()
+        .toList();
+  }
+
+  Future<List<Song>> getSongsByGenre(
+    String genre, {
+    required int limit,
+    required int offset,
+  }) async {
+    final database = await db;
+    final rows = await database.query(
+      'songs',
+      where: 'genre = ?',
+      whereArgs: [genre],
+      orderBy: 'title COLLATE NOCASE ASC',
+      limit: limit,
+      offset: offset,
+    );
+    return _songsFromRows(rows);
+  }
+
+  Future<List<Song>> getRecentlyAddedSongs({
+    required int limit,
+    required int offset,
+    Set<String>? excludedFolders,
+  }) async {
+    final database = await db;
+    final excluded = (excludedFolders ?? const <String>{})
+        .map((e) => e.replaceAll('\\', '/'))
+        .map((e) => e.endsWith('/') ? e.substring(0, e.length - 1) : e)
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final where = <String>['addedAt IS NOT NULL'];
+    final args = <Object?>[];
+    for (final folder in excluded) {
+      where.add("filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(folder)}/%');
+    }
+    final rows = await database.rawQuery(
+      'SELECT * FROM songs WHERE ${where.join(' AND ')} '
+      'ORDER BY addedAt DESC LIMIT ? OFFSET ?',
+      [...args, limit, offset],
+    );
+    return _songsFromRows(rows);
+  }
+
+  Future<List<Song>> getUnplayedSongs({
+    required int limit,
+    required int offset,
+  }) async {
+    final database = await db;
+    final rows = await database.query(
+      'songs',
+      where: 'lastPlayedAt IS NULL',
+      orderBy: 'title COLLATE NOCASE ASC',
+      limit: limit,
+      offset: offset,
+    );
+    return _songsFromRows(rows);
+  }
+
   /// Search both title and artist in the same row. Used by voice playback
   /// where the spoken query is ambiguous but the metadata extras are precise.
   Future<List<Song>> querySongsByTitleAndArtist(
@@ -2342,5 +2479,185 @@ class DBHelper {
     final database = await db;
     await database.delete('song_bookmarks',
         where: 'id = ?', whereArgs: [bookmarkId]);
+  }
+
+  // ---------- Labels (v17) ----------
+
+  Future<Map<int, String>> getSongLabels() async {
+    final database = await db;
+    final rows = await database.query('song_labels');
+    return {
+      for (final row in rows)
+        if (row['songId'] is int && (row['label'] as String?)?.isNotEmpty == true)
+          (row['songId'] as int): row['label'] as String,
+    };
+  }
+
+  Future<void> setAlbumArtPath(int songId, String path) async {
+    final database = await db;
+    await database.update('songs', {'albumArtPath': path},
+        where: 'id = ?', whereArgs: [songId]);
+  }
+
+  Future<void> setSongLabel(int songId, String label) async {
+    final database = await db;
+    final value = label.trim();
+    if (value.isEmpty) {
+      await database.delete('song_labels',
+          where: 'songId = ?', whereArgs: [songId]);
+    } else {
+      await database.insert(
+        'song_labels',
+        {'songId': songId, 'label': value},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  // ---------- Library trash (v17) ----------
+
+  Future<List<Map<String, Object?>>> getTrashEntries() async {
+    final database = await db;
+    final rows = await database.query('trash_songs',
+        columns: ['songId', 'payload', 'deletedAt'],
+        orderBy: 'deletedAt DESC');
+    final out = <Map<String, Object?>>[];
+    for (final row in rows) {
+      final raw = row['payload'] as String?;
+      String title = '';
+      String path = '';
+      if (raw != null) {
+        try {
+          final song = (jsonDecode(raw) as Map)['song'] as Map?;
+          title = song?['title'] as String? ?? '';
+          path = song?['filePath'] as String? ?? '';
+        } catch (_) {}
+      }
+      out.add({
+        'songId': row['songId'],
+        'deletedAt': row['deletedAt'],
+        'title': title,
+        'path': path,
+      });
+    }
+    return out;
+  }
+
+  Future<bool> moveSongToTrash(int songId) async {
+    final database = await db;
+    try {
+      return await database.transaction((txn) async {
+        final songRows = await txn.query('songs',
+            where: 'id = ?', whereArgs: [songId], limit: 1);
+        if (songRows.isEmpty) return false;
+        final labelRows = await txn.query('song_labels',
+            where: 'songId = ?', whereArgs: [songId], limit: 1);
+        final payload = <String, Object?>{
+          'song': songRows.first,
+          'label': labelRows.isEmpty ? '' : labelRows.first['label'],
+          'playlistSongs': await txn.query('playlist_songs',
+              where: 'songId = ?', whereArgs: [songId]),
+          'listening': await txn.query('listening_entries',
+              where: 'songId = ?', whereArgs: [songId]),
+          'lyrics': await txn.query('synced_lyrics',
+              where: 'songId = ?', whereArgs: [songId], limit: 1),
+          'bookmarks': await txn.query('song_bookmarks',
+              where: 'songId = ?', whereArgs: [songId]),
+          'playback': await txn.query('song_playback_settings',
+              where: 'songId = ?', whereArgs: [songId], limit: 1),
+        };
+        await txn.insert('trash_songs', {
+          'songId': songId,
+          'payload': jsonEncode(payload),
+          'deletedAt': DateTime.now().toIso8601String(),
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn
+            .delete('songs', where: 'id = ?', whereArgs: [songId]);
+        await txn.delete('playlist_songs',
+            where: 'songId = ?', whereArgs: [songId]);
+        await txn.delete('listening_entries',
+            where: 'songId = ?', whereArgs: [songId]);
+        await txn.delete('synced_lyrics',
+            where: 'songId = ?', whereArgs: [songId]);
+        await txn.delete('song_bookmarks',
+            where: 'songId = ?', whereArgs: [songId]);
+        await txn.delete('song_playback_settings',
+            where: 'songId = ?', whereArgs: [songId]);
+        await txn.delete('song_labels',
+            where: 'songId = ?', whereArgs: [songId]);
+        return true;
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> restoreFromTrash(int songId) async {
+    final database = await db;
+    try {
+      return await database.transaction((txn) async {
+        final rows = await txn.query('trash_songs',
+            where: 'songId = ?', whereArgs: [songId], limit: 1);
+        if (rows.isEmpty) return false;
+        final raw = rows.first['payload'] as String?;
+        if (raw == null) return false;
+        final payload = jsonDecode(raw) as Map<String, dynamic>;
+        final song = Map<String, dynamic>.from(payload['song'] as Map);
+        final existing = await txn.query('songs',
+            columns: ['id'], where: 'id = ?', whereArgs: [songId], limit: 1);
+        if (existing.isEmpty) {
+          await txn.insert('songs', song,
+              conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+        for (final table in const [
+          'playlist_songs',
+          'listening_entries',
+          'song_bookmarks',
+        ]) {
+          for (final item in (payload[table == 'playlist_songs'
+                      ? 'playlistSongs'
+                      : table == 'listening_entries'
+                          ? 'listening'
+                          : 'bookmarks'] as List?) ??
+              const []) {
+            if (item is! Map) continue;
+            await txn.insert(table, Map<String, dynamic>.from(item),
+                conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+        }
+        for (final entry in const [
+          ('synced_lyrics', 'lyrics'),
+          ('song_playback_settings', 'playback'),
+        ]) {
+          final item = payload[entry.$2];
+          if (item is Map) {
+            await txn.insert(entry.$1, Map<String, dynamic>.from(item),
+                conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+        }
+        final label = payload['label'] as String?;
+        if (label != null && label.isNotEmpty) {
+          await txn.insert('song_labels',
+              {'songId': songId, 'label': label},
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+        await txn.delete('trash_songs',
+            where: 'songId = ?', whereArgs: [songId]);
+        return true;
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> deleteTrashEntry(int songId) async {
+    final database = await db;
+    await database.delete('trash_songs',
+        where: 'songId = ?', whereArgs: [songId]);
+  }
+
+  Future<void> clearTrash() async {
+    final database = await db;
+    await database.delete('trash_songs');
   }
 }

@@ -19,6 +19,8 @@ import '../services/backup_service.dart';
 import '../services/db_helper.dart';
 import '../services/audio_effects_service.dart';
 import '../services/update_service.dart';
+import '../l10n/v5_strings.dart';
+import 'v5_extras_screen.dart';
 import '../services/equalizer_service.dart';
 import '../services/loudness_service.dart';
 import '../services/player_service.dart';
@@ -1319,6 +1321,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: Text(l10n.settingsScanFiles),
             subtitle: Text(l10n.settingsScanFilesSubtitle),
             onTap: libView.$1 ? null : () => lib.forceScanDevice(),
+          ),
+          ListTile(
+            leading: const Icon(Icons.tune_outlined),
+            title: Text(V5.moreTools),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const V5ExtrasScreen()),
+            ),
           ),
           ListTile(
             leading: libView.$2

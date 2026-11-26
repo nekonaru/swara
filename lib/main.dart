@@ -14,6 +14,7 @@ import 'providers/library_provider.dart';
 import 'providers/playlist_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/db_helper.dart';
+import 'services/extra_features_service.dart';
 import 'services/equalizer_service.dart';
 import 'services/loudness_service.dart';
 import 'services/permission_service.dart';
@@ -316,9 +317,11 @@ Future<void> _handleAppShortcut(String shortcutType) async {
 // and reads its state lazily at runtime.
 /// Up-next snapshot for the home widget. Called only when the queue
 /// fingerprint changes, never on ordinary notification ticks.
-String _widgetQueueJson(PlayerService service) => jsonEncode(<Map<String, Object?>>[
+Future<String> _widgetQueueJson(PlayerService service) async {
+  final max = await WidgetSettingsService.queueLength();
+  return jsonEncode(<Map<String, Object?>>[
       for (var i = service.currentIndex + 1;
-          i < service.queueOrderLength && i <= service.currentIndex + 5;
+          i < service.queueOrderLength && i <= service.currentIndex + max;
           i++)
         {
           'slotId': service.queueSlotIdAt(i) ?? -1,
@@ -327,6 +330,7 @@ String _widgetQueueJson(PlayerService service) => jsonEncode(<Map<String, Object
           'artist': service.songAtOrderIndex(i)?.artist ?? '',
         },
     ]);
+}
 
 // Subscribe to playback state and mirror it into the home screen widget.
 void _startWidgetStatePush() {
@@ -375,7 +379,7 @@ void _startWidgetStatePush() {
     final queueChanged = fingerprint != lastQueueFingerprint;
     if (!force && !stateChanged && !queueChanged) return;
     final queueJson = queueChanged || lastQueueJson.isEmpty
-        ? _widgetQueueJson(service)
+        ? await _widgetQueueJson(service)
         : lastQueueJson;
     lastQueueFingerprint = fingerprint;
     lastTitle = title;

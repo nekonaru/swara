@@ -27,7 +27,7 @@ void main() {
 
     test('database v12 marks auto playlists explicitly', () {
       final db = read('lib/services/db_helper.dart');
-      expect(db.contains('version: 16'), isTrue);
+      expect(db.contains('version: 17'), isTrue);
       expect(db.contains('ALTER TABLE playlists ADD COLUMN isAuto'), isTrue);
       expect(db.contains('getForgottenFavorites'), isTrue);
     });

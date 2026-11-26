@@ -28,14 +28,17 @@ class SwaraWidgetViewsFactory(private val context: Context) :
     override fun onDataSetChanged() = load()
 
     private fun load() {
-        val raw = context.getSharedPreferences(
+        val prefs = context.getSharedPreferences(
             SwaraWidgetProvider.PREFS,
             Context.MODE_PRIVATE,
-        ).getString(SwaraWidgetProvider.KEY_QUEUE, "[]") ?: "[]"
+        )
+        val raw = prefs.getString(SwaraWidgetProvider.KEY_QUEUE, "[]") ?: "[]"
+        val limit = prefs.getInt("widget_queue_len_v5", 5).coerceIn(3, 8)
         val out = ArrayList<Entry>()
         try {
             val array = JSONArray(raw)
             for (i in 0 until array.length()) {
+                if (out.size >= limit) break
                 val row = array.getJSONObject(i)
                 out.add(
                     Entry(
