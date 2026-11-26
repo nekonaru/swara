@@ -56,10 +56,18 @@ class MainActivity : AudioServiceFragmentActivity() {
                 for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
             } ?: intent.data?.let { uris.add(it) }
             if (uris.isEmpty()) {
-                @Suppress("DEPRECATION")
-                val stream = intent.getParcelableExtra<android.net.Uri>(
-                    android.content.Intent.EXTRA_STREAM)
-                stream?.let { uris.add(it) }
+                try {
+                    @Suppress("DEPRECATION")
+                    val extra = intent.getParcelableExtra<android.os.Parcelable>(
+                        android.content.Intent.EXTRA_STREAM)
+                    when (extra) {
+                        is android.net.Uri -> uris.add(extra)
+                        is Iterable<*> -> uris.addAll(
+                            extra.filterIsInstance<android.net.Uri>())
+                    }
+                } catch (_: Exception) {
+                    // Ignore malformed share extras.
+                }
             }
         }
         for (uri in uris) {

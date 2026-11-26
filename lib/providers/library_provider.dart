@@ -59,6 +59,7 @@ class LibraryProvider extends ChangeNotifier {
 
   // True while scanDevice is running, so a second call is ignored.
   bool _scanning = false;
+  bool _rescanPending = false;
 
   // Cached sum of every duration, recomputed once per load instead of on
   // every read.
@@ -98,8 +99,8 @@ class LibraryProvider extends ChangeNotifier {
     super.notifyListeners();
   }
 
-  // Context-free singleton for OS callbacks (shared-file import, widget).
-  // The app still registers its own instance through MultiProvider.
+  // One instance shared by the app and OS callbacks (shared-file import).
+  // MultiProvider registers this same object, so scans notify the UI.
   static final LibraryProvider instance = LibraryProvider();
 
   LibraryProvider() {
@@ -196,7 +197,12 @@ class LibraryProvider extends ChangeNotifier {
     // their own device snapshot, so the slower one deleted the songs the
     // faster one had just inserted, together with their playlist entries and
     // listening history.
-    if (_scanning) return;
+    if (_scanning) {
+      // A share import may finish while the startup scan is running. Queue a
+      // follow-up so newly copied files are not hidden by the 30-minute gate.
+      _rescanPending = true;
+      return;
+    }
     _scanning = true;
     isScanning = true;
     scanError = null;
@@ -221,6 +227,10 @@ class LibraryProvider extends ChangeNotifier {
     _scanning = false;
     isScanning = false;
     notifyListeners();
+    if (_rescanPending) {
+      _rescanPending = false;
+      unawaited(scanDevice());
+    }
   }
 
   /// Force a device scan and refresh the timestamp

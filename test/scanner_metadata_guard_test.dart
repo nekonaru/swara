@@ -56,7 +56,8 @@ void main() {
   test('scanDevice has a reentrancy guard', () {
     final source = readProvider();
     expect(
-      source.contains('if (_scanning) return;'),
+      source.contains('if (_scanning) {') &&
+          source.contains('_rescanPending = true;'),
       isTrue,
       reason: 'a second scan must be ignored while one is running',
     );

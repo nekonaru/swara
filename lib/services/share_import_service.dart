@@ -32,6 +32,10 @@ class ShareImportService {
       );
     } on PlatformException {
       return (imported: 0, skipped: 0, failed: uris.length);
+    } catch (_) {
+      // Missing plugin or a malformed platform reply must not become an
+      // unhandled error in the OS callback.
+      return (imported: 0, skipped: 0, failed: uris.length);
     }
   }
 }

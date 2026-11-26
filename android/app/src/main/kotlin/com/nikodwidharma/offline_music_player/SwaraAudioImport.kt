@@ -37,12 +37,13 @@ object SwaraAudioImport {
                         failed++
                         continue
                     }
-                    when (val result = copy(context, uri, name)) {
-                        CopyResult(Outcome.COPIED, val path) -> {
+                    val result = copy(context, uri, name)
+                    when (result.outcome) {
+                        Outcome.COPIED -> {
                             imported++
-                            if (path != null) paths.add(path)
+                            result.path?.let { paths.add(it) }
                         }
-                        CopyResult(Outcome.DUPLICATE, _) -> skipped++
+                        Outcome.DUPLICATE -> skipped++
                         else -> failed++
                     }
                 } catch (_: Exception) {
@@ -79,9 +80,9 @@ object SwaraAudioImport {
         if (Build.VERSION.SDK_INT >= 29) {
             val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             val projection = arrayOf(MediaStore.MediaColumns._ID)
-            val selection = "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND "
-            "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND "
-            "${MediaStore.MediaColumns.IS_PENDING}=0"
+            val selection = "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND " +
+                "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND " +
+                "${MediaStore.MediaColumns.IS_PENDING}=0"
             val existing = context.contentResolver.query(
                 collection,
                 projection,

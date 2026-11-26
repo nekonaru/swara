@@ -211,11 +211,15 @@ class SmartPlaylistService {
           .where((p) => (p['name'] as String?) == name)
           .toList();
       if (named.isNotEmpty) {
-        // A pre-v4.12 or restored row with the built-in name but no rule is
-        // a repair target, not a reason to skip seeding.
-        final id = (named.first['id'] as num).toInt();
-        await DBHelper.instance.setPlaylistRule(id, ruleText);
-        seeded.add(id);
+        final namedRow = named.first;
+        // Only repair an auto playlist. A manual playlist that happens to
+        // share the name must keep its curated members.
+        if ((namedRow['isAuto'] as num?) == 1 &&
+            (namedRow['rule'] as String?)?.isNotEmpty != true) {
+          final id = (namedRow['id'] as num).toInt();
+          await DBHelper.instance.setPlaylistRule(id, ruleText);
+          seeded.add(id);
+        }
         continue;
       }
       if (cursor < unassigned.length) {
