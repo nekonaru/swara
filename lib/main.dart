@@ -342,6 +342,7 @@ void _startWidgetStatePush() {
   // last push makes every 1.5 s of normal playback look like a seek and
   // rebuilds the widget about 40 times a minute.
   var lastTickPositionMs = 0;
+  var lastABSeekSerial = PlayerService.instance.abLoopSeekSerial;
   var hasTick = false;
   // The position stream advances smoothly at ~1 Hz; a jump larger than the
   // threshold means a seek happened, and the widget chronometer's base must
@@ -403,15 +404,16 @@ void _startWidgetStatePush() {
     positionSub = player.positionStream.listen((_) {
       final service = PlayerService.instance;
       final positionMs = service.positionForWidget;
+      // An A-B loop seek is a known, app-originated jump. Ignore exactly
+      // that event; a deliberate user drag to point A still forces a push.
+      if (service.abLoopSeekSerial != lastABSeekSerial) {
+        lastABSeekSerial = service.abLoopSeekSerial;
+        lastTickPositionMs = positionMs;
+        hasTick = true;
+        return;
+      }
       if (hasTick && (positionMs - lastTickPositionMs).abs() > jumpThresholdMs) {
-        // An A-B loop jumps back to point A on every repetition. The widget
-        // state did not otherwise change, so do not republish it each time.
-        final a = service.abRepeatA;
-        final looping = service.hasABRepeat &&
-            a != null &&
-            (positionMs - a.inMilliseconds).abs() <
-                (PlayerService.abRepeatTolerance.inMilliseconds + 300);
-        if (!looping) unawaited(push(force: true));
+        unawaited(push(force: true));
       }
       lastTickPositionMs = positionMs;
       hasTick = true;

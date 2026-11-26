@@ -158,9 +158,10 @@ class LibraryProvider extends ChangeNotifier {
   /// Load from DB then scan the device in the background only if needed.
   /// Songs appear instantly from the DB, the scan only runs when the last
   /// scan is old enough.
-  Future<void> autoLoadAndScanIfNeeded() async {
-    // Step 1: load the DB first - music shows up right away
-    await loadFromDb();
+  Future<void> autoLoadAndScanIfNeeded({bool skipInitialLoad = false}) async {
+    // Step 1: load the DB first - music shows up right away. The home screen
+    // already loaded it before offering recovery, so skip the second read.
+    if (!skipInitialLoad) await loadFromDb();
 
     // Step 2: check whether a device scan is needed
     int lastMs = 0;

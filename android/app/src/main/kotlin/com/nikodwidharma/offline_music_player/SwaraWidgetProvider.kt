@@ -58,6 +58,15 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         private var cachedArt: android.graphics.Bitmap? = null
         private var lastQueueJson: String? = null
 
+        /// Forget the decoded cover. Called after the art cache is cleared so
+        /// the widget cannot keep shipping a bitmap for a path that changed.
+        fun invalidateArt() {
+            widgetExecutor.execute {
+                cachedArtPath = null
+                cachedArt = null
+            }
+        }
+
         private fun prefs(context: Context) =
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -160,10 +169,14 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             } else if (artPath == cachedArtPath) {
                 cachedArt
             } else {
-                decodeArt(artPath, 192).also {
+                val decoded = decodeArt(artPath, 192)
+                // Do not cache a failure: a transient decode error must clear
+                // on the next push instead of pinning the placeholder.
+                if (decoded != null) {
                     cachedArtPath = artPath
-                    cachedArt = it
+                    cachedArt = decoded
                 }
+                decoded
             }
             if (art != null) {
                 views.setImageViewBitmap(R.id.widget_art, art)

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
@@ -1194,6 +1195,11 @@ class BackupService {
       deleted += await EmbeddedArtService.clearCache();
       await ArtCacheService.instance.clearAll();
       SongArtImage.clearCoverCache();
+      // The widget caches its decoded cover by path; drop it too.
+      try {
+        await const MethodChannel('swara/widget')
+            .invokeMethod<void>('clearArtMemo');
+      } catch (_) {}
       // Nudge every listener so the in-memory queue snapshots and the home
       // widget both forget the deleted art immediately.
       PlayerService.instance.rebroadcastState();

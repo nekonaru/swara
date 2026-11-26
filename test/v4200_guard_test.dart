@@ -20,9 +20,12 @@ void main() {
     expect(update.contains('lastQueueJson'), isTrue);
     expect(kt.contains('cachedArtPath'), isTrue);
     expect(kt.contains('artPath == cachedArtPath'), isTrue);
+    expect(kt.contains('fun invalidateArt()'), isTrue);
+    final backup = read('lib/services/backup_service.dart');
+    expect(backup.contains("invokeMethod<void>('clearArtMemo')"), isTrue);
   });
 
-  test('cover paths never stat on the UI isolate', () {
+  test('song art widget never stats a cover on the UI isolate', () {
     final art = read('lib/widgets/song_art_image.dart');
     expect(art.contains('existsSync()'), isFalse);
     expect(art.contains('_maxValidPaths = 4096'), isTrue);
@@ -38,7 +41,7 @@ void main() {
         .split('// Republish the widget')[0];
     expect(push.indexOf('final fingerprint') < push.indexOf('_widgetQueueJson('),
         isTrue);
-    expect(main.contains('final looping = service.hasABRepeat'), isTrue);
+    expect(main.contains('service.abLoopSeekSerial != lastABSeekSerial'), isTrue);
     final handler = read('lib/services/swara_audio_handler.dart');
     expect(handler.contains('_lastNotifyFingerprint'), isTrue);
     expect(handler.contains('notifyFingerprint == _lastNotifyFingerprint'), isTrue);

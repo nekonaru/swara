@@ -14,7 +14,7 @@ void main() {
     expect(service.contains('dbIds.difference(deviceIds)'), isTrue);
     final home = read('lib/screens/home_screen.dart');
     expect(home.indexOf('RecoveryService.instance.shouldOffer()') <
-        home.indexOf('autoLoadAndScanIfNeeded()'), isTrue);
+        home.indexOf('autoLoadAndScanIfNeeded('), isTrue);
     final snapshot = read('lib/services/snapshot_service.dart');
     expect(snapshot.contains('maxSnapshots = 5'), isTrue);
     expect(snapshot.contains('Future<int> latestSongCount()'), isTrue);

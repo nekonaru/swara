@@ -90,7 +90,8 @@ class _SongArtImageState extends State<SongArtImage> {
     // Never stat a path on the UI isolate. Image.file already decodes
     // off-isolate and reports a bad path through errorBuilder; remembering
     // decoded paths avoids repeating the work for duplicated album art.
-    final hasRealCover = localPath.isNotEmpty;
+    final hasRealCover = localPath.isNotEmpty &&
+        SongArtImage._validCoverPaths.contains(localPath);
     // A file existing does not prove it decodes. Keep the embedded probe
     // available as a fallback until an image actually renders.
     if (!_embeddedChecked && !hasRealCover) {

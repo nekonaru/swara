@@ -177,6 +177,7 @@ class EmbeddedArtService {
         'cachePath': cacheFile.path,
       });
     } catch (_) {
+      _noSidecarFolders.add(folder);
       await _discard(cacheFile);
       return null;
     }
@@ -189,6 +190,7 @@ class EmbeddedArtService {
     // decode fails on every rebuild. Check the header before caching.
     final head = await _header(cacheFile);
     if (head == null || !_looksLikeImage(head)) {
+      _noSidecarFolders.add(folder);
       await _discard(cacheFile);
       return null;
     }
@@ -229,6 +231,8 @@ class EmbeddedArtService {
   void evict(int songId) {
     _knownPaths.remove(songId);
     _missing.remove(songId);
+    // A tag edit could replace the cover, so re-probe sidecars too.
+    _noSidecarFolders.clear();
   }
 
   /// Total bytes and file count of the extracted embedded art cache.

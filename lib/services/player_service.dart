@@ -609,6 +609,10 @@ class PlayerService extends ChangeNotifier {
 
   bool get isShuffle => _shuffle;
   SwaraRepeatMode get repeatMode => _repeatMode;
+  /// Incremented once for every A-B loop seek. Consumers can ignore exactly
+  /// the position event caused by that seek without guessing from position.
+  int abLoopSeekSerial = 0;
+
   Duration? get abRepeatA => _abRepeatA;
   Duration? get abRepeatB => _abRepeatB;
   bool get hasABRepeat => _abRepeatA != null && _abRepeatB != null;
@@ -865,6 +869,7 @@ class PlayerService extends ChangeNotifier {
     final b = _abRepeatB;
     if (a == null || b == null) return false;
     if (position + abRepeatTolerance >= b) {
+      abLoopSeekSerial++;
       _activePlayer.seek(a).catchError((Object e) {
         debugPrint('A-B repeat seek failed: $e');
       });

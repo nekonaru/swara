@@ -229,7 +229,9 @@ class SwaraAudioHandler extends BaseAudioHandler {
     // (favourite, speed, trim edits). Skip the whole media item and control
     // republish in that case; the 1 s ticker keeps the clock current.
     final notifyFingerprint = '${song?.id}|$playing|${ps.isShuffle}|'
-        '${ps.repeatMode.index}|$currentIndex|${song?.albumArtPath ?? ''}';
+        '${ps.repeatMode.index}|$currentIndex|${song?.albumArtPath ?? ''}|'
+        '${song?.title}|${song?.artist}|${song?.album}|'
+        '${song?.durationMs}|${song?.filePath}';
     if (notifyFingerprint == _lastNotifyFingerprint) {
       _lastSongId = song?.id;
       _lastPlaying = playing;

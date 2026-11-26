@@ -134,6 +134,10 @@ class MainActivity : AudioServiceFragmentActivity() {
                         }
                         result.success(null)
                     }
+                    "clearArtMemo" -> {
+                        SwaraWidgetProvider.invalidateArt()
+                        result.success(null)
+                    }
                     "getInitialAction" -> {
                         // Replay the widget tap that cold-started the app;
                         // consume it so a restart never double-fires it.

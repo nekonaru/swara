@@ -167,12 +167,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     late final LibraryProvider lib;
     try {
       lib = context.read<LibraryProvider>();
-      // Load the DB first so the first usable frame already has a library.
-      // The recovery question is asked after that, never over the splash.
+    } catch (_) {
+      return;
+    }
+    // Load the DB first so the first usable frame already has a library.
+    // A failed load must not hide the recovery offer: a snapshot may be the
+    // only way back to the user's data.
+    try {
       await lib.loadFromDb();
-      if (!mounted) return;
-      // Offer recovery before the startup scan can rewrite stored state.
-      if (await RecoveryService.instance.shouldOffer()) {
+    } catch (e) {
+      debugPrint('Home library load failed: $e');
+    }
+    if (!mounted) return;
+    // Offer recovery before the startup scan can rewrite stored state.
+    if (await RecoveryService.instance.shouldOffer()) {
         final latest =
             (await SnapshotService.instance.listSnapshots()).firstOrNull;
         if (latest != null && mounted) {
@@ -203,9 +211,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           }
         }
       }
-      // Fast startup path: DB load + device scan without internet fetch,
-      // so the song list shows right after the first frame.
-      await lib.autoLoadAndScanIfNeeded();
+    if (!mounted) return;
+    // Fast startup path: device scan without internet fetch, so the song
+    // list shows right after the first frame. The DB is already loaded.
+    try {
+      await lib.autoLoadAndScanIfNeeded(skipInitialLoad: true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
