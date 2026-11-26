@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -25,6 +26,7 @@ class EmbeddedArtService {
   // One platform client for the whole app. Constructing it per artwork probe
   // made the first scroll through a large library pay a setup cost per row.
   static final OnAudioQuery _query = OnAudioQuery();
+  static const MethodChannel _channel = MethodChannel('swara/file_rename');
 
   String? _dirPath;
   // Memory first answer for already resolved files, so the build path
@@ -107,12 +109,18 @@ class EmbeddedArtService {
         _knownPaths[songId] = file.path;
         return file.path;
       }
-      final bytes = await _query.queryArtwork(
-        songId,
-        ArtworkType.AUDIO,
-        format: ArtworkFormat.JPEG,
-        size: 200,
-      );
+      List<int>? bytes;
+      try {
+        bytes = await _query.queryArtwork(
+          songId,
+          ArtworkType.AUDIO,
+          format: ArtworkFormat.JPEG,
+          size: 200,
+        );
+      } catch (_) {
+        // A MediaStore failure must not hide a valid folder sidecar.
+        bytes = null;
+      }
       if (bytes == null || bytes.isEmpty) {
         // No embedded tag: look for a sidecar in the song's own folder. This
         // keeps untagged collections offline and needs no new permission.
@@ -132,34 +140,64 @@ class EmbeddedArtService {
     }
   }
 
-  /// Look for cover.jpg / folder.jpg next to the audio file and copy it into
-  /// the existing private art cache. Returns null when nothing is found.
+  /// Look for cover.jpg / folder.jpg in the song's folder through the native
+  /// MediaStore helper and copy it into the private art cache. Dart never
+  /// touches a raw image path, so scoped storage rules are respected.
   Future<String?> _folderArt(
     int songId,
     String? filePath,
     File cacheFile,
   ) async {
     if (filePath == null || filePath.isEmpty) return null;
-    final folder = p.dirname(filePath);
-    for (final name in const [
-      'cover.jpg',
-      'folder.jpg',
-      'Cover.jpg',
-      'Folder.jpg',
-      'cover.png',
-      'folder.png',
-    ]) {
-      final source = File(p.join(folder, name));
-      try {
-        if (!await source.exists() || await source.length() <= 0) continue;
-        await source.copy(cacheFile.path);
-        _knownPaths[songId] = cacheFile.path;
-        return cacheFile.path;
-      } catch (_) {
-        // Try the next sidecar name.
-      }
+    String? path;
+    try {
+      path = await _channel.invokeMethod<String>('folderArt', {
+        'folderPath': p.dirname(filePath),
+        'names': const [
+          'cover.jpg',
+          'folder.jpg',
+          'Cover.jpg',
+          'Folder.jpg',
+          'cover.png',
+          'folder.png',
+        ],
+        'cachePath': cacheFile.path,
+      });
+    } catch (_) {
+      return null;
     }
-    return null;
+    if (path == null || path.isEmpty) return null;
+    // A corrupt or non-image sidecar must not enter the index, otherwise the
+    // decode fails on every rebuild. Check the header before caching.
+    try {
+      final head = await cacheFile
+          .openRead()
+          .expand((chunk) => chunk)
+          .take(12)
+          .toList();
+      if (!_looksLikeImage(head)) {
+        await cacheFile.delete();
+        return null;
+      }
+    } catch (_) {
+      return null;
+    }
+    _knownPaths[songId] = cacheFile.path;
+    return cacheFile.path;
+  }
+
+  static bool _looksLikeImage(List<int> h) {
+    if (h.length < 4) return false;
+    if (h[0] == 0xFF && h[1] == 0xD8 && h[2] == 0xFF) return true; // JPEG
+    if (h[0] == 0x89 && h[1] == 0x50 && h[2] == 0x4E && h[3] == 0x47) {
+      return true; // PNG
+    }
+    if (h.length >= 12 &&
+        h[0] == 0x52 && h[1] == 0x49 && h[2] == 0x46 && h[3] == 0x46 &&
+        h[8] == 0x57 && h[9] == 0x45 && h[10] == 0x42 && h[11] == 0x50) {
+      return true; // WebP
+    }
+    return false;
   }
 
   // Drop a song's embedded cover from every index. Used after a metadata

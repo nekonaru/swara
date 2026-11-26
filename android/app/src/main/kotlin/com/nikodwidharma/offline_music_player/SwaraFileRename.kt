@@ -3,6 +3,7 @@ package com.nikodwidharma.offline_music_player
 import android.app.Activity
 import android.content.Context
 import android.content.ContentUris
+import java.io.FileOutputStream
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -87,6 +88,10 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         if (call.method == "getSdkInt") {
             result.success(Build.VERSION.SDK_INT)
+            return
+        }
+        if (call.method == "folderArt") {
+            handleFolderArt(call, result)
             return
         }
         if (call.method == "writeTags") {
@@ -376,6 +381,90 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
                 "displayName" to displayName,
             )
         )
+    }
+
+    private fun handleFolderArt(call: MethodCall, result: MethodChannel.Result) {
+        val folderPath = call.argument<String>("folderPath") ?: run {
+            result.success(null)
+            return
+        }
+        @Suppress("UNCHECKED_CAST")
+        val names = call.argument<List<String>>("names") ?: emptyList()
+        val cachePath = call.argument<String>("cachePath") ?: run {
+            result.success(null)
+            return
+        }
+        executor.execute {
+            var copied = false
+            val canReadImages = Build.VERSION.SDK_INT < 33 ||
+                ContextCompat.checkSelfPermission(
+                    context!!, android.Manifest.permission.READ_MEDIA_IMAGES,
+                ) == PackageManager.PERMISSION_GRANTED
+            for (name in names) {
+                try {
+                    if (Build.VERSION.SDK_INT >= 29) {
+                        if (!canReadImages) continue
+                        // Raw File access to shared image files is blocked on
+                        // newer Android; query MediaStore by relative path.
+                        val relative = relativePath(folderPath) ?: continue
+                        val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                        val selection = "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND " +
+                            "${MediaStore.MediaColumns.DISPLAY_NAME}=?"
+                        val cursor = context!!.contentResolver.query(
+                            collection,
+                            arrayOf(MediaStore.MediaColumns._ID),
+                            selection,
+                            arrayOf(relative, name),
+                            null,
+                        )
+                        val uri = cursor?.use { c ->
+                            if (c.moveToFirst()) {
+                                val id = c.getLong(
+                                    c.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
+                                ContentUris.withAppendedId(collection, id)
+                            } else null
+                        }
+                        if (uri == null) continue
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            FileOutputStream(cachePath).use { output ->
+                                val buffer = ByteArray(8192)
+                                while (true) {
+                                    val read = input.read(buffer)
+                                    if (read <= 0) break
+                                    output.write(buffer, 0, read)
+                                }
+                                output.flush()
+                            }
+                        } ?: continue
+                    } else {
+                        val source = java.io.File(folderPath, name)
+                        if (!source.exists() || source.length() <= 0) continue
+                        source.copyTo(java.io.File(cachePath), overwrite = true)
+                    }
+                    copied = true
+                    break
+                } catch (_: Exception) {
+                    // Try the next sidecar name.
+                }
+            }
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                result.success(if (copied) cachePath else null)
+            }
+        }
+    }
+
+    private fun relativePath(folderPath: String): String? {
+        val normalized = folderPath.replace('\\', '/')
+        for (prefix in listOf(
+            "/storage/emulated/0/",
+            "/sdcard/",
+            "/mnt/sdcard/",
+        )) {
+            if (normalized.startsWith(prefix)) {
+                return normalized.substring(prefix.length).trimEnd('/') + "/"
+            }
+        }
+        return null
     }
 
     private fun handleWriteTags(call: MethodCall, result: MethodChannel.Result) {

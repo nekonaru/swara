@@ -1855,15 +1855,31 @@ class DBHelper {
     String title,
     String artist, {
     int limit = 20,
+    Set<String>? excludedFolders,
   }) async {
     final database = await db;
     final titlePattern = '%${_escapeLike(title)}%';
     final artistPattern = '%${_escapeLike(artist)}%';
+    final where = <String>[
+      "lower(title) LIKE lower(?) ESCAPE '\\'",
+      "lower(artist) LIKE lower(?) ESCAPE '\\'",
+    ];
+    final args = <Object?>[titlePattern, artistPattern];
+    // Exclude hidden folders in SQL, before LIMIT, so a full page of matches
+    // in hidden folders cannot push visible songs out of the result.
+    final excluded = (excludedFolders ?? const <String>{})
+        .map((e) => e.replaceAll('\\', '/'))
+        .map((e) => e.endsWith('/') ? e.substring(0, e.length - 1) : e)
+        .where((e) => e.isNotEmpty)
+        .toList();
+    for (final folder in excluded) {
+      where.add("filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(folder)}/%');
+    }
     final rows = await database.rawQuery(
-      'SELECT * FROM songs WHERE lower(title) LIKE lower(?) '
-      "ESCAPE '\\' AND lower(artist) LIKE lower(?) ESCAPE '\\' "
+      'SELECT * FROM songs WHERE ${where.join(' AND ')} '
       'ORDER BY title ASC LIMIT ?',
-      [titlePattern, artistPattern, limit],
+      [...args, limit],
     );
     return await _songsFromRows(rows);
   }

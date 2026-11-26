@@ -119,6 +119,7 @@
 | **Pencarian toleran typo** | Menemukan lagu meski huruf tertukar atau salah ketik, dengan petunjuk "maksud kamu" |
 | **Bagikan lagu** | Bagikan info lagu yang sedang diputar beserta file audionya |
 | **Cover art bawaan file** | Cover yang tertanam di file audio diambil dan ditampilkan otomatis, tanpa internet |
+| **Sampul dari folder** | cover.jpg atau folder.jpg di folder lagu dipakai saat tidak ada cover tersemat, disimpan lokal, akses gambar diminta sekali |
 
 ### Perawatan Pustaka
 

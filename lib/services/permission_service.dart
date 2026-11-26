@@ -16,6 +16,12 @@ class PermissionService {
       if (!await Permission.audio.isGranted) {
         await Permission.audio.request();
       }
+      // Folder cover art reads sibling images. On Android 13+ that needs
+      // READ_MEDIA_IMAGES; on older versions this call is a no-op because
+      // READ_EXTERNAL_STORAGE already covers images.
+      if (!await Permission.photos.isGranted) {
+        await Permission.photos.request();
+      }
       // A denied notification permission must remain askable. Only a
       // permanent denial is left to the Settings entry that opens the OS
       // app settings.

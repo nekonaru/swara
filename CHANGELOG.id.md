@@ -6,15 +6,17 @@ Rilis gambar offline besar: sampul sidecar folder dipakai saat tag tersemat tida
 
 ## Fitur baru
 
-- **Sampul dari folder.** Saat lagu tidak punya sampul tersemat, aplikasi mencari `cover.jpg` atau `folder.jpg` di folder yang sama lalu menyimpannya secara privat. Album tanpa tag tetap mendapat sampul tanpa permintaan jaringan.
+- **Sampul dari folder.** Saat lagu tidak punya sampul tersemat, aplikasi membaca `cover.jpg` atau `folder.jpg` dari foldernya lewat MediaStore lalu menyimpannya secara privat. Sampul tetap offline. Akses gambar diminta sekali saat pertama berjalan agar fitur ini bekerja juga di Android 13 ke atas.
 
 ## Peningkatan
 
-- **Pencocokan suara mematuhi folder tersembunyi** untuk perintah judul dan artis gabungan.
+- **Pencocokan suara mengecualikan folder tersembunyi di SQL** sebelum batas hasil, untuk perintah judul dan artis gabungan.
 - **Baris antrean widget yang usang jatuh ke jalur file**, sehingga ketukan setelah perubahan antrean tetap memutar lagu yang terlihat.
+- **File sidecar diperiksa sebelum disimpan**, sehingga gambar rusak ditolak dan tidak gagal pada setiap penggambaran ulang.
 
 ## Perbaikan bug
 
+- **Kegagalan sampul MediaStore tidak lagi menyembunyikan sampul folder yang valid.**
 - **Ganti lagu cepat tidak bisa menjalankan dua pembangunan ulang statistik putar sekaligus.**
 
 ## v4.16.1

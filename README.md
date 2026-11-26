@@ -119,6 +119,7 @@
 | **Typo tolerant search** | Finds songs despite swapped or mistyped letters, with a "did you mean" hint |
 | **Share songs** | Share the currently playing info plus audio file |
 | **Embedded cover art** | Cover art stored inside the audio file is extracted and shown automatically, no network needed |
+| **Folder cover art** | cover.jpg or folder.jpg beside the audio file is used when no embedded cover exists, cached locally, one-time image access requested |
 
 ### Library Maintenance
 
