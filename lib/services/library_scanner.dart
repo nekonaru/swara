@@ -231,19 +231,25 @@ class LibraryScanner {
     // the phone.
     //
     // Conditions treated as unsafe:
-    //   1. The device returns no songs at all (the most dangerous case)
-    //   2. The song count drops by more than 50% versus what is already in the
-    //      DB in a single scan - a normal drop is only a few songs (files the
-    //      user really deleted), never half the library at once.
+    //   1. The device returns no songs at all (the most dangerous case).
+    //   2. The device result is not almost complete. A partial MediaStore read
+    //      after a permission change, a storage hiccup or a volume going away
+    //      can otherwise prune thousands of rows whose files are still there.
+    //   3. More than a small share of the library looks missing at once.
+    // Deleting a row also removes its favorites, playlists and history, so a
+    // false positive is far worse than leaving a stale row behind.
     final bool safeToDelete;
     if (allDeviceIdsOnMain.isEmpty) {
       safeToDelete = false;
     } else {
       final dbCount = await DBHelper.instance.getSongCount();
-      if (dbCount > 0 && allDeviceIdsOnMain.length < dbCount * 0.5) {
+      final deviceCount = allDeviceIdsOnMain.length;
+      if (dbCount == 0 || deviceCount < (dbCount * 0.95).ceil()) {
         safeToDelete = false;
       } else {
-        safeToDelete = true;
+        final ghostCount = dbIdsAtScanStart.difference(allDeviceIdsOnMain).length;
+        final maxGhosts = (dbCount * 0.02).ceil().clamp(1, 20).toInt();
+        safeToDelete = ghostCount > 0 && ghostCount <= maxGhosts;
       }
     }
 

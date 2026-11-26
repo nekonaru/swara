@@ -188,8 +188,11 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
     // where every member is checked.
     final List<Song> toDelete = [];
     for (final members in groups.values) {
-      final checked =
-          members.where((s) => _selectedIds.contains(s.id)).toList();
+      // A grouping key can still collect two different recordings. Never
+      // delete a checked row unless it really matches the kept one.
+      final checked = members
+          .where((s) => _selectedIds.contains(s.id) && isSameRecording(s, members.first))
+          .toList();
       if (checked.isEmpty) continue;
       if (checked.length >= members.length) {
         // Keep the first song of the group.
@@ -257,7 +260,7 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
     final List<Song> extras = [];
     for (final members in groups.values) {
       if (members.length > 1) {
-        extras.addAll(members.skip(1));
+        extras.addAll(members.skip(1).where((s) => isSameRecording(s, members.first)));
       }
     }
     if (extras.isEmpty) return;

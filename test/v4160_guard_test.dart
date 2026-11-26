@@ -52,12 +52,12 @@ void main() {
     expect(screen.contains('lyrics: imported.plain'), isTrue);
   });
 
-  test('interrupted MediaStore imports do not block re-import', () {
+  test('share import never deletes a pre-existing MediaStore row', () {
     final kt = read(
       'android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/SwaraAudioImport.kt',
     );
-    expect(kt.contains('IS_PENDING'), isTrue);
-    expect(kt.contains('stalePending'), isTrue);
-    expect(kt.contains('context.contentResolver.delete(uri, null, null)'), isTrue);
+    expect(kt.contains('stalePending'), isFalse);
+    expect(kt.contains('context.contentResolver.delete(uri, null, null)'), isFalse);
+    expect(kt.contains('if (found) return CopyResult(Outcome.DUPLICATE)'), isTrue);
   });
 }

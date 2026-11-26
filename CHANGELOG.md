@@ -1,5 +1,15 @@
 # Changelog
 
+## v4.17.1
+
+Data safety patch: share imports and library scans can no longer remove songs or files by mistake.
+
+## Bug fixes
+
+- **Share import never deletes a pre-existing MediaStore row**, so a file already on the device stays intact even when names match.
+- **Ghost cleanup needs an almost complete device scan** and removes at most 20 rows per scan, so a partial MediaStore result cannot prune the library.
+- **Duplicate deletion checks the recording** before removing a checked row, so a different version with the same tags is kept.
+
 ## v4.17.0
 
 Large offline artwork release: folder sidecar covers are used when embedded tags are missing, plus final reliability fixes.

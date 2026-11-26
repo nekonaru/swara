@@ -1,5 +1,15 @@
 # Changelog
 
+## v4.17.1
+
+Patch keamanan data: impor Bagikan dan pemindaian pustaka tidak lagi menghapus lagu atau file karena kesalahan.
+
+## Perbaikan bug
+
+- **Impor Bagikan tidak pernah menghapus baris MediaStore yang sudah ada**, sehingga file yang sudah ada di perangkat tetap utuh meski namanya sama.
+- **Pembersihan lagu hantu memerlukan hasil pemindaian hampir lengkap** dan menghapus maksimal 20 baris per pemindaian, sehingga hasil MediaStore yang sebagian tidak bisa memangkas pustaka.
+- **Penghapusan duplikat memeriksa rekaman** sebelum menghapus baris yang dipilih, sehingga versi lain dengan tag sama tetap tersimpan.
+
 ## v4.17.0
 
 Rilis gambar offline besar: sampul sidecar folder dipakai saat tag tersemat tidak ada, plus perbaikan keandalan akhir.
