@@ -490,7 +490,8 @@ class MusicApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => LibraryProvider()),
+        // One instance for both the app and OS callbacks (shared imports).
+        ChangeNotifierProvider.value(value: LibraryProvider.instance),
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: languageProvider),

@@ -55,11 +55,17 @@ class MainActivity : AudioServiceFragmentActivity() {
             intent.clipData?.let { clip ->
                 for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
             } ?: intent.data?.let { uris.add(it) }
+            if (uris.isEmpty()) {
+                @Suppress("DEPRECATION")
+                val stream = intent.getParcelableExtra<android.net.Uri>(
+                    android.content.Intent.EXTRA_STREAM)
+                stream?.let { uris.add(it) }
+            }
         }
         for (uri in uris) {
-            val flags = intent.flags and (
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                    android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            // Import only reads the shared file; never take a write grant.
+            val flags = intent.flags and
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
             if (flags != 0 && uri.scheme == "content") {
                 try {
                     applicationContext.contentResolver.takePersistableUriPermission(uri, flags)
@@ -184,6 +190,11 @@ class MainActivity : AudioServiceFragmentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         collectImportIntent(intent)
+        if (shareHandlerReady && pendingImportUris.isNotEmpty()) {
+            val uris = ArrayList(pendingImportUris)
+            pendingImportUris.clear()
+            shareChannel?.invokeMethod("onImportUris", uris)
+        }
         // Widget tapped while the activity is already up; forward the action.
         // Remove the extra right away so a later cold start never replays it.
         val action = intent.getStringExtra("swara_widget_action")

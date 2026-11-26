@@ -15,6 +15,9 @@ import java.util.concurrent.Executors
  * folder so the normal library scanner can index it. No new permission:
  * the share grant provides read access and MediaStore provides the write. */
 object SwaraAudioImport {
+    private enum class Outcome { COPIED, DUPLICATE, FAILED }
+    private data class CopyResult(val outcome: Outcome, val path: String? = null)
+
     private const val BUFFER = 8192
     private val executor = Executors.newSingleThreadExecutor()
     private val extensions = Regex("(?i)\\.(mp3|flac|wav|m4a|ogg|opus|aac|wma)$")
@@ -34,18 +37,19 @@ object SwaraAudioImport {
                         failed++
                         continue
                     }
-                    val path = copy(context, uri, name)
-                    if (path == null) {
-                        failed++
-                    } else {
-                        imported++
-                        paths.add(path)
+                    when (val result = copy(context, uri, name)) {
+                        CopyResult(Outcome.COPIED, val path) -> {
+                            imported++
+                            if (path != null) paths.add(path)
+                        }
+                        CopyResult(Outcome.DUPLICATE, _) -> skipped++
+                        else -> failed++
                     }
                 } catch (_: Exception) {
                     failed++
                 }
             }
-            context.mainExecutor.execute {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
                 callback(
                     mapOf(
                         "imported" to imported,
@@ -71,15 +75,22 @@ object SwaraAudioImport {
         return raw.replace("/", "_").replace("\\", "_").trim()
     }
 
-    private fun copy(context: Context, uri: Uri, name: String): String? {
+    private fun copy(context: Context, uri: Uri, name: String): CopyResult {
         if (Build.VERSION.SDK_INT >= 29) {
             val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             val projection = arrayOf(MediaStore.MediaColumns._ID)
-            val selection = "${MediaStore.MediaColumns.DISPLAY_NAME}=?"
+            val selection = "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND "
+            "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND "
+            "${MediaStore.MediaColumns.IS_PENDING}=0"
             val existing = context.contentResolver.query(
-                collection, projection, selection, arrayOf(name), null)
+                collection,
+                projection,
+                selection,
+                arrayOf(name, swaraDir),
+                null,
+            )
             val found = existing?.use { it.count > 0 } == true
-            if (found) return null
+            if (found) return CopyResult(Outcome.DUPLICATE)
             val values = android.content.ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, name)
                 put(MediaStore.MediaColumns.MIME_TYPE, mimeOf(name))
@@ -87,7 +98,7 @@ object SwaraAudioImport {
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
             val target = context.contentResolver.insert(collection, values)
-                ?: return null
+                ?: return CopyResult(Outcome.FAILED)
             try {
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     context.contentResolver.openOutputStream(target)?.use { output ->
@@ -104,7 +115,7 @@ object SwaraAudioImport {
                     put(MediaStore.MediaColumns.IS_PENDING, 0)
                 }
                 context.contentResolver.update(target, done, null, null)
-                return target.toString()
+                return CopyResult(Outcome.COPIED, target.toString())
             } catch (e: Exception) {
                 context.contentResolver.delete(target, null, null)
                 throw e
@@ -117,7 +128,7 @@ object SwaraAudioImport {
         )
         if (!dir.exists()) dir.mkdirs()
         val target = File(dir, name)
-        if (target.exists()) return null
+        if (target.exists()) return CopyResult(Outcome.DUPLICATE)
         context.contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(target).use { output ->
                 val buffer = ByteArray(BUFFER)
@@ -131,7 +142,7 @@ object SwaraAudioImport {
         } ?: throw IllegalStateException("Could not open source")
         MediaScannerConnection.scanFile(
             context, arrayOf(target.absolutePath), arrayOf(mimeOf(name)), null)
-        return target.absolutePath
+        return CopyResult(Outcome.COPIED, target.absolutePath)
     }
 
     private fun mimeOf(name: String): String = when {
