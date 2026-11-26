@@ -42,6 +42,8 @@ class SwaraWidgetProvider : AppWidgetProvider() {
         const val KEY_ART = "art"
         const val KEY_POSITION = "position_ms"
         const val KEY_NEXT_TITLE = "next_title"
+        const val KEY_QUEUE = "queue_json"
+        const val ACTION_PLAY_SLOT = "swara.widget.PLAY_SLOT"
 
         // Decodes artwork and rebinding on a single background thread so the
         // launcher's process is never blocked during onUpdate rebinds.
@@ -60,6 +62,7 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             artPath: String?,
             positionMs: Long,
             nextTitle: String,
+            queueJson: String,
         ) {
             prefs(context).edit()
                 .putString(KEY_TITLE, title)
@@ -68,6 +71,7 @@ class SwaraWidgetProvider : AppWidgetProvider() {
                 .putString(KEY_ART, artPath ?: "")
                 .putLong(KEY_POSITION, positionMs)
                 .putString(KEY_NEXT_TITLE, nextTitle)
+                .putString(KEY_QUEUE, queueJson)
                 .apply()
             val manager = AppWidgetManager.getInstance(context)
             val component = android.content.ComponentName(
@@ -95,6 +99,14 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             } else {
                 views.setViewVisibility(R.id.widget_next_line, android.view.View.GONE)
             }
+            // Up-next list is rendered by a RemoteViewsFactory that reads
+            // only SharedPreferences from the launcher process.
+            val adapterIntent = android.content.Intent(
+                context,
+                SwaraWidgetViewsService::class.java,
+            )
+            views.setRemoteAdapter(R.id.widget_queue, adapterIntent)
+            views.setEmptyView(R.id.widget_queue, R.id.widget_next_line)
             // Artwork: decode a downscaled bitmap on first build after a
             // state change. RemoteViews transactions have a size budget, so
             // never ship the full resolution image.

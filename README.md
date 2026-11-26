@@ -60,7 +60,7 @@
 | **Song bookmarks** | Save up to 20 named playhead positions per song, rename them, and jump back after a restart |
 | **Headset unplug** | Playback pauses automatically when the headset is unplugged or the Bluetooth route is lost |
 | **Background playback** | Real Android foreground service with MediaSession: notification and lockscreen controls (play/pause/next/previous) |
-| **Home screen widget** | Album art, play/pause/prev/next controls, a self-ticking elapsed-time chronometer, and a next-up line on the home screen |
+| **Home screen widget** | Album art, play/pause/prev/next controls, a self-ticking elapsed-time chronometer, and a tappable up-next queue on the home screen |
 | **Quick Settings tile** | Play/pause from Android's notification shade with live track title and state, even when the app is backgrounded |
 | **Android Auto** | Browse recent songs, playlists, folders, songs and the current queue with paging, plus voice play, all offline through Swara's MediaSession |
 | **Notification actions** | Start a 15 minute sleep timer or favorite the current song directly from the media notification |

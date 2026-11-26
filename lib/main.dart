@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
@@ -126,6 +127,19 @@ class _WidgetBridge {
       case 'swara.widget.NEXT':
         unawaited(service.next());
         break;
+      case 'swara.widget.PLAY_SLOT':
+        // Payload is "slotId:filePath". Both must still match the live queue.
+        final raw = action.substring('swara.widget.PLAY_SLOT:'.length);
+        final separator = raw.indexOf(':');
+        if (separator < 0) return;
+        final slotId = int.tryParse(raw.substring(0, separator));
+        final path = raw.substring(separator + 1);
+        if (slotId == null || path.isEmpty) return;
+        final pos = service.queuePosForSlot(slotId);
+        if (pos == null || pos < 0 || pos >= service.queueOrderLength) return;
+        if (service.queue[pos].filePath != path) return;
+        await service.playAtQueueIndex(pos);
+        break;
       case 'swara.widget.PREV':
         unawaited(service.smartPrevious());
         break;
@@ -133,7 +147,8 @@ class _WidgetBridge {
   }
 
   static Future<void> pushState(String title, String artist, bool playing,
-      String? artPath, int positionMs, String nextTitle) async {
+      String? artPath, int positionMs, String nextTitle,
+      String queueJson) async {
     try {
       await _channel.invokeMethod('updateWidget', {
         'title': title,
@@ -142,6 +157,7 @@ class _WidgetBridge {
         'artPath': artPath,
         'positionMs': positionMs,
         'nextTitle': nextTitle,
+        'queueJson': queueJson,
       });
     } catch (e) {
       debugPrint('Widget state push failed: $e');
@@ -288,6 +304,7 @@ void _startWidgetStatePush() {
   var lastPlaying = false;
   var lastArt = '';
   var lastNextTitle = '';
+  var lastQueueJson = '';
   var hasPushed = false;
   // Track the previous tick, not the last pushed value. Comparing against the
   // last push makes every 1.5 s of normal playback look like a seek and
@@ -312,13 +329,25 @@ void _startWidgetStatePush() {
     // cold-restore-aware getter so a post-restore push is never 0:00.
     final positionMs = song != null ? service.positionForWidget : 0;
     final nextTitle = service.nextTitle ?? '';
+    final queueJson = jsonEncode(<Map<String, Object?>>[
+      for (var i = service.currentIndex + 1;
+          i < service.queueOrderLength && i <= service.currentIndex + 5;
+          i++)
+        {
+          'slotId': service.queueSlotIdAt(i) ?? -1,
+          'path': service.queue[i].filePath,
+          'title': service.queue[i].title,
+          'artist': service.queue[i].artist,
+        },
+    ]);
     if (!force &&
         hasPushed &&
         title == lastTitle &&
         artist == lastArtist &&
         playing == lastPlaying &&
         art == lastArt &&
-        nextTitle == lastNextTitle) {
+        nextTitle == lastNextTitle &&
+        queueJson == lastQueueJson) {
       return;
     }
     lastTitle = title;
@@ -326,11 +355,13 @@ void _startWidgetStatePush() {
     lastPlaying = playing;
     lastArt = art;
     lastNextTitle = nextTitle;
+    lastQueueJson = queueJson;
     lastTickPositionMs = positionMs;
     hasTick = true;
     hasPushed = true;
     await _WidgetBridge.pushState(
-        title, artist, playing, art.isEmpty ? null : art, positionMs, nextTitle);
+        title, artist, playing, art.isEmpty ? null : art, positionMs,
+        nextTitle, queueJson);
   }
 
   // Republish the widget whenever the position stream shows a discontinuity

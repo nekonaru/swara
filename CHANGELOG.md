@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.15.0
+
+Large widget release: the home widget now shows a tappable up-next queue, with no new dependency or permission.
+
+## New features
+
+- **Widget up-next queue.** The widget shows up to five upcoming songs. Tapping a row starts that song from the current queue without clearing it.
+
+## Improvements
+
+- **A stale queued row cannot play the wrong song.** Each row carries a queue slot and file path, and both must still match before a tap starts playback.
+- **Queue changes refresh the widget** because the queue snapshot is part of the widget state fingerprint.
+
 ## v4.14.1
 
 Patch release after review: shared audio imports work while the app is already open and behave correctly across Android versions.

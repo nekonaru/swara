@@ -1,5 +1,18 @@
 # Changelog
 
+## v4.15.0
+
+Rilis widget besar: widget layar home kini menampilkan antrean lagu berikutnya yang bisa diketuk, tanpa dependensi atau izin baru.
+
+## Fitur baru
+
+- **Antrean berikutnya di widget.** Widget menampilkan hingga lima lagu yang akan diputar. Mengetuk baris memutar lagu itu dari antrean saat ini tanpa menghapusnya.
+
+## Peningkatan
+
+- **Baris antrean usang tidak bisa memutar lagu salah.** Setiap baris membawa slot antrean dan jalur file, dan keduanya harus masih cocok sebelum ketukan memutar.
+- **Perubahan antrean menyegarkan widget** karena snapshot antrean menjadi bagian dari sidik jari status widget.
+
 ## v4.14.1
 
 Rilis patch setelah review: impor audio dari Bagikan bekerja saat aplikasi sudah terbuka dan berlaku benar di berbagai versi Android.

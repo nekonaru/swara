@@ -5,6 +5,7 @@
     <string name="widget_prev">Lagu sebelumnya</string>
     <string name="widget_play">Putar atau jeda</string>
     <string name="widget_next">Lagu berikutnya</string>
+    <string name="widget_queue_label">Antrean berikutnya</string>
     <string name="widget_description">Kelola pemutaran dari layar utama</string>
     <string name="widget_art">Sampul album</string>
     <string name="quick_tile_label">Pemutaran Swara</string>
