@@ -106,8 +106,15 @@ class EmbeddedArtService {
       if (dirPath == null) return null;
       final file = File(p.join(dirPath, 'embedded_$songId.jpg'));
       if (await file.exists() && await file.length() > 0) {
-        _knownPaths[songId] = file.path;
-        return file.path;
+        final head = await _header(file);
+        if (head != null && _looksLikeImage(head)) {
+          _knownPaths[songId] = file.path;
+          return file.path;
+        }
+        // A truncated file from an interrupted copy must not be served.
+        try {
+          await file.delete();
+        } catch (_) {}
       }
       List<int>? bytes;
       try {
@@ -123,7 +130,7 @@ class EmbeddedArtService {
       }
       if (bytes == null || bytes.isEmpty) {
         // No embedded tag: look for a sidecar in the song's own folder. This
-        // keeps untagged collections offline and needs no new permission.
+        // keeps untagged collections offline through MediaStore.
         final folderArt = await _folderArt(songId, filePath, file);
         if (folderArt != null) return folderArt;
         _missing.add(songId);
@@ -164,26 +171,36 @@ class EmbeddedArtService {
         'cachePath': cacheFile.path,
       });
     } catch (_) {
+      await _discard(cacheFile);
       return null;
     }
-    if (path == null || path.isEmpty) return null;
+    if (path == null || path.isEmpty) {
+      await _discard(cacheFile);
+      return null;
+    }
     // A corrupt or non-image sidecar must not enter the index, otherwise the
     // decode fails on every rebuild. Check the header before caching.
-    try {
-      final head = await cacheFile
-          .openRead()
-          .expand((chunk) => chunk)
-          .take(12)
-          .toList();
-      if (!_looksLikeImage(head)) {
-        await cacheFile.delete();
-        return null;
-      }
-    } catch (_) {
+    final head = await _header(cacheFile);
+    if (head == null || !_looksLikeImage(head)) {
+      await _discard(cacheFile);
       return null;
     }
     _knownPaths[songId] = cacheFile.path;
     return cacheFile.path;
+  }
+
+  static Future<List<int>?> _header(File file) async {
+    try {
+      return await file.openRead().expand((c) => c).take(12).toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> _discard(File file) async {
+    try {
+      if (await file.exists()) await file.delete();
+    } catch (_) {}
   }
 
   static bool _looksLikeImage(List<int> h) {

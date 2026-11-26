@@ -394,39 +394,56 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             result.success(null)
             return
         }
+        val appContext = context ?: run {
+            result.success(null)
+            return
+        }
         executor.execute {
             var copied = false
             val canReadImages = Build.VERSION.SDK_INT < 33 ||
                 ContextCompat.checkSelfPermission(
-                    context!!, android.Manifest.permission.READ_MEDIA_IMAGES,
+                    appContext, android.Manifest.permission.READ_MEDIA_IMAGES,
                 ) == PackageManager.PERMISSION_GRANTED
+            val cacheFile = java.io.File(cachePath)
+            val tempFile = java.io.File(cachePath + ".tmp")
             for (name in names) {
                 try {
+                    if (tempFile.exists()) tempFile.delete()
                     if (Build.VERSION.SDK_INT >= 29) {
                         if (!canReadImages) continue
-                        // Raw File access to shared image files is blocked on
-                        // newer Android; query MediaStore by relative path.
-                        val relative = relativePath(folderPath) ?: continue
+                        // Query by display name and match the folder tail.
+                        // This works on internal storage and SD cards without
+                        // hard coding a volume prefix.
                         val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                        val selection = "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND " +
-                            "${MediaStore.MediaColumns.DISPLAY_NAME}=?"
-                        val cursor = context!!.contentResolver.query(
+                        val cursor = appContext.contentResolver.query(
                             collection,
-                            arrayOf(MediaStore.MediaColumns._ID),
-                            selection,
-                            arrayOf(relative, name),
+                            arrayOf(
+                                MediaStore.MediaColumns._ID,
+                                MediaStore.MediaColumns.RELATIVE_PATH,
+                            ),
+                            "${MediaStore.MediaColumns.DISPLAY_NAME}=?",
+                            arrayOf(name),
                             null,
                         )
                         val uri = cursor?.use { c ->
-                            if (c.moveToFirst()) {
-                                val id = c.getLong(
-                                    c.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
-                                ContentUris.withAppendedId(collection, id)
-                            } else null
+                            val idCol = c.getColumnIndex(MediaStore.MediaColumns._ID)
+                            val relCol = c.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH)
+                            val folder = folderPath.replace('\\', '/').trimEnd('/')
+                            var found: Uri? = null
+                            while (c.moveToNext()) {
+                                val relative = if (relCol >= 0) {
+                                    c.getString(relCol)?.replace('\\', '/')?.trimEnd('/') ?: ""
+                                } else ""
+                                if (relative.isEmpty() || !folder.endsWith(relative)) continue
+                                if (idCol < 0) continue
+                                found = ContentUris.withAppendedId(collection, c.getLong(idCol))
+                                break
+                            }
+                            found
                         }
                         if (uri == null) continue
-                        context.contentResolver.openInputStream(uri)?.use { input ->
-                            FileOutputStream(cachePath).use { output ->
+                        appContext.contentResolver.openInputStream(uri)?.use { input ->
+                            FileOutputStream(tempFile).use { output ->
                                 val buffer = ByteArray(8192)
                                 while (true) {
                                     val read = input.read(buffer)
@@ -439,32 +456,22 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
                     } else {
                         val source = java.io.File(folderPath, name)
                         if (!source.exists() || source.length() <= 0) continue
-                        source.copyTo(java.io.File(cachePath), overwrite = true)
+                        source.copyTo(tempFile, overwrite = true)
                     }
+                    // Publish the cache file only after a complete copy.
+                    if (!tempFile.renameTo(cacheFile)) continue
                     copied = true
                     break
                 } catch (_: Exception) {
-                    // Try the next sidecar name.
+                    if (tempFile.exists()) tempFile.delete()
+                    if (cacheFile.exists()) cacheFile.delete()
                 }
             }
+            if (!copied && cacheFile.exists()) cacheFile.delete()
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 result.success(if (copied) cachePath else null)
             }
         }
-    }
-
-    private fun relativePath(folderPath: String): String? {
-        val normalized = folderPath.replace('\\', '/')
-        for (prefix in listOf(
-            "/storage/emulated/0/",
-            "/sdcard/",
-            "/mnt/sdcard/",
-        )) {
-            if (normalized.startsWith(prefix)) {
-                return normalized.substring(prefix.length).trimEnd('/') + "/"
-            }
-        }
-        return null
     }
 
     private fun handleWriteTags(call: MethodCall, result: MethodChannel.Result) {
