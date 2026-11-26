@@ -6,9 +6,9 @@ Data safety patch: share imports and library scans can no longer remove songs or
 
 ## Bug fixes
 
-- **Share import never deletes a pre-existing MediaStore row**, so a file already on the device stays intact even when names match.
+- **Share import never deletes a pre-existing MediaStore row**, so a file already on the device stays intact even when names match. An interrupted copy is resumed from its pending row.
 - **Ghost cleanup needs an almost complete device scan** and removes at most 20 rows per scan, so a partial MediaStore result cannot prune the library.
-- **Duplicate deletion checks the recording** before removing a checked row, so a different version with the same tags is kept.
+- **Duplicate deletion uses a tighter duration check** before removing a checked row, so a different version with the same tags is kept.
 
 ## v4.17.0
 

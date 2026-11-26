@@ -80,9 +80,12 @@ object SwaraAudioImport {
         if (Build.VERSION.SDK_INT >= 29) {
             val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
             // Never delete a pre-existing MediaStore row. A row left pending
-            // by an interrupted copy belongs to a real file and deleting it
-            // removes that file from the device. Skipping the import is safe.
-            val projection = arrayOf(MediaStore.MediaColumns._ID)
+            // by an interrupted copy backs a real file, so deleting it would
+            // remove that file from the device. Reuse the pending row instead.
+            val projection = arrayOf(
+                MediaStore.MediaColumns._ID,
+                MediaStore.MediaColumns.IS_PENDING,
+            )
             val selection = "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND " +
                 "${MediaStore.MediaColumns.RELATIVE_PATH}=?"
             val existing = context.contentResolver.query(
@@ -92,16 +95,36 @@ object SwaraAudioImport {
                 arrayOf(name, swaraDir),
                 null,
             )
-            val found = existing?.use { it.count > 0 } == true
-            if (found) return CopyResult(Outcome.DUPLICATE)
-            val values = android.content.ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-                put(MediaStore.MediaColumns.MIME_TYPE, mimeOf(name))
-                put(MediaStore.MediaColumns.RELATIVE_PATH, swaraDir)
-                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            var committed = false
+            var pendingUri: Uri? = null
+            existing?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val pending = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.IS_PENDING))
+                    if (pending == 0) {
+                        committed = true
+                        break
+                    }
+                    if (pendingUri == null) {
+                        val id = cursor.getLong(
+                            cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
+                        pendingUri = android.content.ContentUris.withAppendedId(collection, id)
+                    }
+                }
             }
-            val target = context.contentResolver.insert(collection, values)
-                ?: return CopyResult(Outcome.FAILED)
+            if (committed) return CopyResult(Outcome.DUPLICATE)
+            // Only rows this call creates may be removed on a copy failure.
+            val reused = pendingUri != null
+            val target: Uri = pendingUri ?: run {
+                val values = android.content.ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeOf(name))
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, swaraDir)
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                context.contentResolver.insert(collection, values)
+                    ?: return CopyResult(Outcome.FAILED)
+            }
             try {
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     context.contentResolver.openOutputStream(target)?.use { output ->
@@ -120,7 +143,7 @@ object SwaraAudioImport {
                 context.contentResolver.update(target, done, null, null)
                 return CopyResult(Outcome.COPIED, target.toString())
             } catch (e: Exception) {
-                context.contentResolver.delete(target, null, null)
+                if (!reused) context.contentResolver.delete(target, null, null)
                 throw e
             }
         }

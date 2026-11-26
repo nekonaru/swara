@@ -13,10 +13,10 @@ void main() {
       'SwaraAudioImport.kt',
     );
     expect(kt.contains('stalePending'), isFalse);
-    expect(kt.contains('val found = existing?.use'), isTrue);
-    expect(kt.contains('if (found) return CopyResult(Outcome.DUPLICATE)'), isTrue);
-    // Only the row this import just created may be removed on a copy failure.
-    expect(kt.contains('delete(target, null, null)'), isTrue);
+    expect(kt.contains('if (committed) return CopyResult(Outcome.DUPLICATE)'), isTrue);
+    // An interrupted copy is resumed from its pending row, never deleted.
+    expect(kt.contains('val reused = pendingUri != null'), isTrue);
+    expect(kt.contains('if (!reused) context.contentResolver.delete(target, null, null)'), isTrue);
   });
 
   test('ghost cleanup requires a nearly complete device result', () {

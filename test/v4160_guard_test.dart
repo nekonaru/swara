@@ -58,6 +58,6 @@ void main() {
     );
     expect(kt.contains('stalePending'), isFalse);
     expect(kt.contains('context.contentResolver.delete(uri, null, null)'), isFalse);
-    expect(kt.contains('if (found) return CopyResult(Outcome.DUPLICATE)'), isTrue);
+    expect(kt.contains('if (committed) return CopyResult(Outcome.DUPLICATE)'), isTrue);
   });
 }

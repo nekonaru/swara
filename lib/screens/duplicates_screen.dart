@@ -58,8 +58,9 @@ bool isSameRecording(Song candidate, Song keeper) {
     return false;
   }
   final delta = (candidate.durationMs - keeper.durationMs).abs();
-  // 2.5 seconds of slack; different versions are far beyond that.
-  return delta < 2500;
+  // Tighter than the 2 second grouping bucket, so two tracks that share
+  // tags but differ by one second or more are not treated as copies.
+  return delta < 1000;
 }
 
 // Pure helper: group songs by normalized key, keep only groups of 2 or more.

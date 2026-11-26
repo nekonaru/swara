@@ -6,9 +6,9 @@ Patch keamanan data: impor Bagikan dan pemindaian pustaka tidak lagi menghapus l
 
 ## Perbaikan bug
 
-- **Impor Bagikan tidak pernah menghapus baris MediaStore yang sudah ada**, sehingga file yang sudah ada di perangkat tetap utuh meski namanya sama.
+- **Impor Bagikan tidak pernah menghapus baris MediaStore yang sudah ada**, sehingga file yang sudah ada di perangkat tetap utuh meski namanya sama. Salinan yang terputus dilanjutkan dari baris pending-nya.
 - **Pembersihan lagu hantu memerlukan hasil pemindaian hampir lengkap** dan menghapus maksimal 20 baris per pemindaian, sehingga hasil MediaStore yang sebagian tidak bisa memangkas pustaka.
-- **Penghapusan duplikat memeriksa rekaman** sebelum menghapus baris yang dipilih, sehingga versi lain dengan tag sama tetap tersimpan.
+- **Penghapusan duplikat memakai pemeriksaan durasi yang lebih ketat** sebelum menghapus baris yang dipilih, sehingga versi lain dengan tag sama tetap tersimpan.
 
 ## v4.17.0
 
