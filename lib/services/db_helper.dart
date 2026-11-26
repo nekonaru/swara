@@ -2603,11 +2603,38 @@ class DBHelper {
         if (raw == null) return false;
         final payload = jsonDecode(raw) as Map<String, dynamic>;
         final song = Map<String, dynamic>.from(payload['song'] as Map);
-        final existing = await txn.query('songs',
+        // filePath is UNIQUE. A scan may have re-added this file with a new
+        // MediaStore id while it was in the trash. Bind user data to the row
+        // that actually exists, never to a dead id.
+        int? resolvedId;
+        final byId = await txn.query('songs',
             columns: ['id'], where: 'id = ?', whereArgs: [songId], limit: 1);
-        if (existing.isEmpty) {
-          await txn.insert('songs', song,
-              conflictAlgorithm: ConflictAlgorithm.ignore);
+        if (byId.isNotEmpty) {
+          resolvedId = songId;
+        } else {
+          final path = song['filePath'] as String?;
+          if (path != null) {
+            final byPath = await txn.query('songs',
+                columns: ['id'],
+                where: 'filePath = ?',
+                whereArgs: [path],
+                limit: 1);
+            if (byPath.isNotEmpty) {
+              resolvedId = (byPath.first['id'] as num).toInt();
+            }
+          }
+          if (resolvedId == null) {
+            final inserted = await txn.insert('songs', song,
+                conflictAlgorithm: ConflictAlgorithm.ignore);
+            if (inserted <= 0) return false;
+            resolvedId = songId;
+          }
+        }
+        final target = resolvedId;
+        Map<String, dynamic> remap(Map item) {
+          final out = Map<String, dynamic>.from(item);
+          if (out['songId'] == songId) out['songId'] = target;
+          return out;
         }
         for (final table in const [
           'playlist_songs',
@@ -2621,7 +2648,7 @@ class DBHelper {
                           : 'bookmarks'] as List?) ??
               const []) {
             if (item is! Map) continue;
-            await txn.insert(table, Map<String, dynamic>.from(item),
+            await txn.insert(table, remap(item),
                 conflictAlgorithm: ConflictAlgorithm.ignore);
           }
         }
@@ -2631,14 +2658,14 @@ class DBHelper {
         ]) {
           final item = payload[entry.$2];
           if (item is Map) {
-            await txn.insert(entry.$1, Map<String, dynamic>.from(item),
+            await txn.insert(entry.$1, remap(item),
                 conflictAlgorithm: ConflictAlgorithm.ignore);
           }
         }
         final label = payload['label'] as String?;
         if (label != null && label.isNotEmpty) {
           await txn.insert('song_labels',
-              {'songId': songId, 'label': label},
+              {'songId': target, 'label': label},
               conflictAlgorithm: ConflictAlgorithm.replace);
         }
         await txn.delete('trash_songs',

@@ -114,13 +114,21 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
 
   Future<void> _openTimelineEditor() async {
     final existing = await DBHelper.instance.getSyncedLyrics(widget.song.id);
+    final savedOffset =
+        await DBHelper.instance.getSyncedLyricOffset(widget.song.id);
     final lines = (existing == null || existing.isEmpty)
         ? _controller.text
             .split('\n')
             .where((line) => line.trim().isNotEmpty)
             .map((line) => LrcLine(timeMs: 0, text: line.trim()))
             .toList()
-        : parseLrc(existing);
+        : parseLrc(existing)
+            .map((line) => LrcLine(
+                timeMs: (line.timeMs - savedOffset) < 0
+                    ? 0
+                    : line.timeMs - savedOffset,
+                text: line.text))
+            .toList();
     if (lines.isEmpty || !mounted) return;
     final working = List<LrcLine>.of(lines);
     final l = AppLocalizations.of(context)!;
@@ -149,7 +157,8 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
                       '${((working[i].timeMs ~/ 1000) % 60).toString().padLeft(2, '0')}',
                     ),
                     onTap: () {
-                      final ms = PlayerService.instance.positionForWidget;
+                      final raw = PlayerService.instance.positionForWidget;
+                      final ms = (raw - savedOffset) < 0 ? 0 : raw - savedOffset;
                       working[i] = LrcLine(timeMs: ms, text: working[i].text);
                       setStateSheet(() {});
                     },

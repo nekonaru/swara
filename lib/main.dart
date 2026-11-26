@@ -176,6 +176,8 @@ class _WidgetBridge {
         'positionMs': positionMs,
         'nextTitle': nextTitle,
         'queueJson': queueJson,
+        'queueLength': await WidgetSettingsService.queueLength(),
+        'compact': await WidgetSettingsService.compact(),
       });
     } catch (e) {
       debugPrint('Widget state push failed: $e');

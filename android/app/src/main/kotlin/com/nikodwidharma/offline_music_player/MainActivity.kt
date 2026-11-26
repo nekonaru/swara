@@ -112,6 +112,8 @@ class MainActivity : AudioServiceFragmentActivity() {
                         val positionMs = (args?.get("positionMs") as? Number)?.toLong() ?: 0L
                         val nextTitle = args?.get("nextTitle") as? String ?: ""
                         val queueJson = args?.get("queueJson") as? String ?: "[]"
+                        val queueLength = (args?.get("queueLength") as? Number)?.toInt() ?: 5
+                        val compact = args?.get("compact") as? Boolean ?: false
                         // Caching and rebinds run on a background thread; a
                         // tap that lands after onDestroy must not crash the
                         // app, it is simply dropped (the widget will refresh
@@ -127,6 +129,8 @@ class MainActivity : AudioServiceFragmentActivity() {
                                     positionMs,
                                     nextTitle,
                                     queueJson,
+                                    queueLength,
+                                    compact,
                                 )
                             }
                         } catch (_: RejectedExecutionException) {

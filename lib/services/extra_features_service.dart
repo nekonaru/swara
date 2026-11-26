@@ -137,7 +137,7 @@ class FilenameTagService {
     name = name.replaceAll('_', ' ').replaceAll(RegExp(r'\s+'), ' ');
     // Leading track numbers are not part of the title.
     name = name.replaceFirst(RegExp(r'^\d{1,3}[\s.\-]+'), '');
-    final parts = name.split(RegExp(r'\s+[-–]\s+'));
+    final parts = name.split(RegExp(r'\s+-\s+'));
     if (parts.length >= 2) {
       final first = parts.first.trim();
       final second = parts.skip(1).join(' - ').trim();

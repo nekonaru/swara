@@ -6,7 +6,7 @@ Rilis fitur besar yang sepenuhnya offline. Kemampuan baru hanya menambah data da
 
 ## Fitur baru
 
-- **Label pengguna.** Beri nama dan warna pada lagu, lalu saring berdasarkan label. Beri label banyak lagu sekaligus dari Pustaka.
+- **Label pengguna.** Beri nama pada lagu, lalu saring berdasarkan label. Beri label banyak lagu sekaligus dari Pustaka.
 - **Tempat sampah pustaka.** Menghapus lagu memindahkannya ke sampah lokal, dengan pulihkan atau hapus permanen berkonsirmasi.
 - **Koleksi pintar.** Baru Ditambahkan dan Paling Sering bergabung dengan playlist aturan bawaan.
 - **Pencarian lanjutan.** Saring hasil berdasarkan genre, tahun ditambahkan, dan label, ditambah riwayat query tersimpan.
@@ -21,7 +21,7 @@ Rilis fitur besar yang sepenuhnya offline. Kemampuan baru hanya menambah data da
 - **Laporan mendengarkan.** Deret harian, distribusi per jam, dan peta panas hari dalam minggu dari riwayat yang ada.
 - **Target harian.** Atur target menit dan lihat progres hari ini di layar alat tambahan.
 - **Verifikasi cadangan.** Uji kering cadangan dan lihat jumlah lagu, playlist, dan lirik yang bisa dipulihkan.
-- **Rincian penyimpanan.** Folder terbesar berdasarkan jumlah lagu, serta ukuran cache dan snapshot.
+- **Rincian penyimpanan.** Folder terbesar berdasarkan jumlah lagu.
 - **Ekspor M3U.** Simpan pustaka atau pilihan dengan jalur absolut atau relatif.
 - **Diagnostik.** Log aplikasi untuk kegagalan pemutaran dan pemindaian, bisa dibagikan sebagai teks.
 - **Tata letak widget.** Pilih 3, 5, atau 8 baris lagu berikutnya dan gaya ringkas.

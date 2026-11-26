@@ -651,15 +651,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
               onPressed: selected.isEmpty
                   ? null
                   : () async {
-                      final file = await M3uService.saveM3uToDownloads(
-                          'Swara Selection',
-                          M3uService.buildM3uContent(selected));
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context)
+                      try {
+                        final file = await M3uService.saveM3uToDownloads(
+                            'Swara Selection',
+                            M3uService.buildM3uContent(selected));
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(
-                          content: Text('${V5.m3uSaved}: ${file.path}')));
-                      _exitMultiSelect();
+                            content: Text('${V5.m3uSaved}: ${file.path}')));
+                        _exitMultiSelect();
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+                            content: Text(l.bulkActionFailed('$e'))));
+                      }
                     }),
           IconButton(
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
@@ -668,10 +676,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
               onPressed: selected.isEmpty
                   ? null
                   : () async {
-                      await SharePlus.instance.share(ShareParams(
-                          text: selected
-                              .map((s) => '${s.artist} - ${s.title}')
-                              .join('\n')));
+                      try {
+                        await SharePlus.instance.share(ShareParams(
+                            text: selected
+                                .map((s) => '${s.artist} - ${s.title}')
+                                .join('\n')));
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+                            content: Text(l.bulkActionFailed('$e'))));
+                      }
                     }),
           IconButton(
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),

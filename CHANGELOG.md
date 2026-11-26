@@ -6,7 +6,7 @@ Large feature release built entirely offline. New capabilities add local data an
 
 ## New features
 
-- **User labels.** Name and colour a song, then filter by label. Bulk label a selection from the library.
+- **User labels.** Name a song, then filter by label. Bulk label a selection from the library.
 - **Library trash.** Removing a song moves it to a local trash with restore or confirmed permanent deletion.
 - **Smart collections.** Newly Added and Most Played join the built-in rule playlists.
 - **Advanced search.** Filter results by genre, added year and label, alongside saved recent queries.
@@ -21,7 +21,7 @@ Large feature release built entirely offline. New capabilities add local data an
 - **Listening reports.** Daily series, hourly distribution and weekday heatmap from existing history.
 - **Daily goal.** Set a minutes target and see today's progress on the extras screen.
 - **Backup verification.** Dry-run a backup and see how many songs, playlists and lyrics can be restored.
-- **Storage breakdown.** Largest folders by song count, plus cache and snapshot sizes.
+- **Storage breakdown.** Largest folders by song count.
 - **M3U export.** Save the library or a selection with absolute or relative paths.
 - **Diagnostics.** In-app log of playback and scan failures, shareable as text.
 - **Widget layout.** Choose 3, 5 or 8 up-next rows and a compact style.

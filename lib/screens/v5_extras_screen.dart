@@ -211,10 +211,8 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
             if (_searchHistory.isNotEmpty)
               ListTile(
                 title: Text(V5.clearHistory),
-                onTap: () async {
-                  await SearchHistoryService.clear();
-                  await _load();
-                },
+                onTap: () => _confirm(
+                    V5.clearHistory, V5.clearHistory, SearchHistoryService.clear),
               ),
           ]),
           _section(V5.volumeFilter, [
@@ -223,7 +221,7 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
               underline: const SizedBox.shrink(),
               items: [
                 DropdownMenuItem<String?>(
-                    value: null, child: Text(V5.autoCollections)),
+                    value: null, child: Text(V5.all)),
                 const DropdownMenuItem<String?>(
                     value: 'internal', child: Text('Internal')),
                 const DropdownMenuItem<String?>(
@@ -335,8 +333,10 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
       ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(
-        content: Text(V5.verifyResult(
-            result.songs, result.playlists, result.lyrics)),
+        content: Text(result.songs < 0
+            ? V5.backupTooNew
+            : V5.verifyResult(
+                result.songs, result.playlists, result.lyrics)),
       ));
     } catch (_) {} finally {
       if (mounted) setState(() => _busy = false);

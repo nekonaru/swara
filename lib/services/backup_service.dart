@@ -368,6 +368,10 @@ class BackupService {
   static Future<({int songs, int playlists, int lyrics})> verifyBackup(
       String rawJson) async {
     final decoded = await compute(_decodeBackup, rawJson);
+    final version = (decoded['version'] as num?)?.toInt() ?? 0;
+    if (version > kBackupFormatVersion) {
+      return (songs: -1, playlists: -1, lyrics: -1);
+    }
     final songRows = decoded['songs'] as List? ?? const [];
     var lyrics = 0;
     for (final row in songRows) {

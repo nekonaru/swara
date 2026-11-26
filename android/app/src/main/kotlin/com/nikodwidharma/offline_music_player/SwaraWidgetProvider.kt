@@ -81,6 +81,8 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             positionMs: Long,
             nextTitle: String,
             queueJson: String,
+            queueLength: Int,
+            compact: Boolean,
         ) {
             widgetExecutor.execute {
                 prefs(context).edit()
@@ -91,6 +93,8 @@ class SwaraWidgetProvider : AppWidgetProvider() {
                     .putLong(KEY_POSITION, positionMs)
                     .putString(KEY_NEXT_TITLE, nextTitle)
                     .putString(KEY_QUEUE, queueJson)
+                    .putInt("widget_queue_len_v5", queueLength.coerceIn(3, 8))
+                    .putBoolean("widget_compact_v5", compact)
                     .apply()
                 val manager = AppWidgetManager.getInstance(context)
                 val component = android.content.ComponentName(

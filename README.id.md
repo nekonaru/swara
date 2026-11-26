@@ -158,7 +158,7 @@
 |-------|-----------|
 | **Cadangkan dan pulihkan** | Ekspor dan impor playlist, favorit dan riwayat, plus tag manual, lirik biasa, lirik sinkron, koreksi waktu, dan penanda yang dicocokkan lewat jalur file antarperangkat |
 | **Simpan backup ke file** | Simpan file JSON backup bercap waktu ke lokasi yang Anda pilih lewat pemilih file sistem dan lihat tanggal ekspor terakhir di Pengaturan |
-| **Label pengguna** | Beri nama dan warna lagu, saring berdasarkan label, dan beri label banyak lagu sekaligus |
+| **Label pengguna** | Beri nama lagu, saring berdasarkan label, dan beri label banyak lagu sekaligus |
 | **Tempat sampah pustaka** | Penghapusan disimpan lokal dengan pulihkan atau hapus permanen berkonsirmasi |
 | **Pencarian lanjutan** | Saring berdasarkan genre, tahun ditambahkan, dan label, dengan riwayat query tersimpan |
 | **Editor lirik berwaktu** | Tandai baris LRC pada posisi putar saat ini dan pertahankan offset |

@@ -86,4 +86,8 @@ class V5 {
   static String get clearHistory => id ? 'Hapus riwayat' : 'Clear history';
   static String get moreTools => id ? 'Alat tambahan' : 'More tools';
   static String get share => id ? 'Bagikan' : 'Share';
+  static String get all => id ? 'Semua' : 'All';
+  static String get backupTooNew => id
+      ? 'Cadangan dari versi lebih baru tidak didukung'
+      : 'Backup from a newer version is not supported';
 }
