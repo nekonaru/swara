@@ -387,7 +387,15 @@ class SwaraAudioHandler extends BaseAudioHandler {
     }
     // Browse leaves from the DB carry slot -1. Never replace the queue here:
     // an Android Auto tap must leave the user's playlist and order intact.
-    final inQueue = ps.queue.indexWhere((s) => s.filePath == path);
+    // Under shuffle the queue index is not a play-order index. Search play
+    // order directly so a browse tap plays the song the user selected.
+    var inQueue = -1;
+    for (var i = 0; i < ps.queueOrderLength; i++) {
+      if (ps.songAtOrderIndex(i)?.filePath == path) {
+        inQueue = i;
+        break;
+      }
+    }
     if (inQueue >= 0) {
       await ps.playAtQueueIndex(inQueue);
       return;

@@ -125,7 +125,7 @@
 
 | Feature | Description |
 |---------|-------------|
-| **Duplicate finder** | Find and remove duplicate songs, keep one per group |
+| **Duplicate finder** | Find and remove duplicate songs, keep one per group, restore library data with one tap |
 | **Missing covers** | List songs without art with one-tap refetch |
 | **Missing lyrics** | List songs without lyrics with one-tap refetch |
 | **Bulk edit** | Edit genre and artist across many songs at once |
@@ -158,7 +158,7 @@
 |---------|-------------|
 | **Backup and restore** | Export and import playlists, favorites and history, plus manual tags, plain lyrics, synced LRC, timing corrections and bookmarks matched by file path across devices |
 | **Save backup to file** | Save a timestamped JSON backup to a location you pick with the system file picker and see the last export date in Settings |
-| **Local snapshots** | Keep up to three automatic app-private snapshots of your library and restore one from Settings |
+| **Local snapshots** | Keep up to five automatic app-private snapshots, restore one from Settings, and get a recovery offer at boot when the library drops sharply |
 | **Share audio into Swara** | Send audio files from other apps to copy them into your library and rescan automatically |
 | **History cleanup** | Optional, you-confirmed cleanup of old listening history in Settings |
 

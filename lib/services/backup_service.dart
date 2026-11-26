@@ -272,6 +272,7 @@ class BackupService {
               },
         ],
         'isFavorite': song.isFavorite,
+        'lastPlayedAt': extras['lastPlayedAt'],
       });
     }
 
@@ -1039,6 +1040,11 @@ class BackupService {
           if (raw['isFavorite'] == true) {
             await DBHelper.instance.setFavorite(localId, true);
           }
+          // Recency drives Recently Played and the unplayed smart rules.
+          await DBHelper.instance.restoreLastPlayedAt(
+            localId,
+            raw['lastPlayedAt'] as String?,
+          );
 
           for (final item in (raw['bookmarks'] as List? ?? [])) {
             if (item is! Map) continue;

@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.18.0
+
+Rilis pemulihan besar: pustaka yang hilang bisa dipulihkan saat boot, penghapusan massal bisa dibatalkan, dan beberapa anomali pemutaran serta data diperbaiki.
+
+## Fitur baru
+
+- **Penawaran pemulihan saat boot.** Jika pustaka jauh lebih kecil daripada snapshot lokal terbaru, Swara bertanya sekali untuk memulihkan sebelum pemindaian awal menimpa data. Lima snapshot disimpan agar salinan sebelum kejadian tetap ada.
+- **Urungkan penghapusan massal.** Menghapus duplikat kini menyimpan snapshot segar lebih dulu dan menawarkan Pulihkan di pesan hasil, sehingga data pustaka kembali dengan satu ketukan.
+
+## Peningkatan
+
+- **Cadangan menyimpan waktu putar terakhir.** Lagu Diputar Terbaru dan aturan pintar belum diputar tetap benar setelah pemulihan, dengan riwayat pendengaran sebagai cadangan.
+- **Pemulihan cadangan bekerja untuk file SAF.** Cadangan yang dipilih dari aplikasi lain dibaca sebagai byte, tanpa bergantung pada jalur file.
+
+## Perbaikan bug
+
+- **Ulangi satu lagu tidak lagi lanjut ke lagu berikutnya** saat crossfade aktif.
+- **Ketukan telusur Android Auto memutar lagu yang dipilih** saat acakan aktif.
+- **Penulisan tag mencari baris MediaStore lewat jalur file**, sehingga id usang tidak mengubah file lain.
+
 ## v4.17.1
 
 Patch keamanan data: impor Bagikan dan pemindaian pustaka tidak lagi menghapus lagu atau file karena kesalahan.

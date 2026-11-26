@@ -1,5 +1,25 @@
 # Changelog
 
+## v4.18.0
+
+Large recovery release: a lost library can be recovered at boot, bulk deletions are undoable, and several playback and data anomalies are fixed.
+
+## New features
+
+- **Boot recovery offer.** If the library is far smaller than the newest local snapshot, Swara asks once to recover before the startup scan rewrites the data. Five snapshots are kept so a pre-loss copy stays reachable.
+- **Undo for bulk removal.** Removing duplicates now saves a fresh local snapshot first and offers Restore in the result message, bringing back library data with one tap.
+
+## Improvements
+
+- **Backup keeps last played.** Recently Played and unplayed smart rules survive a restore, with listening history as a fallback.
+- **Backup restore works with SAF files.** Backups picked from other apps are read as bytes instead of relying on a file path.
+
+## Bug fixes
+
+- **Repeat one no longer advances to the next song** when crossfade is on.
+- **Android Auto browse taps play the selected song** when shuffle is on.
+- **Tag writes resolve the MediaStore row by file path**, so a stale id cannot edit another file.
+
 ## v4.17.1
 
 Data safety patch: share imports and library scans can no longer remove songs or files by mistake.

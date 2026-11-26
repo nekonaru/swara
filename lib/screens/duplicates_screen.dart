@@ -3,7 +3,9 @@ import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
+import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
+import '../services/snapshot_service.dart';
 import '../widgets/mini_player.dart';
 
 // Hoisted so the patterns are compiled once instead of twice per normalized
@@ -223,6 +225,9 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    // Keep a recoverable copy of the library data before the delete.
+    final safety = await SnapshotService.instance.createSnapshot(force: true);
+    if (!mounted) return;
     setState(() => _working = true);
     var removed = 0;
     try {
@@ -239,9 +244,21 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-        SnackBar(duration: const Duration(seconds: 2),
-            content: Text(AppLocalizations.of(context)!
-                .dupRemoved(removed, toDelete.length))),
+        SnackBar(
+            action: safety == null
+                ? null
+                : SnackBarAction(
+                    label: l10n.dataSnapshotRestore,
+                    onPressed: () async {
+                      await SnapshotService.instance.restoreSnapshot(safety.name);
+                      if (!mounted) return;
+                      await context.read<LibraryProvider>().loadFromDb();
+                      if (!mounted) return;
+                      await context.read<PlaylistProvider>().load();
+                    },
+                  ),
+            duration: const Duration(seconds: 8),
+            content: Text(l10n.dupRemoved(removed, toDelete.length))),
       );
     } catch (e) {
       if (!mounted) return;
@@ -286,6 +303,8 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    final safety = await SnapshotService.instance.createSnapshot(force: true);
+    if (!mounted) return;
     setState(() => _working = true);
     var removed = 0;
     try {
@@ -301,9 +320,21 @@ class _DuplicatesScreenState extends State<DuplicatesScreen> {
       ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-        SnackBar(duration: const Duration(seconds: 2),
-            content: Text(AppLocalizations.of(context)!
-                .dupRemovedAll(removed, groups.length))),
+        SnackBar(
+            action: safety == null
+                ? null
+                : SnackBarAction(
+                    label: l10n.dataSnapshotRestore,
+                    onPressed: () async {
+                      await SnapshotService.instance.restoreSnapshot(safety.name);
+                      if (!mounted) return;
+                      await context.read<LibraryProvider>().loadFromDb();
+                      if (!mounted) return;
+                      await context.read<PlaylistProvider>().load();
+                    },
+                  ),
+            duration: const Duration(seconds: 8),
+            content: Text(l10n.dupRemovedAll(removed, groups.length))),
       );
     } catch (e) {
       if (!mounted) return;

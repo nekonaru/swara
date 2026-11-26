@@ -888,6 +888,13 @@ class PlayerService extends ChangeNotifier {
   Future<void> _startCrossfadeToNext() async {
     if (_disposed) return;
     if (_playOrder.isEmpty) return;
+    // Repeat one must replay this song. Crossfading here would flip to the
+    // next track, so hand the natural end to the normal handler instead.
+    if (_repeatMode == SwaraRepeatMode.one) {
+      _completionHandled = true;
+      _onTrackFinished();
+      return;
+    }
     final playGen = _playGeneration;
     final nextPos = _computeNextPosition();
     if (nextPos == null) return;

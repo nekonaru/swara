@@ -19,9 +19,11 @@ void main() {
         .where((f) => !f.path.contains(r'l10n\gen'));
     for (final file in files) {
       final text = file.readAsStringSync();
+      // An Undo action needs a longer window to stay tappable. Snackbars
+      // without an action must remain short.
       final longSnackbar = RegExp(
-        r'SnackBar\([\s\S]{0,240}?Duration\(seconds: [3-9]\d*\)',
-      ).hasMatch(text);
+        r'SnackBar\([\s\S]{0,400}?Duration\(seconds: [3-9]\d*\)',
+      ).allMatches(text).any((m) => !m.group(0)!.contains('SnackBarAction'));
       expect(longSnackbar, isFalse,
           reason: '${file.path} still has a long snackbar duration');
     }

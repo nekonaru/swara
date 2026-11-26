@@ -11,7 +11,10 @@ import 'settings_screen.dart';
 import 'search_screen.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import '../providers/library_provider.dart';
+import '../providers/playlist_provider.dart';
 import '../services/player_service.dart';
+import '../services/recovery_service.dart';
+import '../services/snapshot_service.dart';
 import '../widgets/mini_player.dart';
 
 // ------------------------------------------------------------------------
@@ -164,6 +167,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     late final LibraryProvider lib;
     try {
       lib = context.read<LibraryProvider>();
+      // Offer recovery before the startup scan repopulates a wiped DB and
+      // pushes the pre-loss snapshot out of the rotation.
+      if (await RecoveryService.instance.shouldOffer()) {
+        final latest =
+            (await SnapshotService.instance.listSnapshots()).firstOrNull;
+        if (latest != null && mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final accept = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(l10n.dataSnapshotAutoTitle),
+              content: Text(l10n.dataSnapshotAutoMessage(
+                  latest.createdAt.toIso8601String().substring(0, 10))),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.dataSnapshotAutoDecline),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.dataSnapshotAutoAccept),
+                ),
+              ],
+            ),
+          );
+          await RecoveryService.instance.markOffered();
+          if (accept == true && mounted) {
+            await SnapshotService.instance.restoreSnapshot(latest.name);
+            await lib.loadFromDb();
+            if (!mounted) return;
+            await context.read<PlaylistProvider>().load();
+          }
+        }
+      }
       // Fast startup path: DB load + device scan without internet fetch,
       // so the song list shows right after the first frame.
       await lib.autoLoadAndScanIfNeeded();

@@ -12,7 +12,7 @@ void main() {
     expect(service.contains('exportLibrary()'), isTrue);
     expect(service.contains('importLibrary('), isTrue);
     expect(service.contains('getApplicationDocumentsDirectory()'), isTrue);
-    expect(service.contains('maxSnapshots = 3'), isTrue);
+    expect(service.contains('maxSnapshots = 5'), isTrue);
     expect(service.contains("kLastSnapshotPrefKey = 'backup_last_snapshot_at'"), isTrue);
     expect(service.contains('minInterval'), isTrue);
     expect(service.contains('_restoreLock'), isTrue);

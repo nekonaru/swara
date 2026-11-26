@@ -1102,6 +1102,30 @@ class DBHelper {
     return await _songsFromRows(rows);
   }
 
+  /// Restore a backed-up last-played stamp only when this device has none.
+  /// Falls back to the newest listening entry when the export has no stamp.
+  Future<void> restoreLastPlayedAt(int songId, String? backedUp) async {
+    try {
+      final database = await db;
+      if (backedUp != null && backedUp.isNotEmpty) {
+        await database.rawUpdate(
+          'UPDATE songs SET lastPlayedAt = ? '
+          'WHERE id = ? AND lastPlayedAt IS NULL',
+          [backedUp, songId],
+        );
+      } else {
+        await database.rawUpdate(
+          'UPDATE songs SET lastPlayedAt = '
+          '(SELECT MAX(timestamp) FROM listening_entries WHERE songId = id) '
+          'WHERE id = ? AND lastPlayedAt IS NULL',
+          [songId],
+        );
+      }
+    } catch (_) {
+      // Best effort: a history entry is enough to reconstruct recency.
+    }
+  }
+
   Future<void> markPlayed(int songId) async {
     try {
       final database = await db;
@@ -2122,6 +2146,15 @@ class DBHelper {
         result.putIfAbsent(id, () => {});
         result[id]!['lrc'] = row['lrc'];
         result[id]!['offsetMs'] = row['offsetMs'];
+      }
+      final playedRows = await database.rawQuery(
+          'SELECT id, lastPlayedAt FROM songs '
+          'WHERE id IN ($placeholders)', slice);
+      for (final row in playedRows) {
+        final id = (row['id'] as num?)?.toInt();
+        if (id == null) continue;
+        result.putIfAbsent(id, () => {});
+        result[id]!['lastPlayedAt'] = row['lastPlayedAt'];
       }
       final bookmarkRows = await database.rawQuery(
           'SELECT id, songId, positionMs, label, createdAt FROM song_bookmarks '

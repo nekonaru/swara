@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -565,15 +566,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   allowedExtensions: const ['json'],
                 );
                 if (picked.isEmpty) return;
-                final path = picked.first.path;
-                if (path == null) return;
-                final file = File(path);
-                // Cap the read so a huge file cannot OOM the UI isolate.
-                if (await file.length() > 32 * 1024 * 1024) {
+                final pickedFile = picked.first;
+                // SAF content URIs often have no usable path. Reading the
+                // stream keeps restores from Drive and other apps working.
+                final length = await pickedFile.length();
+                if (length != null && length > 32 * 1024 * 1024) {
                   if (ctx.mounted) _showSnack(l10n.dataFailedGeneric);
                   return;
                 }
-                final text = await file.readAsString();
+                final bytes = await pickedFile.readAsBytes();
+                final text = utf8.decode(bytes, allowMalformed: true);
                 if (ctx.mounted) Navigator.pop(ctx, text.trim());
               } catch (_) {
                 if (ctx.mounted) _showSnack(l10n.dataFailedGeneric);

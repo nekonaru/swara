@@ -505,10 +505,27 @@ class SwaraFileRename : FlutterPlugin, MethodChannel.MethodCallHandler, Activity
             if (artist.isNullOrEmpty()) null else "artist",
             if (album.isNullOrEmpty()) null else "album",
         )
-        val uri = ContentUris.withAppendedId(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            id.toLong(),
+        // Resolve the row by path, like rename does. The local id can be
+        // stale after a MediaStore re-id or on a removable volume.
+        val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        @Suppress("DEPRECATION")
+        val tagCursor = context.contentResolver.query(
+            collection,
+            arrayOf(MediaStore.MediaColumns._ID),
+            "${MediaStore.MediaColumns.DATA}=?",
+            arrayOf(path),
+            null,
         )
+        val uri = tagCursor?.use { c ->
+            if (c.moveToFirst()) {
+                val idx = c.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                ContentUris.withAppendedId(collection, c.getLong(idx))
+            } else null
+        }
+        if (uri == null && Build.VERSION.SDK_INT >= 30) {
+            result.error("not_found", "MediaStore row not found", null)
+            return
+        }
         if (Build.VERSION.SDK_INT >= 30) {
             val request = try {
                 MediaStore.createWriteRequest(context.contentResolver, listOf(uri))

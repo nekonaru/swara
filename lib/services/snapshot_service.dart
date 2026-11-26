@@ -1,11 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'backup_service.dart';
 import 'db_helper.dart';
+
+int _countSnapshotSongs(String rawJson) {
+  try {
+    final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+    final songs = decoded['songs'];
+    return songs is List ? songs.length : 0;
+  } catch (_) {
+    return 0;
+  }
+}
 
 class SnapshotInfo {
   final String name;
@@ -25,7 +37,8 @@ class SnapshotService {
   SnapshotService._();
   static final SnapshotService instance = SnapshotService._();
 
-  static const int maxSnapshots = 3;
+  // Five slots keep a pre-loss snapshot reachable for longer than three.
+  static const int maxSnapshots = 5;
   static const String snapshotDirName = 'snapshots';
   static const String kLastSnapshotPrefKey = 'backup_last_snapshot_at';
   static const String kAutoRestoreOfferedPrefKey = 'backup_auto_restore_offered';
@@ -94,6 +107,22 @@ class SnapshotService {
       await prefs.setBool(kAutoRestoreOfferedPrefKey, true);
     } catch (_) {
       // Best effort.
+    }
+  }
+
+  /// Song count in the newest snapshot. Used to detect a library that is
+  /// much smaller than the last known good state, before a scan rewrites it.
+  Future<int> latestSongCount() async {
+    final latest = (await listSnapshots()).firstOrNull;
+    if (latest == null) return 0;
+    try {
+      final dir = await _dir();
+      final file =
+          File('${dir.path}${Platform.pathSeparator}${latest.name}');
+      final raw = await file.readAsString();
+      return await compute(_countSnapshotSongs, raw);
+    } catch (_) {
+      return 0;
     }
   }
 
