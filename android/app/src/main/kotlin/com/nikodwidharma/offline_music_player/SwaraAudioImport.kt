@@ -79,10 +79,12 @@ object SwaraAudioImport {
     private fun copy(context: Context, uri: Uri, name: String): CopyResult {
         if (Build.VERSION.SDK_INT >= 29) {
             val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            val projection = arrayOf(MediaStore.MediaColumns._ID)
+            val projection = arrayOf(
+                MediaStore.MediaColumns._ID,
+                MediaStore.MediaColumns.IS_PENDING,
+            )
             val selection = "${MediaStore.MediaColumns.DISPLAY_NAME}=? AND " +
-                "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND " +
-                "${MediaStore.MediaColumns.IS_PENDING}=0"
+                "${MediaStore.MediaColumns.RELATIVE_PATH}=?"
             val existing = context.contentResolver.query(
                 collection,
                 projection,
@@ -90,8 +92,24 @@ object SwaraAudioImport {
                 arrayOf(name, swaraDir),
                 null,
             )
-            val found = existing?.use { it.count > 0 } == true
-            if (found) return CopyResult(Outcome.DUPLICATE)
+            var stalePending: Uri? = null
+            existing?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
+                    val pending = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.IS_PENDING))
+                    if (pending == 0) {
+                        return CopyResult(Outcome.DUPLICATE)
+                    }
+                    stalePending = android.content.ContentUris.withAppendedId(
+                        collection, id)
+                }
+            }
+            stalePending?.let {
+                // A copy interrupted by process death left this row pending.
+                context.contentResolver.delete(it, null, null)
+            }
             val values = android.content.ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, name)
                 put(MediaStore.MediaColumns.MIME_TYPE, mimeOf(name))

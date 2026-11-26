@@ -112,7 +112,8 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
   Future<void> _importLrc() async {
     final l = AppLocalizations.of(context)!;
     try {
-      final count = await LrcImportService.pickAndApply(widget.song);
+      final imported = await LrcImportService.pickAndApply(widget.song);
+      final count = imported.count;
       if (!mounted || count == 0) return;
       if (count < 0) {
         ScaffoldMessenger.of(context)
@@ -122,7 +123,25 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
         );
         return;
       }
-      await context.read<LibraryProvider>().updateMetadata(widget.song);
+      final s = widget.song;
+      final updated = Song(
+        id: s.id,
+        filePath: s.filePath,
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        genre: s.genre,
+        region: s.region,
+        albumArtPath: s.albumArtPath,
+        albumArtUrl: s.albumArtUrl,
+        lyrics: imported.plain,
+        durationMs: s.durationMs,
+        isFavorite: s.isFavorite,
+        addedAt: s.addedAt,
+        metadataScanned: s.metadataScanned,
+      );
+      await context.read<LibraryProvider>().updateMetadata(updated);
+      s.lyrics = imported.plain;
       PlayerService.instance.lyricsRevision.value++;
       if (!mounted) return;
       setState(() => _controller.text = widget.song.lyrics ?? '');

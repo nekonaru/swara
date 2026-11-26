@@ -10,6 +10,7 @@ import 'db_helper.dart';
 class SmartPlaylistService {
   SmartPlaylistService._();
   static final SmartPlaylistService instance = SmartPlaylistService._();
+  static DateTime? _lastPlayStatsRebuild;
 
   /// Built-in rules. The name is only a display default: renamed built-ins
   /// are recognized by isAuto with no rule, so their rule survives a rename.
@@ -237,6 +238,14 @@ class SmartPlaylistService {
   }
 
   Future<void> rebuildAll({bool playStatsOnly = false}) async {
+    if (playStatsOnly) {
+      final last = _lastPlayStatsRebuild;
+      if (last != null &&
+          DateTime.now().difference(last) < const Duration(minutes: 2)) {
+        return;
+      }
+      _lastPlayStatsRebuild = DateTime.now();
+    }
     final seeded = playStatsOnly
         ? const <int>[]
         : await ensureBuiltIns();

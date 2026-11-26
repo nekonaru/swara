@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.16.0
+
+Large stability release: playback edge cases and large-library hot paths are fixed, with no new feature.
+
+## Improvements
+
+- **Queue access is constant time.** Notification and widget state pushes no longer materialize the whole play order on every update.
+- **Play-stat smart playlists are throttled.** Consecutive track changes no longer rebuild every rule-backed playlist.
+- **Swipe-to-remove verifies the file path.** A stale queue slot can no longer remove a different song.
+
+## Bug fixes
+
+- **Next on the final song with repeat off no longer stops playback** after a crossfade.
+- **Lyrics keep following through repeat-one crossfades** because the follower rebinds to the new player.
+- **Voice commands with artist and title metadata play the named track**, not a loose match from the spoken query.
+- **LRC import updates the song only after the database write succeeds.**
+- **An interrupted MediaStore import no longer blocks a later share** of the same file.
+
 ## v4.15.0
 
 Large widget release: the home widget now shows a tappable up-next queue, with no new dependency or permission.

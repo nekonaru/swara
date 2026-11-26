@@ -20,32 +20,39 @@ class LrcImportService {
   /// Pick a `.lrc` file and attach it to [song]. Returns the number of timed
   /// lines, `0` on cancel or an unusable file, and `-1` when the file is too
   /// large to store safely.
-  static Future<int> pickAndApply(Song song) async {
+  static Future<({int count, String plain})> pickAndApply(Song song) async {
     final picked = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['lrc'],
     );
-    if (picked.isEmpty) return 0;
+    if (picked.isEmpty) return (count: 0, plain: '');
     final file = picked.first;
     int? length;
     List<int> bytes;
     try {
       length = await file.length();
-      if (length == null || length <= 0 || length > maxBytes) return -1;
+      if (length == null || length <= 0 || length > maxBytes) {
+        return (count: -1, plain: '');
+      }
       bytes = await file.readAsBytes();
     } catch (_) {
-      return 0;
+      return (count: 0, plain: '');
     }
-    if (bytes.isEmpty || bytes.length > maxBytes) return -1;
+    if (bytes.isEmpty || bytes.length > maxBytes) {
+      return (count: -1, plain: '');
+    }
     final text = utf8.decode(bytes, allowMalformed: true);
     final lines = parseLrc(text);
-    if (lines.isEmpty) return 0;
+    if (lines.isEmpty) return (count: 0, plain: '');
     // An imported LRC must not wipe the user's saved timing correction.
     final offset = await DBHelper.instance.getSyncedLyricOffset(song.id);
     await DBHelper.instance.setSyncedLyrics(song.id, text, offsetMs: offset);
-    // Keep the plain text view in step with the imported timed view.
-    song.lyrics = lines.map((line) => line.text).join('\n');
-    return lines.length;
+    // Do not mutate the Song here: the caller mutates it only after the
+    // database write succeeds.
+    return (
+      count: lines.length,
+      plain: lines.map((line) => line.text).join('\n'),
+    );
   }
 
   /// Share the stored LRC as a real `.lrc` file the user can save anywhere.

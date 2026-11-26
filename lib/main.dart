@@ -130,7 +130,7 @@ class _WidgetBridge {
       if (slotId != null && path.isNotEmpty) {
         final pos = service.queuePosForSlot(slotId);
         if (pos != null && pos >= 0 && pos < service.queueOrderLength) {
-          if (service.queue[pos].filePath == path) {
+          if (service.songAtOrderIndex(pos)?.filePath == path) {
             await service.playAtQueueIndex(pos);
           }
         }
@@ -339,9 +339,9 @@ void _startWidgetStatePush() {
           i++)
         {
           'slotId': service.queueSlotIdAt(i) ?? -1,
-          'path': service.queue[i].filePath,
-          'title': service.queue[i].title,
-          'artist': service.queue[i].artist,
+          'path': service.songAtOrderIndex(i)?.filePath ?? '',
+          'title': service.songAtOrderIndex(i)?.title ?? '',
+          'artist': service.songAtOrderIndex(i)?.artist ?? '',
         },
     ]);
     if (!force &&

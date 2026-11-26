@@ -95,10 +95,16 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _onPlayerForLyrics() {
     final song = _player.currentSong;
     if (song == null) return;
+    final flipped = _lrcFlipCount != _player.playbackFlipCount;
     if (song.id != _lrcSongId ||
-        _lrcFlipCount != _player.playbackFlipCount ||
+        flipped ||
         (_showLyrics && _lrcPositionSub == null)) {
       _lrcFlipCount = _player.playbackFlipCount;
+      if (flipped) {
+        // Repeat-one crossfade can flip players while the song id stays the
+        // same. Force a reload so the follower rebinds to the new player.
+        _lrcSongId = -1;
+      }
       _scheduleLyricsSync(song);
     }
   }

@@ -69,9 +69,12 @@ class _QueueScreenState extends State<QueueScreen> {
 
   // Remove one queue entry by stable slot id. Resolves the live position
   // first; a null result means the entry is already gone, so ignore it.
-  void _removeSlot(int slotId) {
+  void _removeSlot(int slotId, String path) {
     final int? pos = _player.queuePosForSlot(slotId);
     if (pos == null) return;
+    // Slot ids are index based and change after earlier removals. Verify the
+    // file path before removing so a swipe never deletes the wrong song.
+    if (_player.songAtOrderIndex(pos)?.filePath != path) return;
     _player.removeFromQueue(pos);
   }
 
@@ -336,7 +339,7 @@ class _QueueScreenState extends State<QueueScreen> {
                             child: Dismissible(
                               key: ValueKey('queue_dismiss_slot_$slotId'),
                               direction: isPlaying ? DismissDirection.none : DismissDirection.endToStart,
-                              onDismissed: (_) => _removeSlot(slotId),
+                              onDismissed: (_) => _removeSlot(slotId, song.filePath),
                               background: Container(
                                 color: Theme.of(context).colorScheme.error,
                                 alignment: Alignment.centerRight,
@@ -368,7 +371,8 @@ class _QueueScreenState extends State<QueueScreen> {
                                                   minHeight: 48),
                                           icon: const Icon(Icons.close, size: 20),
                                           tooltip: AppLocalizations.of(context)!.remove,
-                                          onPressed: () => _removeSlot(slotId),
+                                          onPressed: () =>
+                                              _removeSlot(slotId, song.filePath),
                                         ),
                                       Icon(Icons.drag_handle, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                     ],

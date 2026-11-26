@@ -241,7 +241,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
     // The window start is owned by the debounced _publishQueue. Until it
     // catches up, clamp the relative index so a wrap or a fast jump cannot
     // point at a negative slot or one beyond the published window.
-    final publishedLength = ps.queue.length;
+    final publishedLength = ps.queueOrderLength;
     final windowLength = _publishedQueueLength > 0 &&
             _publishedQueueLength < publishedLength
         ? _publishedQueueLength
@@ -380,7 +380,7 @@ class SwaraAudioHandler extends BaseAudioHandler {
     // Only trust the slot when it still points at the same file. A queue
     // mutation or a cold restore can otherwise remap the id to a new song.
     if (pos != null && pos >= 0 && pos < ps.queueOrderLength) {
-      if (ps.queue[pos].filePath == path) {
+      if (ps.songAtOrderIndex(pos)?.filePath == path) {
         await ps.playAtQueueIndex(pos);
         return;
       }
@@ -415,18 +415,24 @@ class SwaraAudioHandler extends BaseAudioHandler {
       await PlayerService.instance.ready
           .timeout(const Duration(seconds: 3))
           .catchError((Object _) {});
-      final terms = <String>[query.trim()];
-      for (final key in const [
-        'android.media.extra.ARTIST',
-        'android.media.extra.TITLE',
-        'android.media.extra.ALBUM',
-        'artist',
-        'title',
-        'album',
-      ]) {
-        final value = extras?[key]?.toString().trim() ?? '';
-        if (value.isNotEmpty) terms.add(value);
-      }
+      String extra(String key) => extras?[key]?.toString().trim() ?? '';
+      final artist = extra('android.media.extra.ARTIST').isNotEmpty
+          ? extra('android.media.extra.ARTIST')
+          : extra('artist');
+      final title = extra('android.media.extra.TITLE').isNotEmpty
+          ? extra('android.media.extra.TITLE')
+          : extra('title');
+      final album = extra('android.media.extra.ALBUM').isNotEmpty
+          ? extra('android.media.extra.ALBUM')
+          : extra('album');
+      // Structured metadata wins over a broad spoken query.
+      final terms = <String>[
+        if (artist.isNotEmpty && title.isNotEmpty) '$artist $title',
+        if (title.isNotEmpty) title,
+        if (artist.isNotEmpty) artist,
+        if (album.isNotEmpty) album,
+        query.trim(),
+      ];
       for (final term in terms.where((t) => t.isNotEmpty)) {
         final hits = await SwaraBrowseCatalog.search(term, 1);
         if (hits.isEmpty) continue;

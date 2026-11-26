@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.16.0
+
+Rilis stabilitas besar: edge case pemutaran dan jalur panas pustaka besar diperbaiki, tanpa fitur baru.
+
+## Peningkatan
+
+- **Akses antrean konstan waktu.** Pembaruan notifikasi dan widget tidak lagi membangun seluruh urutan putar pada setiap kesempatan.
+- **Playlist pintar statistik putar dibatasi frekuensinya.** Lagu yang berganti berturut-turut tidak membangun ulang semua playlist berbasis aturan.
+- **Geser hapus memverifikasi jalur file.** Slot antrean yang usang tidak lagi menghapus lagu lain.
+
+## Perbaikan bug
+
+- **Lanjut di lagu terakhir dengan ulangi mati tidak lagi menghentikan pemutaran** setelah crossfade.
+- **Lirik tetap mengikuti lagu pada crossfade ulangi satu lagu** karena pengikut lirik mengikat ke player baru.
+- **Perintah suara dengan metadata artis dan judul memutar lagu yang disebut**, bukan kecocokan longgar dari ucapan.
+- **Impor LRC mengubah lagu hanya setelah penulisan database berhasil.**
+- **Impor MediaStore yang terputus tidak lagi memblokir Bagikan ulang** file yang sama.
+
 ## v4.15.0
 
 Rilis widget besar: widget layar home kini menampilkan antrean lagu berikutnya yang bisa diketuk, tanpa dependensi atau izin baru.

@@ -14,7 +14,7 @@ void main() {
     expect(provider.contains('KEY_QUEUE = "queue_json"'), isTrue);
     expect(provider.contains('ACTION_PLAY_SLOT'), isTrue);
     expect(provider.contains('setRemoteAdapter('), isTrue);
-    expect(provider.contains('setEmptyView('), isTrue);
+    expect(provider.contains('notifyAppWidgetViewDataChanged('), isTrue);
     final service = read(
       'android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/SwaraWidgetViewsService.kt',
     );
@@ -35,7 +35,7 @@ void main() {
     expect(main.contains('queueJson == lastQueueJson'), isTrue);
     expect(main.contains("action.startsWith('swara.widget.PLAY_SLOT:')"), isTrue);
     expect(main.contains('service.queuePosForSlot(slotId)'), isTrue);
-    expect(main.contains('service.queue[pos].filePath == path'), isTrue);
+    expect(main.contains('service.songAtOrderIndex(pos)?.filePath == path'), isTrue);
     final activity = read(
       'android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/MainActivity.kt',
     );

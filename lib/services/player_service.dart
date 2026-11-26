@@ -586,6 +586,13 @@ class PlayerService extends ChangeNotifier {
     }
   }
 
+  /// O(1) song lookup in play order. Avoid materializing the whole queue on
+  /// notification ticks and widget state pushes.
+  Song? songAtOrderIndex(int index) {
+    if (index < 0 || index >= _playOrder.length) return null;
+    return _queue[_playOrder[index]];
+  }
+
   /// Title of the next entry in play order, or null at the end of the queue.
   /// The widget uses this as a lightweight "up next" hint.
   String? get nextTitle {
@@ -1502,15 +1509,20 @@ class PlayerService extends ChangeNotifier {
     // this song" sleep flag must not survive. The natural end path clears it
     // inside _onNaturalTrackEnd before it ever reaches these methods.
     _pendingSleepStop = false;
+    // Check the destination before touching the players. A crossfade can
+    // leave the standby player audible; pausing it and then returning on the
+    // last song would kill playback that should simply continue.
+    if (_posInOrder >= _playOrder.length - 1 &&
+        _repeatMode != SwaraRepeatMode.all) {
+      return;
+    }
     await _vol(() => _crossfadePlayer?.pause() ?? Future<void>.value());
     _usingCrossfadePlayer = false;
     if (!crossfadeEnabled) _releaseCrossfadePlayer();
     if (_posInOrder < _playOrder.length - 1) {
       _posInOrder++;
-    } else if (_repeatMode == SwaraRepeatMode.all) {
-      _posInOrder = 0;
     } else {
-      return; // already on the last song with no repeat, nothing to do
+      _posInOrder = 0;
     }
     await _playCurrent();
   }

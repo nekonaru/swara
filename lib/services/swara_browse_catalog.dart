@@ -155,12 +155,12 @@ class SwaraBrowseCatalog {
     }
     if (parentId == catQueue) {
       final service = PlayerService.instance;
-      final queue = service.queue;
       final out = <MediaItem>[];
       for (var i = offset;
-          i < queue.length && out.length < pageSize;
+          i < service.queueOrderLength && out.length < pageSize;
           i++) {
-        final song = queue[i];
+        final song = service.songAtOrderIndex(i);
+        if (song == null) continue;
         final slot = service.queueSlotIdAt(i);
         out.add(_leaf(song,
             id: 'queue_${slot ?? -1}_${song.filePath}'));

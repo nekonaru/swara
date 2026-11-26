@@ -132,7 +132,6 @@ class SwaraWidgetProvider : AppWidgetProvider() {
                 R.id.widget_queue,
                 playSlotTemplate(context),
             )
-            views.setEmptyView(R.id.widget_queue, R.id.widget_next_line)
             // Artwork: decode a downscaled bitmap on first build after a
             // state change. RemoteViews transactions have a size budget, so
             // never ship the full resolution image.
