@@ -1849,6 +1849,25 @@ class DBHelper {
     }
   }
 
+  /// Search both title and artist in the same row. Used by voice playback
+  /// where the spoken query is ambiguous but the metadata extras are precise.
+  Future<List<Song>> querySongsByTitleAndArtist(
+    String title,
+    String artist, {
+    int limit = 20,
+  }) async {
+    final database = await db;
+    final titlePattern = '%${_escapeLike(title)}%';
+    final artistPattern = '%${_escapeLike(artist)}%';
+    final rows = await database.rawQuery(
+      'SELECT * FROM songs WHERE lower(title) LIKE lower(?) '
+      "ESCAPE '\\' AND lower(artist) LIKE lower(?) ESCAPE '\\' "
+      'ORDER BY title ASC LIMIT ?',
+      [titlePattern, artistPattern, limit],
+    );
+    return await _songsFromRows(rows);
+  }
+
   /// Paged song query with search, sort, and excluded folder filtering.
   /// No schema change. [orderBy] is strictly whitelisted, unknown values
   /// fall back to title ASC. Each excluded folder becomes a

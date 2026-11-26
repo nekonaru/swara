@@ -58,6 +58,6 @@ void main() {
     );
     expect(kt.contains('IS_PENDING'), isTrue);
     expect(kt.contains('stalePending'), isTrue);
-    expect(kt.contains('context.contentResolver.delete(it, null, null)'), isTrue);
+    expect(kt.contains('context.contentResolver.delete(uri, null, null)'), isTrue);
   });
 }

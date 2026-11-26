@@ -170,6 +170,19 @@ class SwaraBrowseCatalog {
     return const <MediaItem>[];
   }
 
+  static Future<List<MediaItem>> searchByTitleAndArtist(
+    String title,
+    String artist, {
+    int limit = 20,
+  }) async {
+    final rows = await DBHelper.instance.querySongsByTitleAndArtist(
+      title,
+      artist,
+      limit: limit,
+    );
+    return [for (final song in rows) _leaf(song)];
+  }
+
   static Future<List<MediaItem>> search(String query,
       [int limit = maxChildren]) async {
     if (query.trim().isEmpty) return const <MediaItem>[];

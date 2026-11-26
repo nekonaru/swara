@@ -244,7 +244,6 @@ class SmartPlaylistService {
           DateTime.now().difference(last) < const Duration(minutes: 2)) {
         return;
       }
-      _lastPlayStatsRebuild = DateTime.now();
     }
     final seeded = playStatsOnly
         ? const <int>[]
@@ -259,6 +258,7 @@ class SmartPlaylistService {
       }
       await _rebuildWithRule(id, rule);
     }
+    if (playStatsOnly) _lastPlayStatsRebuild = DateTime.now();
   }
 
   Future<void> setRule(int playlistId, SmartRule? rule) async {

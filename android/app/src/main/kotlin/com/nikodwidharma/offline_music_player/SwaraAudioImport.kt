@@ -92,9 +92,9 @@ object SwaraAudioImport {
                 arrayOf(name, swaraDir),
                 null,
             )
-            var stalePending: Uri? = null
+            val stalePending = ArrayList<Uri>()
             existing?.use { cursor ->
-                if (cursor.moveToFirst()) {
+                while (cursor.moveToNext()) {
                     val id = cursor.getLong(
                         cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
                     val pending = cursor.getInt(
@@ -102,13 +102,13 @@ object SwaraAudioImport {
                     if (pending == 0) {
                         return CopyResult(Outcome.DUPLICATE)
                     }
-                    stalePending = android.content.ContentUris.withAppendedId(
-                        collection, id)
+                    stalePending.add(
+                        android.content.ContentUris.withAppendedId(collection, id))
                 }
             }
-            stalePending?.let {
+            for (uri in stalePending) {
                 // A copy interrupted by process death left this row pending.
-                context.contentResolver.delete(it, null, null)
+                context.contentResolver.delete(uri, null, null)
             }
             val values = android.content.ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, name)

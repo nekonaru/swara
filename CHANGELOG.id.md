@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.16.1
+
+Rilis patch setelah review: pembatalan crossfade, pencocokan suara, dan impor yang terputus ditangani dengan aman.
+
+## Perbaikan bug
+
+- **Lanjut di lagu terakhir saat crossfade menenangkan kedua player**, bukan meninggalkan audio ganda yang bergeser.
+- **Perintah suara dengan artis dan judul mencocokkan kedua kolom dalam satu lagu.**
+- **Impor yang terputus dengan beberapa baris bernama sama tidak menghapus file yang sudah selesai.**
+- **Gagal membangun ulang statistik putar bisa segera dicoba lagi**, tanpa menunggu jendela pembatasan.
+
 ## v4.16.0
 
 Rilis stabilitas besar: edge case pemutaran dan jalur panas pustaka besar diperbaiki, tanpa fitur baru.

@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.16.1
+
+Patch release after review: crossfade cancellation, voice matching and interrupted imports are handled safely.
+
+## Bug fixes
+
+- **Next on the last song during a crossfade settles both players** instead of leaving phased duplicate audio.
+- **Voice commands with artist and title metadata match both fields in the same song.**
+- **Interrupted imports with several same-named rows do not delete a completed file.**
+- **A failed play-stat rebuild can retry immediately** instead of waiting for the throttle window.
+
 ## v4.16.0
 
 Large stability release: playback edge cases and large-library hot paths are fixed, with no new feature.

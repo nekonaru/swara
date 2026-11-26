@@ -1501,6 +1501,7 @@ class PlayerService extends ChangeNotifier {
     _playGeneration++;
     queueVersion++;
     _logListening();
+    final wasCrossfadeActive = isCrossfadeActive;
     if (_sleepFadeActive) _cancelSleepFadeOut();
     _cancelPauseFade();
     _cancelCrossfade();
@@ -1514,6 +1515,21 @@ class PlayerService extends ChangeNotifier {
     // last song would kill playback that should simply continue.
     if (_posInOrder >= _playOrder.length - 1 &&
         _repeatMode != SwaraRepeatMode.all) {
+      if (wasCrossfadeActive) {
+        // abort by generation leaves the fade loop without cleanup. Settle
+        // both players so the last song keeps playing at full volume and the
+        // standby player does not keep echoing it.
+        final audibleIsCrossfade = _usingCrossfadePlayer;
+        await _vol(() async {
+          if (audibleIsCrossfade) {
+            await _player.pause();
+            await _setVol(_crossfadePlayer!, 1);
+          } else {
+            await _crossfadePlayer?.pause();
+            await _setVol(_player, 1);
+          }
+        });
+      }
       return;
     }
     await _vol(() => _crossfadePlayer?.pause() ?? Future<void>.value());

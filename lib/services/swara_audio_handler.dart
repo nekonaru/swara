@@ -425,6 +425,16 @@ class SwaraAudioHandler extends BaseAudioHandler {
       final album = extra('android.media.extra.ALBUM').isNotEmpty
           ? extra('android.media.extra.ALBUM')
           : extra('album');
+      // With both fields supplied, require them in the same row. One
+      // substring query per column cannot express that.
+      if (title.isNotEmpty && artist.isNotEmpty) {
+        final combined =
+            await SwaraBrowseCatalog.searchByTitleAndArtist(title, artist);
+        if (combined.isNotEmpty) {
+          await _playMediaItem(combined.first.id);
+          return;
+        }
+      }
       // Structured metadata wins over a broad spoken query.
       final terms = <String>[
         if (artist.isNotEmpty && title.isNotEmpty) '$artist $title',
