@@ -128,11 +128,24 @@ class _WidgetBridge {
       final slotId = int.tryParse(raw.substring(0, separator));
       final path = raw.substring(separator + 1);
       if (slotId != null && path.isNotEmpty) {
-        final pos = service.queuePosForSlot(slotId);
-        if (pos != null && pos >= 0 && pos < service.queueOrderLength) {
-          if (service.songAtOrderIndex(pos)?.filePath == path) {
-            await service.playAtQueueIndex(pos);
+        var pos = service.queuePosForSlot(slotId);
+        if (pos == null ||
+            pos < 0 ||
+            pos >= service.queueOrderLength ||
+            service.songAtOrderIndex(pos)?.filePath != path) {
+          // Slot ids are index based and change after removals. Fall back to
+          // the file path, like Android Auto does, so a stale widget row can
+          // still play the song the user sees.
+          pos = null;
+          for (var i = 0; i < service.queueOrderLength; i++) {
+            if (service.songAtOrderIndex(i)?.filePath == path) {
+              pos = i;
+              break;
+            }
           }
+        }
+        if (pos != null && pos >= 0 && pos < service.queueOrderLength) {
+          await service.playAtQueueIndex(pos);
         }
       }
       return;

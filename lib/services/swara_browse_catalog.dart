@@ -180,7 +180,11 @@ class SwaraBrowseCatalog {
       artist,
       limit: limit,
     );
-    return [for (final song in rows) _leaf(song)];
+    final excluded = await DBHelper.instance.getExcludedFolders();
+    return [
+      for (final song in rows)
+        if (!isHiddenPath(song.filePath, excluded)) _leaf(song),
+    ];
   }
 
   static Future<List<MediaItem>> search(String query,

@@ -35,7 +35,7 @@ void main() {
     expect(main.contains('queueJson == lastQueueJson'), isTrue);
     expect(main.contains("action.startsWith('swara.widget.PLAY_SLOT:')"), isTrue);
     expect(main.contains('service.queuePosForSlot(slotId)'), isTrue);
-    expect(main.contains('service.songAtOrderIndex(pos)?.filePath == path'), isTrue);
+    expect(main.contains('service.songAtOrderIndex(i)?.filePath == path'), isTrue);
     final activity = read(
       'android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/MainActivity.kt',
     );

@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.17.0
+
+Rilis gambar offline besar: sampul sidecar folder dipakai saat tag tersemat tidak ada, plus perbaikan keandalan akhir.
+
+## Fitur baru
+
+- **Sampul dari folder.** Saat lagu tidak punya sampul tersemat, aplikasi mencari `cover.jpg` atau `folder.jpg` di folder yang sama lalu menyimpannya secara privat. Album tanpa tag tetap mendapat sampul tanpa permintaan jaringan.
+
+## Peningkatan
+
+- **Pencocokan suara mematuhi folder tersembunyi** untuk perintah judul dan artis gabungan.
+- **Baris antrean widget yang usang jatuh ke jalur file**, sehingga ketukan setelah perubahan antrean tetap memutar lagu yang terlihat.
+
+## Perbaikan bug
+
+- **Ganti lagu cepat tidak bisa menjalankan dua pembangunan ulang statistik putar sekaligus.**
+
 ## v4.16.1
 
 Rilis patch setelah review: pembatalan crossfade, pencocokan suara, dan impor yang terputus ditangani dengan aman.

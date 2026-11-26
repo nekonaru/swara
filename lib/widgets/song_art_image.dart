@@ -97,8 +97,10 @@ class _SongArtImageState extends State<SongArtImage> {
   }
 
   Future<void> _loadEmbedded() async {
-    final path =
-        await EmbeddedArtService.instance.resolveArtFile(widget.song.id);
+    final path = await EmbeddedArtService.instance.resolveArtFile(
+      widget.song.id,
+      filePath: widget.song.filePath,
+    );
     if (!mounted) return;
     setState(() {
       _embeddedPath = path;

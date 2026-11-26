@@ -1,5 +1,22 @@
 # Changelog
 
+## v4.17.0
+
+Large offline artwork release: folder sidecar covers are used when embedded tags are missing, plus final reliability fixes.
+
+## New features
+
+- **Folder cover art.** When a song has no embedded tag, the app looks for `cover.jpg` or `folder.jpg` beside the audio file and caches it privately. Untagged albums get artwork without a network request.
+
+## Improvements
+
+- **Voice matching respects hidden folders** for combined title and artist commands.
+- **Stale widget queue rows fall back to the file path**, so a tap after a queue edit still plays the shown song.
+
+## Bug fixes
+
+- **Rapid track changes cannot run two play-stat rebuilds at once.**
+
 ## v4.16.1
 
 Patch release after review: crossfade cancellation, voice matching and interrupted imports are handled safely.

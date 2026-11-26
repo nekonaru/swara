@@ -11,6 +11,7 @@ class SmartPlaylistService {
   SmartPlaylistService._();
   static final SmartPlaylistService instance = SmartPlaylistService._();
   static DateTime? _lastPlayStatsRebuild;
+  static bool _playStatsRebuildInFlight = false;
 
   /// Built-in rules. The name is only a display default: renamed built-ins
   /// are recognized by isAuto with no rule, so their rule survives a rename.
@@ -239,26 +240,32 @@ class SmartPlaylistService {
 
   Future<void> rebuildAll({bool playStatsOnly = false}) async {
     if (playStatsOnly) {
+      if (_playStatsRebuildInFlight) return;
       final last = _lastPlayStatsRebuild;
       if (last != null &&
           DateTime.now().difference(last) < const Duration(minutes: 2)) {
         return;
       }
+      _playStatsRebuildInFlight = true;
     }
-    final seeded = playStatsOnly
-        ? const <int>[]
-        : await ensureBuiltIns();
-    final rows = await DBHelper.instance.getPlaylists();
-    for (final row in rows) {
-      final id = (row['id'] as num?)?.toInt();
-      final rule = SmartRule.tryParse(row['rule'] as String?);
-      if (id == null || rule == null) continue;
-      if (playStatsOnly && !rule.needsPlayStats && !seeded.contains(id)) {
-        continue;
+    try {
+      final seeded = playStatsOnly
+          ? const <int>[]
+          : await ensureBuiltIns();
+      final rows = await DBHelper.instance.getPlaylists();
+      for (final row in rows) {
+        final id = (row['id'] as num?)?.toInt();
+        final rule = SmartRule.tryParse(row['rule'] as String?);
+        if (id == null || rule == null) continue;
+        if (playStatsOnly && !rule.needsPlayStats && !seeded.contains(id)) {
+          continue;
+        }
+        await _rebuildWithRule(id, rule);
       }
-      await _rebuildWithRule(id, rule);
+      if (playStatsOnly) _lastPlayStatsRebuild = DateTime.now();
+    } finally {
+      if (playStatsOnly) _playStatsRebuildInFlight = false;
     }
-    if (playStatsOnly) _lastPlayStatsRebuild = DateTime.now();
   }
 
   Future<void> setRule(int playlistId, SmartRule? rule) async {

@@ -85,20 +85,20 @@ class EmbeddedArtService {
   /// Resolve the cached embedded cover for [songId], extracting and caching
   /// it on first use. Returns the absolute file path, or null when the song
   /// has no embedded artwork or anything failed.
-  Future<String?> resolveArtFile(int songId) {
+  Future<String?> resolveArtFile(int songId, {String? filePath}) {
     if (songId <= 0) return Future.value(null);
     final hit = peekSync(songId);
     if (hit != null) return Future.value(hit);
     if (_missing.contains(songId)) return Future.value(null);
     final pending = _inFlight[songId];
     if (pending != null) return pending;
-    final task = _resolveInner(songId);
+    final task = _resolveInner(songId, filePath);
     _inFlight[songId] = task;
     task.whenComplete(() => _inFlight.remove(songId));
     return task;
   }
 
-  Future<String?> _resolveInner(int songId) async {
+  Future<String?> _resolveInner(int songId, String? filePath) async {
     try {
       final dirPath = await _dir();
       if (dirPath == null) return null;
@@ -114,6 +114,10 @@ class EmbeddedArtService {
         size: 200,
       );
       if (bytes == null || bytes.isEmpty) {
+        // No embedded tag: look for a sidecar in the song's own folder. This
+        // keeps untagged collections offline and needs no new permission.
+        final folderArt = await _folderArt(songId, filePath, file);
+        if (folderArt != null) return folderArt;
         _missing.add(songId);
         return null;
       }
@@ -126,6 +130,36 @@ class EmbeddedArtService {
       _missing.add(songId);
       return null;
     }
+  }
+
+  /// Look for cover.jpg / folder.jpg next to the audio file and copy it into
+  /// the existing private art cache. Returns null when nothing is found.
+  Future<String?> _folderArt(
+    int songId,
+    String? filePath,
+    File cacheFile,
+  ) async {
+    if (filePath == null || filePath.isEmpty) return null;
+    final folder = p.dirname(filePath);
+    for (final name in const [
+      'cover.jpg',
+      'folder.jpg',
+      'Cover.jpg',
+      'Folder.jpg',
+      'cover.png',
+      'folder.png',
+    ]) {
+      final source = File(p.join(folder, name));
+      try {
+        if (!await source.exists() || await source.length() <= 0) continue;
+        await source.copy(cacheFile.path);
+        _knownPaths[songId] = cacheFile.path;
+        return cacheFile.path;
+      } catch (_) {
+        // Try the next sidecar name.
+      }
+    }
+    return null;
   }
 
   // Drop a song's embedded cover from every index. Used after a metadata
