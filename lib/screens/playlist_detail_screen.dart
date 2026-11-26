@@ -133,6 +133,30 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   }
 
   Future<void> _removeSong(Song song) async {
+    final l = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.playlistRemoveConfirmTitle),
+        content: Text(l.playlistRemoveConfirmMessage(song.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.delete),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (ok != true) {
+      // The tile was dismissed before the question. Rebuild it on cancel.
+      setState(() => _songs = List<Song>.of(_songs));
+      return;
+    }
     try {
       await context.read<PlaylistProvider>().removeSong(widget.playlistId, song.id);
     } catch (e) {

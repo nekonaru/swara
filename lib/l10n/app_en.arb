@@ -2626,6 +2626,46 @@
                                      "error": {"type": "String"}
                                    }
                                },
+    "destructiveConfirmTitle":  "Please confirm",
+    "@destructiveConfirmTitle":  {
+                                   "description":  "English locale string"
+                               },
+    "destructiveConfirmMessage":  "{what} will be removed. This cannot be undone.",
+    "@destructiveConfirmMessage":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "what": {"type": "String"}
+                                   }
+                               },
+    "destructiveUpdateMessage":  "{what} will be overwritten. This cannot be undone.",
+    "@destructiveUpdateMessage":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "what": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotPruneTitle":  "Delete old snapshots",
+    "@dataSnapshotPruneTitle":  {
+                                   "description":  "English locale string"
+                               },
+    "dataSnapshotPruneMessage":  "Delete {count} oldest snapshots? The newest five are kept.",
+    "@dataSnapshotPruneMessage":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+                               },
+    "playlistRemoveConfirmTitle":  "Remove from playlist?",
+    "@playlistRemoveConfirmTitle":  {
+                                   "description":  "English locale string"
+                               },
+    "playlistRemoveConfirmMessage":  "Remove \"{title}\" from this playlist? The song stays in your library.",
+    "@playlistRemoveConfirmMessage":  {
+                                   "description":  "English locale string",
+                                   "placeholders": {
+                                     "title": {"type": "String"}
+                                   }
+                               },
     "dataSnapshotAutoTitle":  "Restore local snapshot?",
     "@dataSnapshotAutoTitle":  {
                                    "description":  "English locale string"

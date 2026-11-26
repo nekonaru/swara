@@ -14,16 +14,16 @@ void main() {
     );
     expect(kt.contains('stalePending'), isFalse);
     expect(kt.contains('if (committed) return CopyResult(Outcome.DUPLICATE)'), isTrue);
-    // An interrupted copy is resumed from its pending row, never deleted.
-    expect(kt.contains('val reused = pendingUri != null'), isTrue);
-    expect(kt.contains('if (!reused) context.contentResolver.delete(target, null, null)'), isTrue);
+    // No row is deleted on a failed copy; the pending row is reused later.
+    expect(kt.contains('contentResolver.delete(target'), isFalse);
   });
 
-  test('ghost cleanup requires a nearly complete device result', () {
+  test('a scan never removes missing song rows', () {
     final scanner = read('lib/services/library_scanner.dart');
-    expect(scanner.contains('(dbCount * 0.95).ceil()'), isTrue);
-    expect(scanner.contains('(dbCount * 0.02).ceil().clamp(1, 20)'), isTrue);
-    expect(scanner.contains('ghostCount > 0 && ghostCount <= maxGhosts'), isTrue);
+    expect(scanner.contains('deleteSongsMissingFromDevice('), isFalse);
+    expect(scanner.contains('A scan never deletes anything'), isTrue);
+    final main = read('lib/main.dart');
+    expect(main.contains('pruneMetadataCache('), isFalse);
   });
 
   test('duplicate deletion verifies the recording', () {

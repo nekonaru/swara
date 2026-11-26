@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.19.0
+
+Consent release: nothing is removed automatically. Every destructive action validates its target and asks for explicit confirmation.
+
+## New features
+
+- **Old-snapshot cleanup on demand.** Snapshots are no longer rotated away silently. Settings offers a confirmed action that removes only the oldest ones beyond the five kept.
+
+## Improvements
+
+- **Confirmed removal everywhere.** Playlist membership, bookmarks, playback settings, bulk edits, synced lyric replacement, queue entries and snapshot files now ask before anything is changed.
+- **Share imports keep failed copies.** A copy that fails leaves its MediaStore row pending so the next share can reuse it, with no file removal.
+- **Snapshot deletes are validated.** Only a known snapshot with the expected filename can be removed.
+
+## Bug fixes
+
+- **Startup and refresh scans no longer prune missing song rows.** Those rows keep their favorites, playlists and history until the user explicitly removes them.
+- **Boot no longer prunes the metadata cache** without consent.
+
 ## v4.18.0
 
 Large recovery release: a lost library can be recovered at boot, bulk deletions are undoable, and several playback and data anomalies are fixed.

@@ -2262,6 +2262,35 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get destructiveConfirmTitle => 'Please confirm';
+
+  @override
+  String destructiveConfirmMessage(String what) {
+    return '$what will be removed. This cannot be undone.';
+  }
+
+  @override
+  String destructiveUpdateMessage(String what) {
+    return '$what will be overwritten. This cannot be undone.';
+  }
+
+  @override
+  String get dataSnapshotPruneTitle => 'Delete old snapshots';
+
+  @override
+  String dataSnapshotPruneMessage(int count) {
+    return 'Delete $count oldest snapshots? The newest five are kept.';
+  }
+
+  @override
+  String get playlistRemoveConfirmTitle => 'Remove from playlist?';
+
+  @override
+  String playlistRemoveConfirmMessage(String title) {
+    return 'Remove \"$title\" from this playlist? The song stays in your library.';
+  }
+
+  @override
   String get dataSnapshotAutoTitle => 'Restore local snapshot?';
 
   @override

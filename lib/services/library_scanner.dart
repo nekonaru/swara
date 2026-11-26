@@ -218,40 +218,11 @@ class LibraryScanner {
       uriType: UriType.EXTERNAL,
     );
 
-    // IDs of ALL songs that truly still exist on the device (including ones in
-    // hidden folders) - used to clean up "ghost" songs without also deleting
-    // songs that are merely hidden (not really gone).
-    final allDeviceIdsOnMain = tracks.map((t) => t.id).toSet();
-
-    // Safety guard: never delete anything when querySongs() looks like it
-    // returned a suspicious result - the MediaStore may not have finished
-    // indexing, storage permission may have just been granted (race condition),
-    // or the plugin may have failed temporarily. Without this guard, the whole
-    // library could be wiped from the DB even though the files are still on
-    // the phone.
-    //
-    // Conditions treated as unsafe:
-    //   1. The device returns no songs at all (the most dangerous case).
-    //   2. The device result is not almost complete. A partial MediaStore read
-    //      after a permission change, a storage hiccup or a volume going away
-    //      can otherwise prune thousands of rows whose files are still there.
-    //   3. More than a small share of the library looks missing at once.
-    // Deleting a row also removes its favorites, playlists and history, so a
-    // false positive is far worse than leaving a stale row behind.
-    final bool safeToDelete;
-    if (allDeviceIdsOnMain.isEmpty) {
-      safeToDelete = false;
-    } else {
-      final dbCount = await DBHelper.instance.getSongCount();
-      final deviceCount = allDeviceIdsOnMain.length;
-      if (dbCount == 0 || deviceCount < (dbCount * 0.95).ceil()) {
-        safeToDelete = false;
-      } else {
-        final ghostCount = dbIdsAtScanStart.difference(allDeviceIdsOnMain).length;
-        final maxGhosts = (dbCount * 0.02).ceil().clamp(1, 20).toInt();
-        safeToDelete = ghostCount > 0 && ghostCount <= maxGhosts;
-      }
-    }
+    // A scan never deletes anything. MediaStore can return a partial result
+    // after a permission change or a storage hiccup, and a row removal also
+    // drops favorites, playlists and listening history. Rows whose files are
+    // gone are left untouched: removing them is an explicit, user-confirmed
+    // action, never a side effect of startup or refresh.
 
     // Move the heavy per-track processing off the main thread. querySongs()
     // is a platform channel call so it stays on the main thread above; the
@@ -283,19 +254,14 @@ class LibraryScanner {
     final allDeviceIds = scanResult.allDeviceIds;
     // Move detection MUST run before the insert batch or matched new files
     // would be inserted as duplicates of their own ghost rows.
-    var keepIds = allDeviceIds;
-    if (safeToDelete && pendingMaps.isNotEmpty) {
-      final reused = await _suppressMovedGhosts(
+    if (pendingMaps.isNotEmpty) {
+      // Re-path moved files so they are not inserted as duplicates. No row is
+      // removed here; cleanup is an explicit user action elsewhere.
+      await _suppressMovedGhosts(
         pendingMaps: pendingMaps,
         dbIdsAtScanStart: dbIdsAtScanStart,
         allDeviceIds: allDeviceIds,
       );
-      // The re-pathed ghost rows keep their old MediaStore ids, which are
-      // not in allDeviceIds by definition; without them the delete pass
-      // below removes the rows we just rescued.
-      if (reused.isNotEmpty) {
-        keepIds = {...allDeviceIds, ...reused};
-      }
     }
     // MediaStore can re-id a file (copy, storage migration, id reuse). The
     // row keeps its old id because playlists, favorites, history and lyrics
@@ -304,11 +270,9 @@ class LibraryScanner {
     // row, take the user data with it and orphan every child row. Detect
     // the collision and turn the insert into an update instead.
     if (pendingMaps.isNotEmpty) {
-      final reused = await _reusePathCollidingRows(pendingMaps: pendingMaps,
+      await _reusePathCollidingRows(pendingMaps: pendingMaps,
           pendingUpdates: pendingUpdates, updateIds: updateIds);
-      if (reused.isNotEmpty) {
-        keepIds = {...keepIds, ...reused};
-      }
+      // `reused` rows were updated in place; nothing is deleted.
     }
     if (pendingMaps.isNotEmpty || pendingUpdates.isNotEmpty) {
       final batch = database.batch();
@@ -327,17 +291,7 @@ class LibraryScanner {
       await batch.commit(noResult: true);
     }
 
-    // Clean up "ghost" songs - rows in the DB whose original files were
-    // deleted/moved from the phone outside the app.
-    // Only runs when querySongs() returns a sane result (see the guard above).
-    if (safeToDelete) {
-      // Pass the snapshot so a parallel scan cannot have its freshly inserted
-      // rows deleted as ghosts by this one.
-      await DBHelper.instance.deleteSongsMissingFromDevice(
-        keepIds,
-        knownDbIds: dbIdsAtScanStart,
-      );
-    }
+    // No ghost cleanup here by design. See the note above.
 
     return result;
   }

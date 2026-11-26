@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.19.0
+
+Rilis persetujuan: tidak ada yang dihapus otomatis. Setiap tindakan merusak memvalidasi sasaran dan meminta konfirmasi eksplisit.
+
+## Fitur baru
+
+- **Pembersihan snapshot lama sesuai permintaan.** Snapshot tidak lagi dibuang diam-diam. Pengaturan menawarkan tindakan berkonsirmasi yang menghapus hanya yang tertua di luar lima yang disimpan.
+
+## Peningkatan
+
+- **Semua penghapusan meminta konfirmasi.** Anggota playlist, penanda, pengaturan pemutaran, pengeditan massal, penggantian lirik berwaktu, entri antrean, dan file snapshot kini bertanya lebih dulu.
+- **Impor Bagikan menyimpan salinan yang gagal.** Salinan yang gagal membiarkan baris MediaStore tetap pending agar Bagikan berikutnya bisa memakainya, tanpa penghapusan file.
+- **Hapus snapshot divalidasi.** Hanya snapshot yang dikenal dengan nama berkas yang sesuai yang boleh dihapus.
+
+## Perbaikan bug
+
+- **Pemindaian saat mulai dan segarkan tidak lagi memangkas lagu yang hilang.** Baris itu menyimpan favorit, playlist, dan riwayat sampai pengguna menghapusnya secara eksplisit.
+- **Boot tidak lagi membersihkan cache metadata** tanpa persetujuan.
+
 ## v4.18.0
 
 Rilis pemulihan besar: pustaka yang hilang bisa dipulihkan saat boot, penghapusan massal bisa dibatalkan, dan beberapa anomali pemutaran serta data diperbaiki.

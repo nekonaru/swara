@@ -63,13 +63,14 @@ void main() {
     );
   });
 
-  test('the ghost cleanup compares against a snapshot, not a live read', () {
+  test('a scan never deletes rows automatically', () {
     final source = readScanner();
     expect(
-      source.contains('knownDbIds: dbIdsAtScanStart'),
-      isTrue,
-      reason: 'the delete must use the ids captured before querySongs',
+      source.contains('deleteSongsMissingFromDevice('),
+      isFalse,
+      reason: 'a scan must never remove rows without confirmation',
     );
+    expect(source.contains('A scan never deletes anything'), isTrue);
     final db = readDb();
     expect(db.contains('Set<int>? knownDbIds'), isTrue);
     expect(

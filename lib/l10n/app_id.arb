@@ -2626,6 +2626,46 @@
                                      "error": {"type": "String"}
                                    }
                                },
+    "destructiveConfirmTitle":  "Harap konfirmasi",
+    "@destructiveConfirmTitle":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "destructiveConfirmMessage":  "{what} akan dihapus. Tidak bisa dibatalkan.",
+    "@destructiveConfirmMessage":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "what": {"type": "String"}
+                                   }
+                               },
+    "destructiveUpdateMessage":  "{what} akan ditimpa. Tidak bisa dibatalkan.",
+    "@destructiveUpdateMessage":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "what": {"type": "String"}
+                                   }
+                               },
+    "dataSnapshotPruneTitle":  "Hapus snapshot lama",
+    "@dataSnapshotPruneTitle":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "dataSnapshotPruneMessage":  "Hapus {count} snapshot tertua? Lima terbaru tetap disimpan.",
+    "@dataSnapshotPruneMessage":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "count": {"type": "int"}
+                                   }
+                               },
+    "playlistRemoveConfirmTitle":  "Hapus dari playlist?",
+    "@playlistRemoveConfirmTitle":  {
+                                   "description":  "Indonesian locale string"
+                               },
+    "playlistRemoveConfirmMessage":  "Hapus \"{title}\" dari playlist ini? Lagu tetap ada di pustaka.",
+    "@playlistRemoveConfirmMessage":  {
+                                   "description":  "Indonesian locale string",
+                                   "placeholders": {
+                                     "title": {"type": "String"}
+                                   }
+                               },
     "dataSnapshotAutoTitle":  "Pulihkan snapshot lokal?",
     "@dataSnapshotAutoTitle":  {
                                    "description":  "Indonesian locale string"

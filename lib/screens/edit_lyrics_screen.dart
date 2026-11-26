@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
+import '../services/db_helper.dart';
 import '../services/lrc_import_service.dart';
 import '../services/player_service.dart';
 
@@ -115,7 +116,32 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
       final imported = await LrcImportService.pickAndApply(widget.song);
       final count = imported.count;
       if (!mounted || count == 0) return;
+      // An existing timed lyric set would be replaced. Ask first.
+      final hadLrc =
+          await DBHelper.instance.getSyncedLyrics(widget.song.id) != null;
+      if (!mounted) return;
+      if (hadLrc) {
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l.destructiveConfirmTitle),
+            content: Text(l.destructiveUpdateMessage(l.editLyricsLrcImported(count))),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l.dataSnapshotRestore),
+              ),
+            ],
+          ),
+        );
+        if (ok != true || !mounted) return;
+      }
       if (count < 0) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
@@ -140,6 +166,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
         addedAt: s.addedAt,
         metadataScanned: s.metadataScanned,
       );
+      if (!mounted) return;
       await context.read<LibraryProvider>().updateMetadata(updated);
       s.lyrics = imported.plain;
       PlayerService.instance.lyricsRevision.value++;

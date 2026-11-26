@@ -12,9 +12,9 @@ void main() {
   group('scanner preserves library data', () {
     final scanner = read('lib/services/library_scanner.dart');
 
-    test('repathed ghost ids survive the delete pass', () {
-      expect(scanner.contains('keepIds = {...allDeviceIds, ...reused}'), isTrue,
-          reason: 'a moved file keeps its old row id and must not be deleted');
+    test('moved files are repathed without deleting rows', () {
+      expect(scanner.contains('_suppressMovedGhosts('), isTrue);
+      expect(scanner.contains('deleteSongsMissingFromDevice('), isFalse);
       expect(scanner.contains('return reused;'), isTrue);
     });
 

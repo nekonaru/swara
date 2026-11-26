@@ -133,10 +133,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _deleteSnapshot(SnapshotInfo info) async {
+    final l = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.dataSnapshotDelete),
+        content: Text(l.collectionsDeleteConfirm(info.name)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
     await SnapshotService.instance.deleteSnapshot(info.name);
     if (!mounted) return;
     _showSnack(AppLocalizations.of(context)!.dataSnapshotDeleted);
     await _loadSnapshots();
+  }
+
+  Future<void> _pruneOldSnapshots() async {
+    final l = AppLocalizations.of(context)!;
+    final old = SnapshotService.instance.oldSnapshots(_snapshots);
+    if (old.isEmpty) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.dataSnapshotPruneTitle),
+        content: Text(l.dataSnapshotPruneMessage(old.length)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await SnapshotService.instance
+        .deleteSnapshots([for (final s in old) s.name]);
+    if (!mounted) return;
+    await _loadSnapshots();
+    _showSnack(l.dataSnapshotDeleted);
   }
 
   Future<void> _maybeOfferAutoRestore() async {
@@ -1380,6 +1428,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
+            ),
+          if (SnapshotService.instance.oldSnapshots(_snapshots).isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.delete_sweep_outlined),
+              title: Text(AppLocalizations.of(context)!.dataSnapshotPruneTitle),
+              subtitle: Text(AppLocalizations.of(context)!
+                  .dataSnapshotPruneMessage(
+                      SnapshotService.instance.oldSnapshots(_snapshots).length)),
+              onTap: (_busyData || _restoringSnapshot)
+                  ? null
+                  : _pruneOldSnapshots,
             ),
           ListTile(
             leading: const Icon(Icons.schedule_outlined),

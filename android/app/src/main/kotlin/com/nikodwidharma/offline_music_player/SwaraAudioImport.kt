@@ -114,7 +114,6 @@ object SwaraAudioImport {
             }
             if (committed) return CopyResult(Outcome.DUPLICATE)
             // Only rows this call creates may be removed on a copy failure.
-            val reused = pendingUri != null
             val target: Uri = pendingUri ?: run {
                 val values = android.content.ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, name)
@@ -143,7 +142,8 @@ object SwaraAudioImport {
                 context.contentResolver.update(target, done, null, null)
                 return CopyResult(Outcome.COPIED, target.toString())
             } catch (e: Exception) {
-                if (!reused) context.contentResolver.delete(target, null, null)
+                // Leave the row pending. The next share of the same file
+                // reuses it, so no file is ever removed without consent.
                 throw e
             }
         }

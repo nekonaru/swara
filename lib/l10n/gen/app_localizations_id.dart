@@ -2261,6 +2261,35 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get destructiveConfirmTitle => 'Harap konfirmasi';
+
+  @override
+  String destructiveConfirmMessage(String what) {
+    return '$what akan dihapus. Tidak bisa dibatalkan.';
+  }
+
+  @override
+  String destructiveUpdateMessage(String what) {
+    return '$what akan ditimpa. Tidak bisa dibatalkan.';
+  }
+
+  @override
+  String get dataSnapshotPruneTitle => 'Hapus snapshot lama';
+
+  @override
+  String dataSnapshotPruneMessage(int count) {
+    return 'Hapus $count snapshot tertua? Lima terbaru tetap disimpan.';
+  }
+
+  @override
+  String get playlistRemoveConfirmTitle => 'Hapus dari playlist?';
+
+  @override
+  String playlistRemoveConfirmMessage(String title) {
+    return 'Hapus \"$title\" dari playlist ini? Lagu tetap ada di pustaka.';
+  }
+
+  @override
   String get dataSnapshotAutoTitle => 'Pulihkan snapshot lokal?';
 
   @override

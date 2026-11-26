@@ -69,13 +69,39 @@ class _QueueScreenState extends State<QueueScreen> {
 
   // Remove one queue entry by stable slot id. Resolves the live position
   // first; a null result means the entry is already gone, so ignore it.
-  void _removeSlot(int slotId, String path) {
+  Future<void> _removeSlot(int slotId, String path) async {
     final int? pos = _player.queuePosForSlot(slotId);
     if (pos == null) return;
     // Slot ids are index based and change after earlier removals. Verify the
     // file path before removing so a swipe never deletes the wrong song.
-    if (_player.songAtOrderIndex(pos)?.filePath != path) return;
-    _player.removeFromQueue(pos);
+    final song = _player.songAtOrderIndex(pos);
+    if (song?.filePath != path) return;
+    final l = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.destructiveConfirmTitle),
+        content: Text(l.destructiveConfirmMessage(song?.title ?? '')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    // Verify again: the queue may have changed while the dialog was open.
+    final current = _player.queuePosForSlot(slotId);
+    if (current == null ||
+        _player.songAtOrderIndex(current)?.filePath != path) {
+      return;
+    }
+    _player.removeFromQueue(current);
   }
 
   // Save the current queue (in playback order) as a new playlist.

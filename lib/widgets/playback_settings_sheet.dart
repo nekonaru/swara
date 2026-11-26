@@ -114,6 +114,25 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
   }
 
   Future<void> _reset() async {
+    final l = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.destructiveConfirmTitle),
+        content: Text(l.destructiveConfirmMessage(l.delete)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
     try {
       if (widget.songId != null) {
         await DBHelper.instance.clearSongPlaybackSettings(widget.songId!);

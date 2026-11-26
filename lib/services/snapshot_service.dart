@@ -175,15 +175,8 @@ class SnapshotService {
       final info = SnapshotInfo(
           name: name, createdAt: now, bytes: finalFile.lengthSync());
       _lastCreated = info;
-      final snapshots = await listSnapshots();
-      for (final old in snapshots.skip(maxSnapshots)) {
-        try {
-          final path = '${dir.path}${Platform.pathSeparator}${old.name}';
-          if (await File(path).exists()) await File(path).delete();
-        } catch (_) {
-          // Keep going: a failed prune must not fail the snapshot.
-        }
-      }
+      // No automatic rotation. Old snapshots are removed only after an
+      // explicit, confirmed action in Settings.
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(kLastSnapshotPrefKey, now.toIso8601String());
@@ -203,7 +196,36 @@ class SnapshotService {
 
   SnapshotInfo? _lastCreated;
 
+  /// Snapshots beyond [maxSnapshots] that the user confirmed for removal.
+  List<SnapshotInfo> oldSnapshots(List<SnapshotInfo> all) =>
+      all.length > maxSnapshots ? all.skip(maxSnapshots).toList() : const [];
+
+  /// Delete only confirmed snapshot names. Unknown names are ignored.
+  Future<int> deleteSnapshots(List<String> names) async {
+    final dir = await _dir();
+    var deleted = 0;
+    final pattern = RegExp(r'^swara-snapshot-\d{8}-\d{6}\.json$');
+    for (final name in names) {
+      if (!pattern.hasMatch(name)) continue;
+      try {
+        final file = File('${dir.path}${Platform.pathSeparator}$name');
+        if (await file.exists()) {
+          await file.delete();
+          deleted++;
+        }
+      } catch (_) {
+        // Keep going: one failed delete must not block the rest.
+      }
+    }
+    return deleted;
+  }
+
   Future<void> deleteSnapshot(String name) async {
+    final valid = RegExp(r'^swara-snapshot-\d{8}-\d{6}\.json$')
+        .hasMatch(name);
+    if (!valid) return;
+    final known = (await listSnapshots()).any((s) => s.name == name);
+    if (!known) return;
     final dir = await _dir();
     final file = File('${dir.path}${Platform.pathSeparator}$name');
     if (await file.exists()) await file.delete();

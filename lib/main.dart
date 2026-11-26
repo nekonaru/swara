@@ -498,14 +498,8 @@ Future<bool> _bootApp({
       }
     }(),
     () async {
-      // Drop stale iTunes metadata cache rows once per launch so the table
-      // cannot grow without bound; listening history is product data and is
-      // never touched here.
-      try {
-        await DBHelper.instance.pruneMetadataCache(maxAgeDays: 90);
-      } catch (e) {
-        debugPrint('Metadata cache prune failed: $e');
-      }
+      // No automatic deletion at boot. Metadata cache cleanup is an explicit
+      // user action in Settings so nothing is removed without confirmation.
     }(),
     () async {
       // Read the onboarding flag as part of boot so the intro has a single

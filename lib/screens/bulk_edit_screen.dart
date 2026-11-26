@@ -49,6 +49,26 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
       );
       return;
     }
+    final l = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.destructiveConfirmTitle),
+        content: Text(l.destructiveUpdateMessage(
+            '${widget.songs.length} ${l.bulkEditTitle}')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l.bulkEditApply),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     setState(() => _saving = true);
     int ok = 0;
     int failed = 0;

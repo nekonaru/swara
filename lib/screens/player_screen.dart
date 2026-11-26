@@ -828,6 +828,33 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   icon: const Icon(Icons.delete_outline),
                                   tooltip: l10n.delete,
                                   onPressed: () async {
+                                    final label =
+                                        (row['label'] as String?)?.trim() ?? '';
+                                    final ok = await showDialog<bool>(
+                                      context: ctx,
+                                      builder: (c) => AlertDialog(
+                                        title: Text(
+                                            l10n.destructiveConfirmTitle),
+                                        content: Text(l10n
+                                            .destructiveConfirmMessage(
+                                                label.isEmpty
+                                                    ? l10n.delete
+                                                    : label)),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(c, false),
+                                            child: Text(l10n.cancel),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () =>
+                                                Navigator.pop(c, true),
+                                            child: Text(l10n.delete),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (ok != true || !ctx.mounted) return;
                                     await DBHelper.instance.deleteBookmark(
                                         (row['id'] as num).toInt());
                                     if (!ctx.mounted) return;

@@ -3985,6 +3985,48 @@ abstract class AppLocalizations {
   /// English locale string
   ///
   /// In en, this message translates to:
+  /// **'Please confirm'**
+  String get destructiveConfirmTitle;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'{what} will be removed. This cannot be undone.'**
+  String destructiveConfirmMessage(String what);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'{what} will be overwritten. This cannot be undone.'**
+  String destructiveUpdateMessage(String what);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Delete old snapshots'**
+  String get dataSnapshotPruneTitle;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {count} oldest snapshots? The newest five are kept.'**
+  String dataSnapshotPruneMessage(int count);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from playlist?'**
+  String get playlistRemoveConfirmTitle;
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{title}\" from this playlist? The song stays in your library.'**
+  String playlistRemoveConfirmMessage(String title);
+
+  /// English locale string
+  ///
+  /// In en, this message translates to:
   /// **'Restore local snapshot?'**
   String get dataSnapshotAutoTitle;
 
