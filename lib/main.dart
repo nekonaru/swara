@@ -120,25 +120,29 @@ class _WidgetBridge {
       // Boot failures are logged at the call site; act anyway.
     }
     final service = PlayerService.instance;
+    if (action.startsWith('swara.widget.PLAY_SLOT:')) {
+      // Payload is "slotId:filePath". Both must still match the live queue.
+      final raw = action.substring('swara.widget.PLAY_SLOT:'.length);
+      final separator = raw.indexOf(':');
+      if (separator < 0) return;
+      final slotId = int.tryParse(raw.substring(0, separator));
+      final path = raw.substring(separator + 1);
+      if (slotId != null && path.isNotEmpty) {
+        final pos = service.queuePosForSlot(slotId);
+        if (pos != null && pos >= 0 && pos < service.queueOrderLength) {
+          if (service.queue[pos].filePath == path) {
+            await service.playAtQueueIndex(pos);
+          }
+        }
+      }
+      return;
+    }
     switch (action) {
       case 'swara.widget.TOGGLE':
         unawaited(service.togglePlayPause());
         break;
       case 'swara.widget.NEXT':
         unawaited(service.next());
-        break;
-      case 'swara.widget.PLAY_SLOT':
-        // Payload is "slotId:filePath". Both must still match the live queue.
-        final raw = action.substring('swara.widget.PLAY_SLOT:'.length);
-        final separator = raw.indexOf(':');
-        if (separator < 0) return;
-        final slotId = int.tryParse(raw.substring(0, separator));
-        final path = raw.substring(separator + 1);
-        if (slotId == null || path.isEmpty) return;
-        final pos = service.queuePosForSlot(slotId);
-        if (pos == null || pos < 0 || pos >= service.queueOrderLength) return;
-        if (service.queue[pos].filePath != path) return;
-        await service.playAtQueueIndex(pos);
         break;
       case 'swara.widget.PREV':
         unawaited(service.smartPrevious());

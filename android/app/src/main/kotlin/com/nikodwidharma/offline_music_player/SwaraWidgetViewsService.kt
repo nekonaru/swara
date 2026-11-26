@@ -69,7 +69,7 @@ class SwaraWidgetViewsFactory(private val context: Context) :
         views.setTextViewText(R.id.widget_queue_artist, entry.artist)
         val fillIn = Intent().apply {
             putExtra(
-                "action",
+                "swara_widget_action",
                 SwaraWidgetProvider.ACTION_PLAY_SLOT + ":${entry.slotId}:${entry.path}",
             )
         }

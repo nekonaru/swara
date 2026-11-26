@@ -100,7 +100,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/swara_update_paths" />
         </provider>
-        <provider
+        <service
             android:name=".SwaraWidgetViewsService"
             android:exported="false"
             android:permission="android.permission.BIND_REMOTEVIEWS" />

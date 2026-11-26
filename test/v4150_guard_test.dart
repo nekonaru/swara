@@ -23,16 +23,19 @@ void main() {
     expect(service.contains('setOnClickFillInIntent'), isTrue);
     expect(service.contains('JSONArray(raw)'), isTrue);
     final manifest = read('android/app/src/main/AndroidManifest.xml');
-    expect(manifest.contains('BIND_REMOTEVIEWS'), isTrue);
+    expect(manifest.contains('<service\n            android:name=".SwaraWidgetViewsService"'), isTrue);
+    expect(provider.contains('setPendingIntentTemplate('), isTrue);
+    expect(provider.contains('FLAG_MUTABLE'), isTrue);
+    expect(provider.contains('notifyAppWidgetViewDataChanged('), isTrue);
   });
 
   test('Dart builds and verifies the queue snapshot', () {
     final main = read('lib/main.dart');
     expect(main.contains("'queueJson': queueJson"), isTrue);
     expect(main.contains('queueJson == lastQueueJson'), isTrue);
-    expect(main.contains("case 'swara.widget.PLAY_SLOT':"), isTrue);
+    expect(main.contains("action.startsWith('swara.widget.PLAY_SLOT:')"), isTrue);
     expect(main.contains('service.queuePosForSlot(slotId)'), isTrue);
-    expect(main.contains('service.queue[pos].filePath != path'), isTrue);
+    expect(main.contains('service.queue[pos].filePath == path'), isTrue);
     final activity = read(
       'android/app/src/main/kotlin/com/nikodwidharma/offline_music_player/MainActivity.kt',
     );

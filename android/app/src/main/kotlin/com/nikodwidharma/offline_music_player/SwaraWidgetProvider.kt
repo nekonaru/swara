@@ -81,7 +81,29 @@ class SwaraWidgetProvider : AppWidgetProvider() {
             val ids = manager.getAppWidgetIds(component)
             for (id in ids) {
                 manager.updateAppWidget(id, buildViews(context))
+                // The adapter intent never changes; without this the list
+                // stays frozen at its first snapshot.
+                manager.notifyAppWidgetViewDataChanged(id, R.id.widget_queue)
             }
+        }
+
+        private fun playSlotTemplate(context: Context): android.app.PendingIntent {
+            val intent = android.content.Intent(context, MainActivity::class.java)
+                .putExtra("swara_widget_action", ACTION_PLAY_SLOT)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                    android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            val flags = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or
+                    android.app.PendingIntent.FLAG_MUTABLE
+            } else {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            return android.app.PendingIntent.getActivity(
+                context,
+                4104,
+                intent,
+                flags,
+            )
         }
 
         private fun buildViews(context: Context): RemoteViews {
@@ -106,6 +128,10 @@ class SwaraWidgetProvider : AppWidgetProvider() {
                 SwaraWidgetViewsService::class.java,
             )
             views.setRemoteAdapter(R.id.widget_queue, adapterIntent)
+            views.setPendingIntentTemplate(
+                R.id.widget_queue,
+                playSlotTemplate(context),
+            )
             views.setEmptyView(R.id.widget_queue, R.id.widget_next_line)
             // Artwork: decode a downscaled bitmap on first build after a
             // state change. RemoteViews transactions have a size budget, so
