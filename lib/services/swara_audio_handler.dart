@@ -460,37 +460,45 @@ class SwaraAudioHandler extends BaseAudioHandler {
       // Offline collection commands. These are unambiguous phrases, so they
       // run before the fuzzy title search.
       final lower = query.trim().toLowerCase();
-      if (lower.contains('unplayed') || lower.contains('belum diputar')) {
+      final excluded = await DBHelper.instance.getExcludedFolders();
+      if (lower == 'unplayed' ||
+          lower == 'belum diputar' ||
+          lower == 'play unplayed' ||
+          lower == 'putar belum diputar') {
         final songs = await DBHelper.instance.getUnplayedSongs(
-            limit: 50, offset: 0);
+            limit: 50, offset: 0, excludedFolders: excluded);
         if (songs.isNotEmpty) {
           await PlayerService.instance.setQueueAndPlay(songs, 0);
           return;
         }
       }
-      if (lower.contains('top rated') || lower.contains('rating')) {
+      if (lower == 'top rated' ||
+          lower == 'rating tertinggi' ||
+          lower == 'play top rated') {
         final songs = await DBHelper.instance.getRatedSongs(
-            minRating: 4, limit: 50, offset: 0);
+            minRating: 4, limit: 50, offset: 0, excludedFolders: excluded);
         if (songs.isNotEmpty) {
           await PlayerService.instance.setQueueAndPlay(songs, 0);
           return;
         }
       }
-      final labelMatch = RegExp(r'(?:label|berlabel)\s+(.+)').firstMatch(lower);
+      final labelMatch = RegExp(r'^(?:play |putar )?(?:label|berlabel)\s+(.+)$')
+          .firstMatch(lower);
       if (labelMatch != null) {
         final label = labelMatch.group(1)!.trim();
         final songs = await DBHelper.instance.getSongsByLabel(
-            label, limit: 50, offset: 0);
+            label, limit: 50, offset: 0, excludedFolders: excluded);
         if (songs.isNotEmpty) {
           await PlayerService.instance.setQueueAndPlay(songs, 0);
           return;
         }
       }
-      final genreMatch = RegExp(r'genre\s+(.+)').firstMatch(lower);
+      final genreMatch = RegExp(r'^(?:play |putar )?genre\s+(.+)$')
+          .firstMatch(lower);
       if (genreMatch != null) {
         final genre = genreMatch.group(1)!.trim();
         final songs = await DBHelper.instance.getSongsByGenre(
-            genre, limit: 50, offset: 0);
+            genre, limit: 50, offset: 0, excludedFolders: excluded);
         if (songs.isNotEmpty) {
           await PlayerService.instance.setQueueAndPlay(songs, 0);
           return;

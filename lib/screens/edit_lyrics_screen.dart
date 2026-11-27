@@ -253,6 +253,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
         isFavorite: s.isFavorite,
         addedAt: s.addedAt,
         metadataScanned: s.metadataScanned,
+        rating: s.rating,
       );
       if (!mounted) return;
       await context.read<LibraryProvider>().updateMetadata(updated);
@@ -314,6 +315,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
       isFavorite: s.isFavorite,
       addedAt: s.addedAt,
       metadataScanned: s.metadataScanned,
+      rating: s.rating,
     );
     try {
       await context.read<LibraryProvider>().updateMetadata(updated);

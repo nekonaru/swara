@@ -72,6 +72,7 @@ class V6 {
   static String djReady(int n) =>
       id ? '$n lagu disiapkan' : '$n songs prepared';
   static String get csvSaved => id ? 'CSV tersimpan' : 'CSV saved';
+  static String get csvFailed => id ? 'Gagal mengekspor CSV' : 'CSV export failed';
   static String get folderCreated => id ? 'Folder dibuat' : 'Folder created';
   static String ratePrompt(int n) =>
       id ? 'Beri rating $n bintang?' : 'Rate $n stars?';

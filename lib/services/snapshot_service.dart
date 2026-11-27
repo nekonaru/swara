@@ -223,6 +223,9 @@ class SnapshotService {
 
   /// Read a snapshot without applying it. Used by the restore preview.
   Future<String?> readSnapshot(String name) async {
+    if (!RegExp(r'^swara-snapshot-\d{8}-\d{6}\.json$').hasMatch(name)) {
+      return null;
+    }
     try {
       final dir = await _dir();
       final file = File('${dir.path}${Platform.pathSeparator}$name');

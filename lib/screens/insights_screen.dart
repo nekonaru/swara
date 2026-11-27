@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../l10n/v6_strings.dart';
@@ -44,14 +45,16 @@ class _InsightsScreenState extends State<InsightsScreen> {
       buffer.writeln('${row['day']},${((row['ms'] as num?)?.toInt() ?? 0) ~/ 60000}');
     }
     try {
-      final dir = await getApplicationDocumentsDirectory();
+      final dir = await getTemporaryDirectory();
       final file = File('${dir.path}${Platform.pathSeparator}swara_listening.csv');
       await file.writeAsString(buffer.toString());
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('${V6.csvSaved}: ${file.path}')));
-    } catch (_) {}
+          ..showSnackBar(SnackBar(content: Text(V6.csvFailed)));
+    }
   }
 
   @override

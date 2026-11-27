@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -296,6 +297,7 @@ class BackupService {
         ],
         'isFavorite': song.isFavorite,
         'lastPlayedAt': extras['lastPlayedAt'],
+        'rating': song.rating,
         'label': labelById[song.id] ?? '',
       });
     }
@@ -416,12 +418,34 @@ class BackupService {
         .map((r) => r['filePath'] as String?)
         .whereType<String>()
         .toSet();
+    // Basename plus a duration bucket mirrors the real identity matcher,
+    // so a backup from another device is not reported as all-unmatched.
+    final localKeys = <String, int>{
+      for (final row in local)
+        '${p.basenameWithoutExtension((row['filePath'] as String?) ?? '')}'
+        '|${(row['durationMs'] as num?)?.toInt() ?? 0}':
+            (row['id'] as num?)?.toInt() ?? 0,
+    };
     final songRows = decoded['songs'] as List? ?? const [];
     var matched = 0;
     for (final row in songRows) {
       if (row is! Map) continue;
       final path = row['filePath'] as String?;
-      if (path != null && localPaths.contains(path)) matched++;
+      final name = path == null ? '' : p.basenameWithoutExtension(path);
+      final duration = (row['durationMs'] as num?)?.toInt() ?? 0;
+      final neighbour = localKeys.entries.firstWhere(
+        (entry) {
+          final parts = entry.key.split('|');
+          if (parts.length != 2 || parts.first != name) return false;
+          final other = int.tryParse(parts.last) ?? 0;
+          return (other - duration).abs() <= kDurationToleranceMs;
+        },
+        orElse: () => const MapEntry('', -1),
+      );
+      if ((path != null && localPaths.contains(path)) ||
+          neighbour.value >= 0) {
+        matched++;
+      }
     }
     return (
       matched: matched,
@@ -1020,6 +1044,7 @@ class BackupService {
       // Same policy as the other song fields: a label set on this device
       // after the backup was made wins over the exported one.
       final localLabels = await DBHelper.instance.getSongLabels();
+      final localRatings = await DBHelper.instance.getAllRatings();
       for (final (localId, raw) in resolvedV3Songs) {
         try {
           final localRows = await DBHelper.instance.querySongById(localId);
@@ -1124,6 +1149,11 @@ class BackupService {
               backedLabel != null &&
               backedLabel.isNotEmpty) {
             await DBHelper.instance.setSongLabel(localId, backedLabel);
+          }
+          final backedRating = (raw['rating'] as num?)?.toInt() ?? 0;
+          if (backedRating > 0 &&
+              (localRatings[localId] ?? 0) == 0) {
+            await DBHelper.instance.setRating(localId, backedRating);
           }
           // Recency drives Recently Played and the unplayed smart rules.
           await DBHelper.instance.restoreLastPlayedAt(

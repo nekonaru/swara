@@ -459,12 +459,10 @@ class DBHelper {
         }
         if (oldVersion < 18) {
           if (!await _hasColumn(db, 'songs', 'rating')) {
-            try {
-              await db.execute(
-                  'ALTER TABLE songs ADD COLUMN rating INTEGER DEFAULT 0');
-            } catch (e) {
-              debugPrint('DBHelper: v18 rating migration failed: $e');
-            }
+            // Never swallow this error: marking the database as v18 without
+            // the column would break every later rating read permanently.
+            await db.execute(
+                'ALTER TABLE songs ADD COLUMN rating INTEGER DEFAULT 0');
           }
         }
         if (oldVersion < 17) {
@@ -1046,10 +1044,14 @@ class DBHelper {
     // Read isFavorite from the DB first so it is not reset by a stale Song object.
     // Same protection as in upsertSong() - the user may have favorited the song
     // in another tab while the Edit Metadata screen was still open.
-    final existing = await database.query('songs', columns: ['isFavorite'], where: 'id = ?', whereArgs: [s.id], limit: 1);
+    final existing = await database.query('songs',
+        columns: ['isFavorite', 'rating'],
+        where: 'id = ?', whereArgs: [s.id], limit: 1);
     final map = s.toMap();
     if (existing.isNotEmpty) {
       map['isFavorite'] = existing.first['isFavorite'];
+      // A stale Song object must not wipe a rating set after it was opened.
+      map['rating'] = existing.first['rating'] ?? 0;
     }
     await database.update('songs', map, where: 'id = ?', whereArgs: [s.id]);
   }
@@ -1066,6 +1068,7 @@ class DBHelper {
     final database = await db;
     final ids = songs.map((s) => s.id).toSet().toList();
     final favorites = <int, Object?>{};
+    final ratings = <int, Object?>{};
     // Chunked: Android 8/9 bundle SQLite with a 999 variable limit.
     const chunk = 400;
     for (var off = 0; off < ids.length; off += chunk) {
@@ -1073,17 +1076,19 @@ class DBHelper {
       final slice = ids.sublist(off, end);
       final placeholders = List.filled(slice.length, '?').join(',');
       final rows = await database.rawQuery(
-        'SELECT id, isFavorite FROM songs WHERE id IN ($placeholders)',
+        'SELECT id, isFavorite, rating FROM songs WHERE id IN ($placeholders)',
         slice,
       );
       for (final row in rows) {
         favorites[row['id'] as int] = row['isFavorite'];
+        ratings[row['id'] as int] = row['rating'] ?? 0;
       }
     }
     final batch = database.batch();
     for (final s in songs) {
       final map = s.toMap();
       if (favorites.containsKey(s.id)) map['isFavorite'] = favorites[s.id];
+      if (ratings.containsKey(s.id)) map['rating'] = ratings[s.id];
       batch.update('songs', map, where: 'id = ?', whereArgs: [s.id]);
     }
     await batch.commit(noResult: true);
@@ -2534,6 +2539,16 @@ class DBHelper {
 
   // ---------- Ratings and v6 helpers ----------
 
+  Future<Map<int, int>> getAllRatings() async {
+    final database = await db;
+    final rows = await database.query('songs', columns: ['id', 'rating']);
+    return {
+      for (final row in rows)
+        if (row['id'] is int)
+          (row['id'] as int): (row['rating'] as num?)?.toInt() ?? 0,
+    };
+  }
+
   Future<void> setRating(int songId, int rating) async {
     final database = await db;
     final value = rating.clamp(0, 5);
@@ -2612,15 +2627,19 @@ class DBHelper {
     required int minRating,
     required int limit,
     required int offset,
+    Set<String>? excludedFolders,
   }) async {
     final database = await db;
-    final rows = await database.query(
-      'songs',
-      where: 'rating >= ?',
-      whereArgs: [minRating],
-      orderBy: 'rating DESC, title COLLATE NOCASE ASC',
-      limit: limit,
-      offset: offset,
+    final where = <String>['rating >= ?'];
+    final args = <Object?>[minRating];
+    for (final folder in _normalizedFolders(excludedFolders)) {
+      where.add("filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(folder)}/%');
+    }
+    final rows = await database.rawQuery(
+      'SELECT * FROM songs WHERE ${where.join(' AND ')} '
+      'ORDER BY rating DESC, title COLLATE NOCASE ASC LIMIT ? OFFSET ?',
+      [...args, limit, offset],
     );
     return _songsFromRows(rows);
   }
@@ -2629,12 +2648,20 @@ class DBHelper {
     String label, {
     required int limit,
     required int offset,
+    Set<String>? excludedFolders,
   }) async {
     final database = await db;
+    final where = <String>['l.label = ?'];
+    final args = <Object?>[label];
+    for (final folder in _normalizedFolders(excludedFolders)) {
+      where.add("s.filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(folder)}/%');
+    }
     final rows = await database.rawQuery(
       'SELECT s.* FROM songs s JOIN song_labels l ON l.songId = s.id '
-      'WHERE l.label = ? ORDER BY s.title COLLATE NOCASE ASC LIMIT ? OFFSET ?',
-      [label, limit, offset],
+      'WHERE ${where.join(' AND ')} '
+      'ORDER BY s.title COLLATE NOCASE ASC LIMIT ? OFFSET ?',
+      [...args, limit, offset],
     );
     return _songsFromRows(rows);
   }
@@ -2642,12 +2669,20 @@ class DBHelper {
   Future<List<Song>> getListeningHistoryPage({
     required int limit,
     required int offset,
+    Set<String>? excludedFolders,
   }) async {
     final database = await db;
+    final where = <String>[];
+    final args = <Object?>[];
+    for (final folder in _normalizedFolders(excludedFolders)) {
+      where.add("s.filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(folder)}/%');
+    }
+    final clause = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')} ';
     final rows = await database.rawQuery(
       'SELECT s.* FROM listening_entries e JOIN songs s ON s.id = e.songId '
-      'ORDER BY e.timestamp DESC LIMIT ? OFFSET ?',
-      [limit, offset],
+      '$clause ORDER BY e.timestamp DESC LIMIT ? OFFSET ?',
+      [...args, limit, offset],
     );
     return _songsFromRows(rows);
   }

@@ -1311,7 +1311,31 @@ class PlayerService extends ChangeNotifier {
   List<int> _buildShuffledOrder(int length, int startIndex) {
     final indices = List.generate(length, (i) => i);
     indices.remove(startIndex);
-    return [startIndex, ..._shuffleRest(indices)];
+    final order = <int>[startIndex, ..._shuffleRest(indices)];
+    if (_fairShuffle) _spreadArtists(order);
+    return order;
+  }
+
+  /// Swap consecutive songs with the same artist. Applied to the final order,
+  /// including the first transition, and after any smart-shuffle weighting.
+  void _spreadArtists(List<int> order) {
+    for (var i = 1; i < order.length; i++) {
+      if (i >= _queue.length || order[i - 1] >= _queue.length) continue;
+      final previousArtist = _queue[order[i - 1]].artist;
+      if (previousArtist.isEmpty ||
+          order[i] >= _queue.length ||
+          previousArtist != _queue[order[i]].artist) {
+        continue;
+      }
+      final swap = order.indexWhere(
+        (idx) => idx < _queue.length && _queue[idx].artist != previousArtist,
+        i + 1,
+      );
+      if (swap < 0) continue;
+      final held = order[i];
+      order[i] = order[swap];
+      order[swap] = held;
+    }
   }
 
   /// Order the songs after the current one. With smart shuffle on, the song
@@ -1324,24 +1348,6 @@ class PlayerService extends ChangeNotifier {
       if (weighted != null) return weighted;
     }
     indices.shuffle(Random());
-    if (!_fairShuffle) return indices;
-    // Keep the same artist from landing back to back. Swap with a later
-    // different artist instead of rebuilding the whole order.
-    for (var i = 1; i < indices.length; i++) {
-      if (i >= _queue.length) break;
-      final previousArtist = _queue[indices[i - 1]].artist;
-      if (previousArtist.isEmpty || previousArtist != _queue[indices[i]].artist) {
-        continue;
-      }
-      final swap = indices.indexWhere(
-        (idx) => idx < _queue.length && _queue[idx].artist != previousArtist,
-        i + 1,
-      );
-      if (swap < 0) continue;
-      final held = indices[i];
-      indices[i] = indices[swap];
-      indices[swap] = held;
-    }
     return indices;
   }
 

@@ -94,6 +94,7 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
           isFavorite: s.isFavorite,
           addedAt: s.addedAt,
           metadataScanned: s.metadataScanned,
+          rating: s.rating,
         ));
       }
       try {

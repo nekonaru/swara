@@ -19,10 +19,6 @@ Large offline feature release. Everything runs from local data, with no new perm
 
 - **Playlist folders and Artists and Genres tabs were already present** and are left intact.
 
-## Bug fixes
-
-- **Backup restore keeps locally newer labels**, following the same local-wins rule as other song fields.
-
 ## v5.1.2
 
 Player layout patch based on direct feedback. The queue is visible again and every secondary control has a readable label.

@@ -130,6 +130,7 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       isFavorite: s.isFavorite,
       addedAt: s.addedAt,
       metadataScanned: s.metadataScanned,
+      rating: s.rating,
     );
     final messenger = ScaffoldMessenger.of(context);
     final provider = context.read<LibraryProvider>();

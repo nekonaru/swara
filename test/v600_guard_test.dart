@@ -20,11 +20,20 @@ void main() {
     expect(db.contains('Future<List<Song>> getSongsByLabel('), isTrue);
     expect(backupContainsPreview(read('lib/services/backup_service.dart')),
         isTrue);
+    expect(read('lib/services/backup_service.dart').contains("'rating': song.rating"),
+        isTrue);
   });
 
   test('ratings and label tools are reachable', () {
     final song = read('lib/models/song.dart');
     expect(song.contains('int rating;'), isTrue);
+    for (final file in [
+      'lib/screens/edit_metadata_screen.dart',
+      'lib/screens/bulk_edit_screen.dart',
+      'lib/screens/edit_lyrics_screen.dart',
+    ]) {
+      expect(read(file).contains('rating: s.rating'), isTrue, reason: file);
+    }
     final options = read('lib/utils/song_options.dart');
     expect(options.contains('V6.rate'), isTrue);
     expect(options.contains('V6.similarSongs'), isTrue);
@@ -40,6 +49,7 @@ void main() {
     final player = read('lib/services/player_service.dart');
     expect(player.contains('bool _fairShuffle = false;'), isTrue);
     expect(player.contains('Future<void> setFairShuffle('), isTrue);
+    expect(player.contains('_spreadArtists(order)'), isTrue);
     final library = read('lib/screens/library_screen.dart');
     expect(library.contains('Future<void> _autoDj('), isTrue);
     expect(library.contains('Future<void> _playOrdered('), isTrue);
@@ -57,8 +67,8 @@ void main() {
       expect(catalog.contains(id), isTrue, reason: id);
     }
     final handler = read('lib/services/swara_audio_handler.dart');
-    expect(handler.contains("lower.contains('unplayed')"), isTrue);
-    expect(handler.contains("RegExp(r'(?:label|berlabel)\\s+(.+)'"), isTrue);
+    expect(handler.contains("lower == 'unplayed'"), isTrue);
+    expect(handler.contains('excludedFolders: excluded'), isTrue);
     final settings = read('lib/screens/settings_screen.dart');
     expect(settings.contains('BackupService.previewBackup(raw)'), isTrue);
   });

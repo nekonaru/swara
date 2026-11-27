@@ -19,10 +19,6 @@ Rilis fitur besar sepenuhnya offline. Semua berjalan dari data lokal, tanpa izin
 
 - **Folder playlist serta tab Artis dan Genre sudah ada** dan sengaja tidak diubah.
 
-## Perbaikan bug
-
-- **Pemulihan cadangan mempertahankan label yang lebih baru di perangkat**, mengikuti aturan local-wins yang sama seperti field lagu lainnya.
-
 ## v5.1.2
 
 Patch tata letak player berdasarkan masukan langsung. Tombol antrean terlihat lagi dan semua kontrol sekunder punya label yang bisa dibaca.

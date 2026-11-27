@@ -139,13 +139,18 @@ class SwaraBrowseCatalog {
       return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catRated) {
+      final excluded = await DBHelper.instance.getExcludedFolders();
       final rows = await DBHelper.instance.getRatedSongs(
-          minRating: 4, limit: pageSize, offset: offset);
+          minRating: 4,
+          limit: pageSize,
+          offset: offset,
+          excludedFolders: excluded);
       return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catHistory) {
+      final excluded = await DBHelper.instance.getExcludedFolders();
       final rows = await DBHelper.instance.getListeningHistoryPage(
-          limit: pageSize, offset: offset);
+          limit: pageSize, offset: offset, excludedFolders: excluded);
       return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catLabels) {
@@ -163,8 +168,12 @@ class SwaraBrowseCatalog {
     }
     if (parentId.startsWith(labelPrefix)) {
       final label = parentId.substring(labelPrefix.length);
+      final excluded = await DBHelper.instance.getExcludedFolders();
       final rows = await DBHelper.instance.getSongsByLabel(
-          label, limit: pageSize, offset: offset);
+          label,
+          limit: pageSize,
+          offset: offset,
+          excludedFolders: excluded);
       return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catPlaylists) {
