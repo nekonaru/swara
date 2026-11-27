@@ -42,9 +42,13 @@ String folderOf(String filePath) {
 /// folders exclude their descendants, matching querySongsPage's LIKE rule.
 bool isHiddenPath(String filePath, Set<String> excluded) {
   if (excluded.isEmpty) return false;
-  final normalized = filePath.replaceAll('\\', '/');
+  // SQLite LIKE is case-insensitive here, so the in-memory check must be too.
+  final normalized = filePath.replaceAll('\\', '/').toLowerCase();
   for (final raw in excluded) {
-    final folder = raw.replaceAll('\\', '/').replaceAll(RegExp(r'/$'), '');
+    final folder = raw
+        .replaceAll('\\', '/')
+        .replaceAll(RegExp(r'/$'), '')
+        .toLowerCase();
     if (folder.isEmpty) continue;
     if (normalized == folder || normalized.startsWith('$folder/')) return true;
   }

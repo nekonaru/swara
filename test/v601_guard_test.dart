@@ -14,6 +14,7 @@ void main() {
     expect(player.contains('List<int> _shuffledTailAfter('), isTrue);
     expect(player.contains('_spreadArtists(order)'), isTrue);
     expect(player.contains('row.rating = source.rating'), isTrue);
+    expect(player.contains('if (value) _abortCrossfadeForQueueEdit();'), isTrue);
   });
 
   test('rating survives rename and backup settings', () {
@@ -23,6 +24,8 @@ void main() {
     expect(backup.contains('fairShuffleV6'), isTrue);
     final codec = read('lib/utils/backup_settings_codec.dart');
     expect(codec.contains('fairShuffleV6'), isTrue);
+    final format = read('lib/utils/format.dart');
+    expect(format.contains("replaceAll('\\\\', '/').toLowerCase()"), isTrue);
   });
 
   test('voice lookup and preview are precise', () {
@@ -32,6 +35,7 @@ void main() {
     expect(db.contains('GROUP BY s.id ORDER BY julianday(lastTs) DESC'), isTrue);
     final backup = read('lib/services/backup_service.dart');
     expect(backup.contains('candidates.length == 1'), isTrue);
+    expect(backup.contains('backupBasename('), isTrue);
   });
 
   test('excluded folders and labels stay consistent', () {

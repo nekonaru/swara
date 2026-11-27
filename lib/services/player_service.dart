@@ -692,6 +692,19 @@ class PlayerService extends ChangeNotifier {
     for (var i = 0; i < _queue.length; i++) {
       final row = _queue[i];
       if (row.id != source.id || identical(row, source)) continue;
+      if (row.title != source.title) changed = true;
+      if (row.artist != source.artist) changed = true;
+      if (row.album != source.album) changed = true;
+      if (row.genre != source.genre) changed = true;
+      if (row.region != source.region) changed = true;
+      if (row.albumArtPath != source.albumArtPath) changed = true;
+      if (row.albumArtUrl != source.albumArtUrl) changed = true;
+      if (row.lyrics != source.lyrics) changed = true;
+      if (row.durationMs != source.durationMs) changed = true;
+      if (row.isFavorite != source.isFavorite) changed = true;
+      if (row.addedAt != source.addedAt) changed = true;
+      if (row.metadataScanned != source.metadataScanned) changed = true;
+      if (row.rating != source.rating) changed = true;
       row.title = source.title;
       row.artist = source.artist;
       row.album = source.album;
@@ -704,10 +717,7 @@ class PlayerService extends ChangeNotifier {
       row.isFavorite = source.isFavorite;
       row.addedAt = source.addedAt;
       row.metadataScanned = source.metadataScanned;
-      if (row.rating != source.rating) {
-        row.rating = source.rating;
-      }
-      changed = true;
+      row.rating = source.rating;
     }
     if (changed) {
       queueVersion++;
@@ -1367,6 +1377,9 @@ class PlayerService extends ChangeNotifier {
 
   Future<void> setFairShuffle(bool value) async {
     if (_fairShuffle == value) return;
+    // A fade captures its target song ahead of time. Rebuilding the order
+    // while it is in flight would make the audible song disagree with the UI.
+    if (value) _abortCrossfadeForQueueEdit();
     _fairShuffle = value;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -2072,6 +2085,7 @@ class PlayerService extends ChangeNotifier {
   // TODO L10N: no user facing string added here, English only.
   Future<void> setSmartShuffle(bool value) async {
     if (_smartShuffle == value) return;
+    if (value) _abortCrossfadeForQueueEdit();
     _smartShuffle = value;
     notifyListeners();
     try {

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -425,7 +424,7 @@ class BackupService {
     // scan per exported song made preview O(N*M) on large libraries.
     final durationsByName = <String, List<int>>{};
     for (final row in local) {
-      final name = p.basenameWithoutExtension((row['filePath'] as String?) ?? '');
+      final name = backupBasename((row['filePath'] as String?) ?? '');
       if (name.isEmpty) continue;
       durationsByName
           .putIfAbsent(name, () => <int>[])
@@ -436,7 +435,8 @@ class BackupService {
     for (final row in songRows) {
       if (row is! Map) continue;
       final path = row['filePath'] as String?;
-      final name = path == null ? '' : p.basenameWithoutExtension(path);
+      final name = backupBasename(
+          (row['basename'] as String?) ?? path ?? '');
       final duration = (row['durationMs'] as num?)?.toInt() ?? 0;
       final candidates = durationsByName[name]
               ?.where((other) =>
