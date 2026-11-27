@@ -9,7 +9,7 @@ void main() {
 
   test('v13 schema carries both override tables and cascades', () {
     final db = read('lib/services/db_helper.dart');
-    expect(db.contains('version: 17'), isTrue);
+    expect(db.contains('version: 18'), isTrue);
     expect(db.contains('CREATE TABLE song_playback_settings'), isTrue);
     expect(db.contains('CREATE TABLE folder_playback_settings'), isTrue);
     expect(db.contains('CREATE TABLE IF NOT EXISTS song_playback_settings'), isTrue);

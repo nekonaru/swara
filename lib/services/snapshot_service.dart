@@ -221,6 +221,18 @@ class SnapshotService {
     return deleted;
   }
 
+  /// Read a snapshot without applying it. Used by the restore preview.
+  Future<String?> readSnapshot(String name) async {
+    try {
+      final dir = await _dir();
+      final file = File('${dir.path}${Platform.pathSeparator}$name');
+      if (!await file.exists()) return null;
+      return await file.readAsString();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> deleteSnapshot(String name) async {
     final valid = RegExp(r'^swara-snapshot-\d{8}-\d{6}\.json$')
         .hasMatch(name);

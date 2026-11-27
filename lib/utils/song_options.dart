@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/l10n/v5_strings.dart';
+import 'package:swara/l10n/v6_strings.dart';
 import 'package:provider/provider.dart';
 // Requires adding share_plus to pubspec dependencies to compile.
 // Standard API used below: Share.shareXFiles([XFile(path)], text: ...)
@@ -14,6 +15,7 @@ import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/db_helper.dart';
+import '../services/extra_features_service.dart';
 import '../services/file_rename_service.dart';
 import '../services/player_service.dart';
 import '../screens/edit_metadata_screen.dart';
@@ -217,6 +219,75 @@ Future<void> showSongOptions(
                 );
               },
             ),
+          ListTile(
+            leading: const Icon(Icons.star_outline),
+            title: Text(V6.rate),
+            onTap: () async {
+              Navigator.pop(ctx);
+              final current = song.rating;
+              final picked = await showDialog<int>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: Text(V6.rate),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var n = 0; n <= 5; n++)
+                        ListTile(
+                          dense: true,
+                          leading: Icon(
+                            n == 0 ? Icons.star_border : Icons.star,
+                            color: n == 0
+                                ? null
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                          title: Text(n == 0
+                              ? V6.clearRating
+                              : V6.ratePrompt(n)),
+                          selected: current == n,
+                          onTap: () => Navigator.pop(c, n),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+              if (picked == null || !context.mounted) return;
+              await context.read<LibraryProvider>().setRating(song.id, picked);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.auto_graph_outlined),
+            title: Text(V6.similarSongs),
+            onTap: () async {
+              Navigator.pop(ctx);
+              final lib = context.read<LibraryProvider>();
+              final similar = SimilarSongsService.find(
+                song,
+                lib.songs,
+                labels: lib.labels,
+              );
+              if (!context.mounted || similar.isEmpty) return;
+              await showModalBottomSheet<void>(
+                context: context,
+                showDragHandle: true,
+                builder: (ctx) => ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: similar.length,
+                  itemBuilder: (context, i) {
+                    final item = similar[i];
+                    return ListTile(
+                      title: Text(item.title),
+                      subtitle: Text(item.artist),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        PlayerService.instance.playNext(item);
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.label_outline),
             title: Text(V5.setLabel),

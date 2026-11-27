@@ -128,6 +128,40 @@ class DiagnosticsService {
   void clear() => _lines.clear();
 }
 
+/// Local, offline recommendations. No network call and no new permission.
+class SimilarSongsService {
+  SimilarSongsService._();
+
+  static List<Song> find(
+    Song target,
+    List<Song> all, {
+    required Map<int, String> labels,
+    int limit = 20,
+  }) {
+    final scored = <(int score, Song song)>[];
+    final targetLabel = labels[target.id] ?? '';
+    for (final song in all) {
+      if (song.id == target.id) continue;
+      var score = 0;
+      if (song.artist.toLowerCase() == target.artist.toLowerCase()) score += 4;
+      if (song.genre != null &&
+          song.genre!.toLowerCase() == (target.genre ?? '').toLowerCase()) {
+        score += 3;
+      }
+      if (targetLabel.isNotEmpty && labels[song.id] == targetLabel) score += 2;
+      if (song.durationMs > 0 &&
+          target.durationMs > 0 &&
+          (song.durationMs - target.durationMs).abs() <
+              target.durationMs * 0.1) {
+        score += 1;
+      }
+      if (score > 0) scored.add((score, song));
+    }
+    scored.sort((a, b) => b.$1.compareTo(a.$1));
+    return [for (final item in scored.take(limit)) item.$2];
+  }
+}
+
 /// Parse a filename into title and artist without touching the file.
 class FilenameTagService {
   FilenameTagService._();

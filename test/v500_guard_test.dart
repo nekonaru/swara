@@ -9,7 +9,7 @@ void main() {
 
   test('v17 schema carries labels and trash', () {
     final db = read('lib/services/db_helper.dart');
-    expect(db.contains('version: 17'), isTrue);
+    expect(db.contains('version: 18'), isTrue);
     expect(db.contains('CREATE TABLE song_labels'), isTrue);
     expect(db.contains('CREATE TABLE trash_songs'), isTrue);
     expect(db.contains('Future<bool> moveSongToTrash('), isTrue);

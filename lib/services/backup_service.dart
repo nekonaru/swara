@@ -406,6 +406,30 @@ class BackupService {
     );
   }
 
+  /// Count how many exported songs can bind to this library before a restore
+  /// is applied. Pure read, no database writes.
+  static Future<({int matched, int unmatched, int playlists})> previewBackup(
+      String rawJson) async {
+    final decoded = await compute(_decodeBackup, rawJson);
+    final local = await DBHelper.instance.getSongIdentityRows();
+    final localPaths = local
+        .map((r) => r['filePath'] as String?)
+        .whereType<String>()
+        .toSet();
+    final songRows = decoded['songs'] as List? ?? const [];
+    var matched = 0;
+    for (final row in songRows) {
+      if (row is! Map) continue;
+      final path = row['filePath'] as String?;
+      if (path != null && localPaths.contains(path)) matched++;
+    }
+    return (
+      matched: matched,
+      unmatched: songRows.length - matched,
+      playlists: (decoded['playlists'] as List? ?? const []).length,
+    );
+  }
+
   /// Decode and verify from bytes off the UI isolate. A 32 MB backup used to
   /// be utf8-decoded on the main thread before compute saw it.
   static Future<({int songs, int playlists, int lyrics})> verifyBackupBytes(

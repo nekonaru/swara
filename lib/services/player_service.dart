@@ -118,7 +118,9 @@ class PlayerService extends ChangeNotifier {
   // Smart shuffle preference, persisted with the same pattern as the
   // crossfade seconds key.
   static const String _prefsSmartShuffleKey = 'smartShuffle';
+  static const String _prefsFairShuffleKey = 'fairShuffleV6';
   bool _smartShuffle = false;
+  bool _fairShuffle = false;
 
   // Playback speed and pitch. Both are clamped to 0.5..2.0 and re-applied on
   // every track change, so the values survive song switches and crossfades.
@@ -726,6 +728,7 @@ class PlayerService extends ChangeNotifier {
       crossfadeEnabled = prefs.getBool(_prefsCrossfadeEnabledKey) ?? false;
       // Smart shuffle is a plain bool flag, same persistence pattern.
       _smartShuffle = prefs.getBool(_prefsSmartShuffleKey) ?? false;
+      _fairShuffle = prefs.getBool(_prefsFairShuffleKey) ?? false;
       // Daily sleep schedule: enabled flag plus a 24h hour/minute pair.
       _sleepScheduleEnabled =
           prefs.getBool(_prefsSleepScheduleEnabledKey) ?? false;
@@ -1321,8 +1324,38 @@ class PlayerService extends ChangeNotifier {
       if (weighted != null) return weighted;
     }
     indices.shuffle(Random());
+    if (!_fairShuffle) return indices;
+    // Keep the same artist from landing back to back. Swap with a later
+    // different artist instead of rebuilding the whole order.
+    for (var i = 1; i < indices.length; i++) {
+      if (i >= _queue.length) break;
+      final previousArtist = _queue[indices[i - 1]].artist;
+      if (previousArtist.isEmpty || previousArtist != _queue[indices[i]].artist) {
+        continue;
+      }
+      final swap = indices.indexWhere(
+        (idx) => idx < _queue.length && _queue[idx].artist != previousArtist,
+        i + 1,
+      );
+      if (swap < 0) continue;
+      final held = indices[i];
+      indices[i] = indices[swap];
+      indices[swap] = held;
+    }
     return indices;
   }
+
+  Future<void> setFairShuffle(bool value) async {
+    if (_fairShuffle == value) return;
+    _fairShuffle = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefsFairShuffleKey, value);
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  bool get fairShuffle => _fairShuffle;
 
   /// Weighted random order: the lower the weight, the earlier the song plays.
   /// Weight combines a rarity score from the play count and a staleness score

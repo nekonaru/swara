@@ -20,6 +20,7 @@ import '../services/db_helper.dart';
 import '../services/audio_effects_service.dart';
 import '../services/update_service.dart';
 import '../l10n/v5_strings.dart';
+import '../l10n/v6_strings.dart';
 import 'v5_extras_screen.dart';
 import '../services/equalizer_service.dart';
 import '../services/loudness_service.dart';
@@ -106,11 +107,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _restoreSnapshot(SnapshotInfo info) async {
     if (_busyData || _restoringSnapshot) return;
     final l = AppLocalizations.of(context)!;
+    final raw = await SnapshotService.instance.readSnapshot(info.name);
+    final preview = raw == null
+        ? null
+        : await BackupService.previewBackup(raw);
+    if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l.dataSnapshotRestoreTitle),
-        content: Text(l.dataSnapshotRestoreMessage(_formatExportStamp(info.createdAt))),
+        content: Text(preview == null
+            ? l.dataSnapshotRestoreMessage(_formatExportStamp(info.createdAt))
+            : '${l.dataSnapshotRestoreMessage(_formatExportStamp(info.createdAt))}\n'
+                '${V6.restorePreview}: ${preview.matched} / '
+                '${preview.matched + preview.unmatched}'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.dataSnapshotRestore)),
@@ -1185,6 +1195,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: PlayerService.instance.smartShuffle,
               onChanged: (v) =>
                   setState(() => PlayerService.instance.setSmartShuffle(v)),
+            ),
+          ),
+          AnimatedBuilder(
+            animation: PlayerService.instance,
+            builder: (context, _) => SwitchListTile(
+              title: Text(V6.shuffleFair),
+              subtitle: Text(V6.shuffleFairHint),
+              secondary: const Icon(Icons.shuffle_on_outlined),
+              value: PlayerService.instance.fairShuffle,
+              onChanged: (v) => setState(() {
+                PlayerService.instance.setFairShuffle(v);
+              }),
             ),
           ),
           ListTile(

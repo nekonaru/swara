@@ -1,5 +1,28 @@
 # Changelog
 
+## v6.0.0
+
+Rilis fitur besar sepenuhnya offline. Semua berjalan dari data lokal, tanpa izin baru dan tanpa menulis ulang mesin audio.
+
+## Fitur baru
+
+- **Rating bintang.** Beri rating 1 sampai 5, hapus kapan saja, dan pakai rating dalam mode putar, Auto DJ, Android Auto, dan perintah suara.
+- **Kelola label.** Ganti nama label secara global, gabungkan dua label, atau hapus label tanpa menyentuh lagu.
+- **Acakan adil.** Opsi agar artis yang sama tidak berurutan.
+- **Auto DJ dan mode putar.** Susun antrean dari lagu belum diputar plus lagu rating tinggi dan favorit, atau mulai dari terbaru dan paling tinggi ratingnya dari menu Pustaka.
+- **Lagu serupa.** Saran lokal dari artis, genre, label, dan durasi, langsung dimasukkan antrean.
+- **Arsip dan wawasan mendengarkan.** Deret harian, jam teratas, rentetan, riwayat terbaru, dan ekspor CSV.
+- **Pratinjau pemulihan.** Lihat berapa lagu dalam snapshot yang cocok dengan pustaka ini sebelum diterapkan.
+- **Kategori Android Auto lebih banyak.** Rating tinggi, label, dan riwayat per tanggal, plus perintah suara untuk belum diputar, rating tertinggi, berdasarkan label, dan genre.
+
+## Peningkatan
+
+- **Folder playlist serta tab Artis dan Genre sudah ada** dan sengaja tidak diubah.
+
+## Perbaikan bug
+
+- **Pemulihan cadangan mempertahankan label yang lebih baru di perangkat**, mengikuti aturan local-wins yang sama seperti field lagu lainnya.
+
 ## v5.1.2
 
 Patch tata letak player berdasarkan masukan langsung. Tombol antrean terlihat lagi dan semua kontrol sekunder punya label yang bisa dibaca.

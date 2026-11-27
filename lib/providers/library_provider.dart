@@ -774,6 +774,19 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setRating(int songId, int rating) async {
+    await DBHelper.instance.setRating(songId, rating);
+    final updated = <Song>[];
+    for (final song in songs) {
+      if (song.id == songId) {
+        song.rating = rating;
+        updated.add(song);
+      }
+    }
+    _songsVersion++;
+    notifyListeners();
+  }
+
   Future<void> setLabel(int songId, String label) async {
     await DBHelper.instance.setSongLabel(songId, label);
     final next = Map<int, String>.of(labels);

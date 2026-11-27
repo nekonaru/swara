@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/l10n/v5_strings.dart';
+import 'package:swara/l10n/v6_strings.dart';
 
 import '../models/song.dart';
 import '../providers/language_provider.dart';
@@ -23,6 +24,10 @@ class SwaraBrowseCatalog {
   static const String catUnplayed = 'cat_unplayed';
   static const String catGenres = 'cat_genres';
   static const String genrePrefix = 'cat_genre_';
+  static const String catRated = 'cat_rated';
+  static const String catLabels = 'cat_labels';
+  static const String catHistory = 'cat_history';
+  static const String labelPrefix = 'cat_label_';
   static const int maxChildren = 50;
 
   static String _category(String id) => 'cat_$id';
@@ -78,6 +83,12 @@ class SwaraBrowseCatalog {
             artist: '', album: '', playable: false),
         MediaItem(id: catGenres, title: V5.genres,
             artist: '', album: '', playable: false),
+        MediaItem(id: catRated, title: V6.browseRating,
+            artist: '', album: '', playable: false),
+        MediaItem(id: catLabels, title: V6.browseLabel,
+            artist: '', album: '', playable: false),
+        MediaItem(id: catHistory, title: V6.browseHistory,
+            artist: '', album: '', playable: false),
       ];
       // Android Auto paginates until a short page arrives. Returning all five
       // on every page would loop forever with a small page size.
@@ -125,6 +136,35 @@ class SwaraBrowseCatalog {
           limit: pageSize,
           offset: offset,
           excludedFolders: excluded);
+      return [for (final song in rows) _leaf(song)];
+    }
+    if (parentId == catRated) {
+      final rows = await DBHelper.instance.getRatedSongs(
+          minRating: 4, limit: pageSize, offset: offset);
+      return [for (final song in rows) _leaf(song)];
+    }
+    if (parentId == catHistory) {
+      final rows = await DBHelper.instance.getListeningHistoryPage(
+          limit: pageSize, offset: offset);
+      return [for (final song in rows) _leaf(song)];
+    }
+    if (parentId == catLabels) {
+      final labels = await DBHelper.instance.getDistinctLabels();
+      return [
+        for (final label in labels.skip(offset).take(pageSize))
+          MediaItem(
+            id: '$labelPrefix$label',
+            title: label,
+            artist: '',
+            album: '',
+            playable: false,
+          ),
+      ];
+    }
+    if (parentId.startsWith(labelPrefix)) {
+      final label = parentId.substring(labelPrefix.length);
+      final rows = await DBHelper.instance.getSongsByLabel(
+          label, limit: pageSize, offset: offset);
       return [for (final song in rows) _leaf(song)];
     }
     if (parentId == catPlaylists) {

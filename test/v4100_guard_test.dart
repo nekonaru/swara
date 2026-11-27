@@ -38,7 +38,7 @@ void main() {
 
   test('backup v15 remembers old paths after a real rename', () {
     final db = read('lib/services/db_helper.dart');
-    expect(db.contains('version: 17'), isTrue);
+    expect(db.contains('version: 18'), isTrue);
     expect(db.contains('CREATE TABLE song_path_aliases'), isTrue);
     expect(db.contains("'path': oldPath"), isTrue);
     final backup = read('lib/services/backup_service.dart');

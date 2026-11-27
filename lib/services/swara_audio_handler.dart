@@ -457,6 +457,45 @@ class SwaraAudioHandler extends BaseAudioHandler {
           return;
         }
       }
+      // Offline collection commands. These are unambiguous phrases, so they
+      // run before the fuzzy title search.
+      final lower = query.trim().toLowerCase();
+      if (lower.contains('unplayed') || lower.contains('belum diputar')) {
+        final songs = await DBHelper.instance.getUnplayedSongs(
+            limit: 50, offset: 0);
+        if (songs.isNotEmpty) {
+          await PlayerService.instance.setQueueAndPlay(songs, 0);
+          return;
+        }
+      }
+      if (lower.contains('top rated') || lower.contains('rating')) {
+        final songs = await DBHelper.instance.getRatedSongs(
+            minRating: 4, limit: 50, offset: 0);
+        if (songs.isNotEmpty) {
+          await PlayerService.instance.setQueueAndPlay(songs, 0);
+          return;
+        }
+      }
+      final labelMatch = RegExp(r'(?:label|berlabel)\s+(.+)').firstMatch(lower);
+      if (labelMatch != null) {
+        final label = labelMatch.group(1)!.trim();
+        final songs = await DBHelper.instance.getSongsByLabel(
+            label, limit: 50, offset: 0);
+        if (songs.isNotEmpty) {
+          await PlayerService.instance.setQueueAndPlay(songs, 0);
+          return;
+        }
+      }
+      final genreMatch = RegExp(r'genre\s+(.+)').firstMatch(lower);
+      if (genreMatch != null) {
+        final genre = genreMatch.group(1)!.trim();
+        final songs = await DBHelper.instance.getSongsByGenre(
+            genre, limit: 50, offset: 0);
+        if (songs.isNotEmpty) {
+          await PlayerService.instance.setQueueAndPlay(songs, 0);
+          return;
+        }
+      }
       // Structured metadata wins over a broad spoken query.
       final terms = <String>[
         if (artist.isNotEmpty && title.isNotEmpty) '$artist $title',

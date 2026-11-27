@@ -1,5 +1,28 @@
 # Changelog
 
+## v6.0.0
+
+Large offline feature release. Everything runs from local data, with no new permission and no audio engine rewrite.
+
+## New features
+
+- **Star ratings.** Rate a song from 1 to 5, clear it later, and use ratings in play modes, Auto DJ, Android Auto, and voice commands.
+- **Label management.** Rename a label everywhere, merge two labels, or remove a label without touching the songs.
+- **Fair shuffle.** An optional rule keeps the same artist from playing back to back.
+- **Auto DJ and play modes.** Build a queue from unplayed songs plus top-rated and favourite tracks, or start newest-first and top-rated directly from the library menu.
+- **Similar songs.** Local suggestions from artist, genre, label, and duration, added to the queue with one tap.
+- **Listening archive and insights.** Daily listening series, top hour, streak, recent history, and CSV export.
+- **Restore preview.** See how many songs in a snapshot match this library before applying it.
+- **More Android Auto categories.** Top rated, labels, and listening history by date, plus voice commands for unplayed, top rated, by label, and by genre.
+
+## Improvements
+
+- **Playlist folders and Artists and Genres tabs were already present** and are left intact.
+
+## Bug fixes
+
+- **Backup restore keeps locally newer labels**, following the same local-wins rule as other song fields.
+
 ## v5.1.2
 
 Player layout patch based on direct feedback. The queue is visible again and every secondary control has a readable label.

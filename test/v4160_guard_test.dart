@@ -41,7 +41,7 @@ void main() {
   test('voice metadata outranks a broad spoken query', () {
     final h = read('lib/services/swara_audio_handler.dart');
     final search = h.split('Future<void> playFromSearch(')[1].split('    } catch (e)')[0];
-    expect(search.indexOf("'\$artist \$title'") < search.indexOf('query.trim()'), isTrue);
+    expect(search.indexOf("'\$artist \$title'") < search.indexOf('query.trim(),'), isTrue);
   });
 
   test('LRC import mutates the song only after a successful DB write', () {

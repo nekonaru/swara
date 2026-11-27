@@ -43,7 +43,7 @@ class DBHelper {
     final path = p.join(dbPath, 'music_app.db');
     return openDatabase(
       path,
-      version: 17,
+      version: 18,
       onConfigure: (db) async {
         // sqflite calls onConfigure before it opens the migration transaction,
         // which is the only window where the journal mode can still be
@@ -72,7 +72,8 @@ class DBHelper {
             isFavorite INTEGER DEFAULT 0,
             lastPlayedAt TEXT,
             addedAt TEXT,
-            metadataScanned INTEGER DEFAULT 0
+            metadataScanned INTEGER DEFAULT 0,
+            rating INTEGER DEFAULT 0
           )
         ''');
         await db.execute('''
@@ -453,6 +454,16 @@ class DBHelper {
               );
             } catch (e) {
               debugPrint('DBHelper: v16 rule seed failed for $name: $e');
+            }
+          }
+        }
+        if (oldVersion < 18) {
+          if (!await _hasColumn(db, 'songs', 'rating')) {
+            try {
+              await db.execute(
+                  'ALTER TABLE songs ADD COLUMN rating INTEGER DEFAULT 0');
+            } catch (e) {
+              debugPrint('DBHelper: v18 rating migration failed: $e');
             }
           }
         }
@@ -2519,6 +2530,126 @@ class DBHelper {
     final database = await db;
     await database.delete('song_bookmarks',
         where: 'id = ?', whereArgs: [bookmarkId]);
+  }
+
+  // ---------- Ratings and v6 helpers ----------
+
+  Future<void> setRating(int songId, int rating) async {
+    final database = await db;
+    final value = rating.clamp(0, 5);
+    await database.update('songs', {'rating': value},
+        where: 'id = ?', whereArgs: [songId]);
+  }
+
+  Future<List<String>> getDistinctLabels() async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      "SELECT DISTINCT label FROM song_labels WHERE label IS NOT NULL AND label != '' "
+      'ORDER BY label ASC',
+    );
+    return rows.map((r) => r['label'] as String?).whereType<String>().toList();
+  }
+
+  Future<void> renameLabel(String from, String to) async {
+    final database = await db;
+    await database.update('song_labels', {'label': to.trim()},
+        where: 'label = ?', whereArgs: [from]);
+  }
+
+  Future<void> mergeLabels(String from, String into) async {
+    final database = await db;
+    await database.transaction((txn) async {
+      final rows = await txn.query('song_labels',
+          columns: ['songId', 'label'], where: 'label = ?', whereArgs: [from]);
+      for (final row in rows) {
+        final id = row['songId'];
+        if (id == null) continue;
+        await txn.insert(
+          'song_labels',
+          {'songId': id, 'label': into},
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await txn.delete('song_labels', where: 'label = ?', whereArgs: [from]);
+    });
+  }
+
+  Future<void> deleteLabel(String label) async {
+    final database = await db;
+    await database.delete('song_labels', where: 'label = ?', whereArgs: [label]);
+  }
+
+  Future<void> movePlaylistToFolder(int playlistId, String folder) async {
+    final database = await db;
+    await database.update('playlists', {'folder': folder.trim()},
+        where: 'id = ?', whereArgs: [playlistId]);
+  }
+
+  Future<List<(String, int)>> getArtistCounts() async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      'SELECT artist, COUNT(*) AS n FROM songs GROUP BY artist ORDER BY n DESC',
+    );
+    return [
+      for (final row in rows)
+        ((row['artist'] as String?) ?? '', (row['n'] as num?)?.toInt() ?? 0),
+    ];
+  }
+
+  Future<List<(String, int)>> getGenreCounts() async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      "SELECT genre, COUNT(*) AS n FROM songs WHERE genre IS NOT NULL AND genre != '' "
+      'GROUP BY genre ORDER BY n DESC',
+    );
+    return [
+      for (final row in rows)
+        ((row['genre'] as String?) ?? '', (row['n'] as num?)?.toInt() ?? 0),
+    ];
+  }
+
+  Future<List<Song>> getRatedSongs({
+    required int minRating,
+    required int limit,
+    required int offset,
+  }) async {
+    final database = await db;
+    final rows = await database.query(
+      'songs',
+      where: 'rating >= ?',
+      whereArgs: [minRating],
+      orderBy: 'rating DESC, title COLLATE NOCASE ASC',
+      limit: limit,
+      offset: offset,
+    );
+    return _songsFromRows(rows);
+  }
+
+  Future<List<Song>> getSongsByLabel(
+    String label, {
+    required int limit,
+    required int offset,
+  }) async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      'SELECT s.* FROM songs s JOIN song_labels l ON l.songId = s.id '
+      'WHERE l.label = ? ORDER BY s.title COLLATE NOCASE ASC LIMIT ? OFFSET ?',
+      [label, limit, offset],
+    );
+    return _songsFromRows(rows);
+  }
+
+  Future<List<Song>> getListeningHistoryPage({
+    required int limit,
+    required int offset,
+  }) async {
+    final database = await db;
+    final rows = await database.rawQuery(
+      'SELECT s.* FROM listening_entries e JOIN songs s ON s.id = e.songId '
+      'ORDER BY e.timestamp DESC LIMIT ? OFFSET ?',
+      [limit, offset],
+    );
+    return _songsFromRows(rows);
   }
 
   // ---------- Labels (v17) ----------

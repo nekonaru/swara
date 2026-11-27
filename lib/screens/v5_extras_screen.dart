@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/gen/app_localizations.dart';
 import '../l10n/v5_strings.dart';
+import '../l10n/v6_strings.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
 import '../services/backup_service.dart';
@@ -13,6 +14,8 @@ import '../services/db_helper.dart';
 import '../services/extra_features_service.dart';
 import '../services/m3u_service.dart';
 import '../widgets/swara_empty_state.dart';
+import 'label_manager_screen.dart';
+import 'insights_screen.dart';
 
 /// Extra tools introduced in v5. All offline, all user confirmed.
 class V5ExtrasScreen extends StatefulWidget {
@@ -150,6 +153,24 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
                     : () => _confirm(V5.clearTrash, V5.clearTrashConfirm,
                         () => DBHelper.instance.clearTrash()),
               ),
+          ]),
+          _section(V6.listeningArchive, [
+            ListTile(
+              leading: const Icon(Icons.insights_outlined),
+              title: Text(V6.listeningArchive),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const InsightsScreen()),
+              ),
+            ),
+          ]),
+          _section(V6.manageLabels, [
+            ListTile(
+              leading: const Icon(Icons.label_outline),
+              title: Text(V6.manageLabels),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LabelManagerScreen()),
+              ),
+            ),
           ]),
           _section(V5.verifyBackup, [
             ListTile(

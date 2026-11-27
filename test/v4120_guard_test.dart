@@ -9,7 +9,7 @@ void main() {
 
   test('DB v16 carries smart playlist rules', () {
     final db = read('lib/services/db_helper.dart');
-    expect(db.contains('version: 17'), isTrue);
+    expect(db.contains('version: 18'), isTrue);
     expect(db.contains('rule TEXT'), isTrue);
     expect(db.contains('oldVersion < 16'), isTrue);
     expect(db.contains('Future<void> setPlaylistRule('), isTrue);

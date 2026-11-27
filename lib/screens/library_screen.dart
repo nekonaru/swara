@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/l10n/v5_strings.dart';
+import 'package:swara/l10n/v6_strings.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
@@ -299,6 +300,52 @@ class _LibraryScreenState extends State<LibraryScreen> {
     await _playSong(allSongs, index);
   }
 
+  Future<void> _playOrdered(List<Song> songs, int mode) async {
+    if (songs.isEmpty) return;
+    final ordered = List<Song>.of(songs);
+    if (mode == 1) {
+      ordered.sort((a, b) =>
+          (b.addedAt?.compareTo(a.addedAt ?? DateTime(0)) ?? 0));
+    } else if (mode == 2) {
+      ordered.removeWhere((s) => s.rating < 4 && !s.isFavorite);
+      ordered.sort((a, b) => b.rating.compareTo(a.rating));
+    }
+    if (ordered.isEmpty) return;
+    await PlayerService.instance.setQueueAndPlay(ordered, 0);
+  }
+
+  Future<void> _autoDj(LibraryProvider lib) async {
+    final unplayed = await DBHelper.instance.getUnplayedSongs(
+        limit: 60, offset: 0);
+    final picked = <int, Song>{
+      for (final song in unplayed) song.id: song,
+    };
+    for (final song in lib.songs) {
+      if (song.rating >= 4 || song.isFavorite) picked.putIfAbsent(song.id, () => song);
+    }
+    final queue = picked.values.toList()..shuffle();
+    if (queue.isEmpty || !mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(V6.autoDj),
+        content: Text(V6.djReady(queue.length)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(ctx)!.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(V6.djApply),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || queue.isEmpty) return;
+    await PlayerService.instance.setQueueAndPlay(queue, 0);
+  }
+
   void _showSortMenu(BuildContext context, LibraryProvider lib) {
     final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -336,6 +383,40 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     Navigator.pop(ctx);
                   },
                 )),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+              child: Text(V6.playModes,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.new_releases_outlined),
+              title: Text(V6.playNewest),
+              onTap: () {
+                Navigator.pop(ctx);
+                _playOrdered(lib.songs, 1);
+              },
+            ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.star_outline),
+              title: Text(V6.playLeast),
+              onTap: () {
+                Navigator.pop(ctx);
+                _playOrdered(lib.songs, 2);
+              },
+            ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.auto_awesome_outlined),
+              title: Text(V6.autoDj),
+              onTap: () {
+                Navigator.pop(ctx);
+                _autoDj(lib);
+              },
+            ),
             const SizedBox(height: 8),
               ],
             ),

@@ -158,7 +158,13 @@
 |---------|-------------|
 | **Backup and restore** | Export and import playlists, favorites and history, plus manual tags, plain lyrics, synced LRC, timing corrections and bookmarks matched by file path across devices |
 | **Save backup to file** | Save a timestamped JSON backup to a location you pick with the system file picker and see the last export date in Settings |
-| **User labels** | Name songs, filter by label, and label a selection in bulk |
+| **User labels** | Name songs, filter by label, label a selection in bulk, and rename or merge labels globally |
+| **Star ratings** | Rate songs 1 to 5 and use ratings in play modes, Auto DJ, browse, and voice commands |
+| **Fair shuffle** | Optional rule that avoids playing the same artist back to back |
+| **Auto DJ** | Build a queue from unplayed, top-rated, and favourite songs with a preview first |
+| **Similar songs** | Local suggestions by artist, genre, label, and duration |
+| **Listening archive** | Daily listening series, insights, streak, history, and CSV export |
+| **Restore preview** | See how many songs in a backup match this library before applying it |
 | **Library trash** | Removals are staged locally with restore or confirmed permanent deletion |
 | **Advanced search** | Filter by genre, added year and label, with saved recent queries |
 | **Timed lyrics editor** | Stamp LRC lines at the current playhead and keep the offset |
