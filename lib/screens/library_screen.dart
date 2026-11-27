@@ -651,9 +651,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ? null
                   : () async {
                       try {
+                        final dir = await M3uService.outputDirectory();
                         final file = await M3uService.saveM3uToDownloads(
                             'Swara Selection',
-                            M3uService.buildM3uContent(selected));
+                            M3uService.buildM3uContent(selected,
+                                baseDir: dir.path));
                         if (!mounted) return;
                         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()

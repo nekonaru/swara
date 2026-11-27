@@ -372,7 +372,12 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
   Future<void> _exportM3u(List<Song> songs) async {
     final l = AppLocalizations.of(context)!;
     if (songs.isEmpty) return;
-    final content = M3uService.buildM3uContent(songs, relative: _relativeM3u);
+    final dir = await M3uService.outputDirectory();
+    final content = M3uService.buildM3uContent(
+      songs,
+      relative: _relativeM3u,
+      baseDir: dir.path,
+    );
     try {
       final file = await M3uService.saveM3uToDownloads('Swara Library', content);
       if (!mounted) return;

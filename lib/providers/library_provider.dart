@@ -760,9 +760,7 @@ class LibraryProvider extends ChangeNotifier {
   /// setLabel in a loop, which rebuilt the row index once per song.
   Future<void> setLabels(Map<int, String> values) async {
     if (values.isEmpty) return;
-    for (final entry in values.entries) {
-      await DBHelper.instance.setSongLabel(entry.key, entry.value);
-    }
+    await DBHelper.instance.setSongLabelsBulk(values);
     final next = Map<int, String>.of(labels);
     for (final entry in values.entries) {
       if (entry.value.trim().isEmpty) {

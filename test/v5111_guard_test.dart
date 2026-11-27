@@ -30,6 +30,7 @@ void main() {
     final screen = read('lib/screens/library_screen.dart');
     expect(screen.contains('setLabels({'), isTrue);
     expect(screen.contains('markPlayedBulk('), isTrue);
+    expect(screen.contains('markPlayed(s.id)'), isFalse);
   });
 
   test('lyrics edit refreshes the player and sleep resume keeps its mode', () {
@@ -52,7 +53,7 @@ void main() {
 
   test('relative M3U uses a common ancestor', () {
     final m3u = read('lib/services/m3u_service.dart');
-    expect(m3u.contains('p.dirname(songs.first.filePath)'), isTrue);
-    expect(m3u.contains('p.relative(song.filePath, from: base)'), isTrue);
+    expect(m3u.contains('Future<Directory> outputDirectory()'), isTrue);
+    expect(m3u.contains('p.relative(song.filePath, from: baseDir)'), isTrue);
   });
 }

@@ -30,9 +30,8 @@ void main() {
     final screen = read('lib/screens/library_screen.dart');
     for (final needle in [
       '_bulkLabel(selected)',
-      'DBHelper.instance',
       'markPlayedBulk(',
-      'M3uService.buildM3uContent(selected)',
+      'M3uService.buildM3uContent(selected,',
       'SharePlus.instance.share(',
       '_bulkTrash(selected)',
     ]) {

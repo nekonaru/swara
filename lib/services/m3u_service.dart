@@ -241,23 +241,12 @@ class M3uService {
   // by an #EXTINF line plus the file path per song. Duration is in
   // whole seconds, or -1 when unknown. Pure function, never touches
   // the file system.
-  static String buildM3uContent(List<Song> songs, {bool relative = false}) {
+  static String buildM3uContent(
+    List<Song> songs, {
+    bool relative = false,
+    String? baseDir,
+  }) {
     final buf = StringBuffer()..writeln('#EXTM3U');
-    // Relative paths are relative to the common ancestor of the exported
-    // files, not to a hardcoded /Music/ folder that may not exist.
-    String? common;
-    if (relative && songs.isNotEmpty) {
-      String cursor = p.dirname(songs.first.filePath);
-      for (final song in songs.skip(1)) {
-        final folder = p.dirname(song.filePath);
-        while (folder != cursor && !folder.startsWith('$cursor/')) {
-          final parent = p.dirname(cursor);
-          if (parent == cursor) break;
-          cursor = parent;
-        }
-      }
-      common = cursor;
-    }
     for (final song in songs) {
       final seconds = song.durationMs > 0 ? song.durationMs ~/ 1000 : -1;
       // Commas and newlines would break the EXTINF format, so flatten them.
@@ -266,11 +255,11 @@ class M3uService {
           .replaceAll('\r', ' ')
           .replaceAll(',', ' ');
       buf.writeln('#EXTINF:$seconds,$title');
-      final base = common;
-      if (!relative || base == null) {
+      if (!relative || baseDir == null ||
+          !song.filePath.startsWith('$baseDir/')) {
         buf.writeln(song.filePath);
       } else {
-        buf.writeln(p.relative(song.filePath, from: base));
+        buf.writeln(p.relative(song.filePath, from: baseDir));
       }
     }
     return buf.toString();
@@ -280,26 +269,32 @@ class M3uService {
   // Prefers getDownloadsDirectory, then getExternalStorageDirectory,
   // then the temp dir as a last resort. Wraps any failure in a plain
   // Exception so callers only need a generic catch.
-  static Future<File> saveM3uToDownloads(
-      String playlistName, String content) async {
+  /// The directory the exporter actually writes to. Callers building
+  /// relative playlists must use this as the base or the paths will not
+  /// resolve when the file is imported.
+  static Future<Directory> outputDirectory() async {
+    Directory? dir;
     try {
-      Directory? dir;
+      dir = await getDownloadsDirectory();
+    } catch (_) {
+      dir = null;
+    }
+    if (dir == null) {
       try {
-        dir = await getDownloadsDirectory();
+        dir = await getExternalStorageDirectory();
       } catch (_) {
         dir = null;
       }
-      if (dir == null) {
-        try {
-          dir = await getExternalStorageDirectory();
-        } catch (_) {
-          dir = null;
-        }
-      }
-      dir ??= await getTemporaryDirectory();
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
+    }
+    dir ??= await getTemporaryDirectory();
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return dir;
+  }
+
+  static Future<File> saveM3uToDownloads(
+      String playlistName, String content) async {
+    try {
+      final dir = await outputDirectory();
       final safeName = _sanitizeFileName(playlistName);
       final file = File('${dir.path}${Platform.pathSeparator}$safeName.m3u');
       await file.writeAsString(content);

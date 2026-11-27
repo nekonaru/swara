@@ -2523,6 +2523,28 @@ class DBHelper {
         where: 'id = ?', whereArgs: [songId]);
   }
 
+  /// Write many labels in one batch. The bulk UI path used one transaction
+  /// per song even though it rebuilt the UI only once.
+  Future<void> setSongLabelsBulk(Map<int, String> values) async {
+    if (values.isEmpty) return;
+    final database = await db;
+    final batch = database.batch();
+    for (final entry in values.entries) {
+      final value = entry.value.trim();
+      if (value.isEmpty) {
+        batch.delete('song_labels',
+            where: 'songId = ?', whereArgs: [entry.key]);
+      } else {
+        batch.insert(
+          'song_labels',
+          {'songId': entry.key, 'label': value},
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<void> setSongLabel(int songId, String label) async {
     final database = await db;
     final value = label.trim();

@@ -68,6 +68,17 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       final file = File('${dir.path}${Platform.pathSeparator}'
           '${widget.song.id}$safeExt');
       await file.writeAsBytes(bytes);
+      // Drop the previous cover file so repeated edits do not leak copies.
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        final name = p.basename(entity.path);
+        if (name.startsWith('${widget.song.id}.') &&
+            entity.path != file.path) {
+          try {
+            await entity.delete();
+          } catch (_) {}
+        }
+      }
       await DBHelper.instance.setAlbumArtPath(widget.song.id, file.path);
       widget.song.albumArtPath = file.path;
       EmbeddedArtService.instance.evict(widget.song.id);

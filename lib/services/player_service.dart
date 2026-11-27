@@ -362,6 +362,7 @@ class PlayerService extends ChangeNotifier {
       await prefs.setInt('resume_sleep_songs', sleepSongsRemaining ?? 0);
       await prefs.setBool('resume_sleep_finish_song',
           _finishCurrentSongOnSleep);
+      await prefs.setBool('resume_sleep_pending_stop', _pendingSleepStop);
     } catch (e) {
       debugPrint('Failed to persist resume state: $e');
     }
@@ -453,7 +454,13 @@ class PlayerService extends ChangeNotifier {
         );
       } else {
         final sleepSongs = prefs.getInt('resume_sleep_songs') ?? 0;
-        if (sleepSongs > 0) setSleepTimerBySongs(sleepSongs);
+        if (sleepSongs > 0) {
+          setSleepTimerBySongs(sleepSongs);
+        } else if (prefs.getBool('resume_sleep_pending_stop') ?? false) {
+          // The timer fired while the app was closed and was waiting for the
+          // current song to finish. Keep that decision across the restart.
+          _pendingSleepStop = true;
+        }
       }
     } catch (e) {
       debugPrint('Failed to restore resume state: $e');
