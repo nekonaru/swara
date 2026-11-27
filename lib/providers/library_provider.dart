@@ -143,10 +143,7 @@ class LibraryProvider extends ChangeNotifier {
     final excluded = await DBHelper.instance.getExcludedFolders();
     songs = excluded.isEmpty
         ? all
-        : all.where((s) {
-            final folder = folderOf(s.filePath);
-            return !excluded.contains(folder);
-          }).toList();
+        : all.where((s) => !isHiddenPath(s.filePath, excluded)).toList();
     if (volumeFilter == 'internal') {
       songs = songs
           .where((s) => !s.filePath.startsWith('/storage/') ||
@@ -898,6 +895,7 @@ class LibraryProvider extends ChangeNotifier {
       isFavorite: song.isFavorite,
       addedAt: song.addedAt,
       metadataScanned: song.metadataScanned,
+      rating: song.rating,
     );
     final index = songs.indexWhere((s) => s.id == song.id);
     if (index < 0) {
@@ -960,7 +958,7 @@ class LibraryProvider extends ChangeNotifier {
     final excluded = await DBHelper.instance.getExcludedFolders();
     final filtered = excluded.isEmpty
         ? all
-        : all.where((s) => !excluded.contains(folderOf(s.filePath))).toList();
+        : all.where((s) => !isHiddenPath(s.filePath, excluded)).toList();
     return filtered.take(limit).toList();
   }
 
@@ -971,7 +969,7 @@ class LibraryProvider extends ChangeNotifier {
     final excluded = await DBHelper.instance.getExcludedFolders();
     if (excluded.isEmpty) return all.take(limit).toList();
     return all
-        .where((s) => !excluded.contains(folderOf(s.filePath)))
+        .where((s) => !isHiddenPath(s.filePath, excluded))
         .take(limit)
         .toList();
   }

@@ -704,6 +704,9 @@ class PlayerService extends ChangeNotifier {
       row.isFavorite = source.isFavorite;
       row.addedAt = source.addedAt;
       row.metadataScanned = source.metadataScanned;
+      if (row.rating != source.rating) {
+        row.rating = source.rating;
+      }
       changed = true;
     }
     if (changed) {
@@ -1316,6 +1319,17 @@ class PlayerService extends ChangeNotifier {
     return order;
   }
 
+  /// One entry point for every shuffle rebuild, so fair shuffle applies when
+  /// shuffle is toggled, when smart shuffle changes, and when the setting is
+  /// switched on while music is already playing.
+  List<int> _shuffledTailAfter(int currentQueueIndex) {
+    final rest = List<int>.generate(_queue.length, (i) => i)
+      ..remove(currentQueueIndex);
+    final order = <int>[currentQueueIndex, ..._shuffleRest(rest)];
+    if (_fairShuffle) _spreadArtists(order);
+    return order;
+  }
+
   /// Swap consecutive songs with the same artist. Applied to the final order,
   /// including the first transition, and after any smart-shuffle weighting.
   void _spreadArtists(List<int> order) {
@@ -1358,6 +1372,11 @@ class PlayerService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefsFairShuffleKey, value);
     } catch (_) {}
+    if (value && _shuffle && currentSong != null) {
+      _playOrder = _shuffledTailAfter(_playOrder[_posInOrder]);
+      _posInOrder = 0;
+      queueVersion++;
+    }
     notifyListeners();
   }
 
@@ -2031,8 +2050,7 @@ class PlayerService extends ChangeNotifier {
     final currentQueueIndex = _playOrder[_posInOrder];
 
     if (_shuffle) {
-      final rest = List.generate(_queue.length, (i) => i)..remove(currentQueueIndex);
-      _playOrder = [currentQueueIndex, ..._shuffleRest(rest)];
+      _playOrder = _shuffledTailAfter(currentQueueIndex);
       _posInOrder = 0;
     } else {
       _playOrder = List.generate(_queue.length, (i) => i);
@@ -2068,9 +2086,7 @@ class PlayerService extends ChangeNotifier {
     // so the current song is never interrupted.
     if (_shuffle && currentSong != null) {
       final currentQueueIndex = _playOrder[_posInOrder];
-      final rest = List.generate(_queue.length, (i) => i)
-        ..remove(currentQueueIndex);
-      _playOrder = [currentQueueIndex, ..._shuffleRest(rest)];
+      _playOrder = _shuffledTailAfter(currentQueueIndex);
       _posInOrder = 0;
       queueVersion++;
       notifyListeners();

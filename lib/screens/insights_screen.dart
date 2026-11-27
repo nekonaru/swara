@@ -46,7 +46,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
     try {
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}${Platform.pathSeparator}swara_listening.csv');
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      final file = File('${dir.path}${Platform.pathSeparator}'
+          'swara_listening_$stamp.csv');
       await file.writeAsString(buffer.toString());
       await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
     } catch (_) {
@@ -59,9 +61,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final topHour = _hourly.entries.isEmpty
+    final activeHours = _hourly.entries.where((e) => e.value > 0).toList();
+    final topHour = activeHours.isEmpty
         ? null
-        : _hourly.entries.reduce((a, b) => a.value >= b.value ? a : b);
+        : activeHours.reduce((a, b) => a.value >= b.value ? a : b);
     return Scaffold(
       appBar: AppBar(
         title: Text(V6.listeningArchive),

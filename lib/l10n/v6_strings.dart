@@ -40,6 +40,7 @@ class V6 {
   static String get playModes => id ? 'Mode putar' : 'Play modes';
   static String get playNewest => id ? 'Terbaru dulu' : 'Newest first';
   static String get playLeast => id ? 'Paling jarang' : 'Least played';
+  static String get topRated => id ? 'Rating tertinggi' : 'Top rated';
   static String get playUnplayed => id ? 'Belum diputar' : 'Unplayed only';
   static String get sleepAlbum =>
       id ? 'Sampai album habis' : 'Until album ends';

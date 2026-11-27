@@ -1,5 +1,25 @@
 # Changelog
 
+## v6.0.1
+
+Deep audit patch for the v6 feature set. No new feature.
+
+## Improvements
+
+- **Fair shuffle now applies everywhere.** Toggling shuffle, smart shuffle, or the fair shuffle setting itself reorders the current play order with the artist rule.
+- **Restore preview is O(N)** and follows the importer's single-candidate rule instead of scanning every local song per exported row.
+- **Listening history shows each song once** with julianday ordering, including backups with short timestamps.
+- **Android Auto history and genre lookups are case-insensitive** for voice commands.
+
+## Bug fixes
+
+- **Top-rated mode is labelled correctly** instead of being called least played.
+- **Ratings survive a file rename** and are synced into queued copies.
+- **Fair shuffle is included in backups** and restored like the other playback settings.
+- **Excluded folders stay hidden** in All Songs, play modes, similar songs, Auto DJ, and Android Auto.
+- **Renaming a label to an empty value is ignored** instead of erasing it from every song.
+- **CSV exports use a timestamped filename** and the insights top hour is hidden when there is no listening data.
+
 ## v6.0.0
 
 Large offline feature release. Everything runs from local data, with no new permission and no audio engine rewrite.

@@ -18,6 +18,7 @@ Map<String, Object> decodeBackupSettings(dynamic raw) {
     'crossfadeSeconds',
     'crossfadeEnabled',
     'smartShuffle',
+    'fairShuffleV6',
     'playbackSpeed',
     'playbackPitch',
     'sleepScheduleEnabled',

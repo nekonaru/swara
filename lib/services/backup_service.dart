@@ -144,6 +144,7 @@ class BackupService {
     'crossfadeSeconds',
     'crossfadeEnabled',
     'smartShuffle',
+    'fairShuffleV6',
     'playbackSpeed',
     'playbackPitch',
     'sleepScheduleEnabled',
@@ -420,12 +421,16 @@ class BackupService {
         .toSet();
     // Basename plus a duration bucket mirrors the real identity matcher,
     // so a backup from another device is not reported as all-unmatched.
-    final localKeys = <String, int>{
-      for (final row in local)
-        '${p.basenameWithoutExtension((row['filePath'] as String?) ?? '')}'
-        '|${(row['durationMs'] as num?)?.toInt() ?? 0}':
-            (row['id'] as num?)?.toInt() ?? 0,
-    };
+    // Group by basename once, then check durations in that bucket. A linear
+    // scan per exported song made preview O(N*M) on large libraries.
+    final durationsByName = <String, List<int>>{};
+    for (final row in local) {
+      final name = p.basenameWithoutExtension((row['filePath'] as String?) ?? '');
+      if (name.isEmpty) continue;
+      durationsByName
+          .putIfAbsent(name, () => <int>[])
+          .add((row['durationMs'] as num?)?.toInt() ?? 0);
+    }
     final songRows = decoded['songs'] as List? ?? const [];
     var matched = 0;
     for (final row in songRows) {
@@ -433,17 +438,15 @@ class BackupService {
       final path = row['filePath'] as String?;
       final name = path == null ? '' : p.basenameWithoutExtension(path);
       final duration = (row['durationMs'] as num?)?.toInt() ?? 0;
-      final neighbour = localKeys.entries.firstWhere(
-        (entry) {
-          final parts = entry.key.split('|');
-          if (parts.length != 2 || parts.first != name) return false;
-          final other = int.tryParse(parts.last) ?? 0;
-          return (other - duration).abs() <= kDurationToleranceMs;
-        },
-        orElse: () => const MapEntry('', -1),
-      );
-      if ((path != null && localPaths.contains(path)) ||
-          neighbour.value >= 0) {
+      final candidates = durationsByName[name]
+              ?.where((other) =>
+                  (other - duration).abs() <= kDurationToleranceMs)
+              .toList() ??
+          const <int>[];
+      // The importer only binds when exactly one candidate matches. Duplicate
+      // basenames must not inflate the preview.
+      final neighbour = candidates.length == 1;
+      if ((path != null && localPaths.contains(path)) || neighbour) {
         matched++;
       }
     }

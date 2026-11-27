@@ -77,8 +77,9 @@ class _LabelManagerScreenState extends State<LabelManagerScreen> {
                             ),
                           );
                           if (ok != true) return;
-                          await DBHelper.instance
-                              .renameLabel(label, controller.text.trim());
+                          final next = controller.text.trim();
+                          if (next.isEmpty || next == label) return;
+                          await DBHelper.instance.renameLabel(label, next);
                           await _afterChange();
                         },
                       ),

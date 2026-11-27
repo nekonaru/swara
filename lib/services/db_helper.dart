@@ -2008,7 +2008,7 @@ class DBHelper {
     Set<String>? excludedFolders,
   }) async {
     final database = await db;
-    final where = <String>['genre = ?'];
+    final where = <String>['genre = ? COLLATE NOCASE'];
     final args = <Object?>[genre];
     for (final folder in _normalizedFolders(excludedFolders)) {
       where.add("filePath NOT LIKE ? ESCAPE '\\'");
@@ -2651,7 +2651,7 @@ class DBHelper {
     Set<String>? excludedFolders,
   }) async {
     final database = await db;
-    final where = <String>['l.label = ?'];
+    final where = <String>['l.label = ? COLLATE NOCASE'];
     final args = <Object?>[label];
     for (final folder in _normalizedFolders(excludedFolders)) {
       where.add("s.filePath NOT LIKE ? ESCAPE '\\'");
@@ -2680,8 +2680,10 @@ class DBHelper {
     }
     final clause = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')} ';
     final rows = await database.rawQuery(
-      'SELECT s.* FROM listening_entries e JOIN songs s ON s.id = e.songId '
-      '$clause ORDER BY e.timestamp DESC LIMIT ? OFFSET ?',
+      'SELECT s.*, MAX(e.timestamp) AS lastTs '
+      'FROM listening_entries e JOIN songs s ON s.id = e.songId '
+      '$clause GROUP BY s.id ORDER BY julianday(lastTs) DESC '
+      'LIMIT ? OFFSET ?',
       [...args, limit, offset],
     );
     return _songsFromRows(rows);

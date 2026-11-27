@@ -316,7 +316,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Future<void> _autoDj(LibraryProvider lib) async {
     final unplayed = await DBHelper.instance.getUnplayedSongs(
-        limit: 60, offset: 0);
+        limit: 60,
+        offset: 0,
+        excludedFolders: await DBHelper.instance.getExcludedFolders());
     final picked = <int, Song>{
       for (final song in unplayed) song.id: song,
     };
@@ -402,7 +404,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ListTile(
               dense: true,
               leading: const Icon(Icons.star_outline),
-              title: Text(V6.playLeast),
+              title: Text(V6.topRated),
               onTap: () {
                 Navigator.pop(ctx);
                 _playOrdered(lib.songs, 2);

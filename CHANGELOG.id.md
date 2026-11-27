@@ -1,5 +1,25 @@
 # Changelog
 
+## v6.0.1
+
+Patch audit mendalam untuk fitur v6. Tanpa fitur baru.
+
+## Peningkatan
+
+- **Acakan adil berlaku di semua jalur.** Mengubah acakan, acakan cerdas, atau pengaturan acakan adil kini menyusun ulang urutan putar dengan aturan artis yang sama.
+- **Pratinjau pemulihan O(N)** dan mengikuti aturan kandidat tunggal dari import, bukan memindai semua lagu lokal per baris cadangan.
+- **Riwayat mendengarkan menampilkan tiap lagu sekali** dengan urutan julianday, termasuk cadangan bertimestamp pendek.
+- **Pencarian genre dan label di Android Auto tidak peduli huruf besar** untuk perintah suara.
+
+## Perbaikan bug
+
+- **Mode rating tertinggi diberi label yang benar**, bukan paling jarang.
+- **Rating tetap ada setelah rename file** dan disinkronkan ke salinan antrean.
+- **Acakan adil ikut cadangan** dan dipulihkan seperti pengaturan pemutaran lain.
+- **Folder yang dikecualikan tetap tersembunyi** di Semua Lagu, mode putar, lagu serupa, Auto DJ, dan Android Auto.
+- **Mengganti nama label dengan nilai kosong diabaikan**, bukan menghapusnya dari semua lagu.
+- **Ekspor CSV memakai nama berkas bertimestamp** dan jam teratas disembunyikan saat belum ada data.
+
 ## v6.0.0
 
 Rilis fitur besar sepenuhnya offline. Semua berjalan dari data lokal, tanpa izin baru dan tanpa menulis ulang mesin audio.
