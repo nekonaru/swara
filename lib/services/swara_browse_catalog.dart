@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:audio_service/audio_service.dart';
 import 'package:swara/l10n/gen/app_localizations.dart';
 import 'package:swara/l10n/v5_strings.dart';
@@ -40,12 +38,9 @@ class SwaraBrowseCatalog {
 
   static Uri? _artUri(String? path) {
     if (path == null || path.trim().isEmpty) return null;
-    try {
-      if (!File(path).existsSync()) return null;
-      return Uri.file(path);
-    } catch (_) {
-      return null;
-    }
+    // No stat on the UI isolate. The image decoder handles a stale path,
+    // matching the cover-art hot path fixed in v4.20.
+    return Uri.file(path);
   }
 
   static (int page, int pageSize) pageOf(Map<String, dynamic>? options) {
@@ -77,11 +72,11 @@ class SwaraBrowseCatalog {
             artist: '', album: '', playable: false),
         MediaItem(id: catQueue, title: l.queueTitle,
             artist: '', album: '', playable: false),
-        MediaItem(id: catNew, title: V5.autoCollections,
+        MediaItem(id: catNew, title: V5.newSongs,
             artist: '', album: '', playable: false),
-        MediaItem(id: catUnplayed, title: V5.sessionHistory,
+        MediaItem(id: catUnplayed, title: V5.unplayed,
             artist: '', album: '', playable: false),
-        MediaItem(id: catGenres, title: V5.autoBrowseMore,
+        MediaItem(id: catGenres, title: V5.genres,
             artist: '', album: '', playable: false),
       ];
       // Android Auto paginates until a short page arrives. Returning all five

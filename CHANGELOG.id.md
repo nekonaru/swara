@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.1.1
+
+Patch audit mendalam: fitur v5 yang ada diperbaiki dan dirampingkan, tanpa fitur baru.
+
+## Peningkatan
+
+- **Aksi massal diproses sekali jalan.** Pemberian label dan penandaan diputar kini menulis sekali dan membangun ulang UI sekali, bukan sekali per lagu.
+- **Filter pencarian melihat seluruh pustaka.** Filter genre, tahun, dan label tidak lagi berhenti pada batas hasil pencarian biasa.
+- **Telusur Auto lebih ringan.** Sampul tidak lagi memeriksa file di isolate UI, dan tiga kategori baru punya label sendiri.
+- **Verifikasi cadangan berjalan di isolate pekerja** dan melaporkan isi berkas, bukan janji tentang pustaka lokal.
+- **Layar Alat meng-cache agregat** sehingga membukanya dan menggeser slider widget tidak memindai riwayat tiap frame.
+
+## Perbaikan bug
+
+- **Riwayat pencarian memakai satu kunci**, sehingga chip dan aksi Hapus saling cocok.
+- **Edit lirik berwaktu langsung menyegarkan player** yang sedang terbuka.
+- **Resume timer tidur mempertahankan pilihan tunggu lagu selesai.**
+- **Sampul khusus langsung menyegarkan pustaka dan player** serta mempertahankan ekstensi berkas asli.
+- **Diagnostik bisa dibagikan dan dikosongkan**, dan layar Alat aman ditinggalkan saat pemulihan berjalan.
+
 ## v5.1.0
 
 Rilis desain dan interaksi. Tidak ada fitur baru; layar yang ada menjadi lebih native, jelas, dan tenang.
@@ -36,7 +56,7 @@ Rilis fitur besar yang sepenuhnya offline. Kemampuan baru hanya menambah data da
 - **Filter volume penyimpanan.** Tampilkan internal, kartu SD, atau keduanya, hanya berdasarkan jalur.
 - **Laporan mendengarkan.** Deret harian, distribusi per jam, dan peta panas hari dalam minggu dari riwayat yang ada.
 - **Target harian.** Atur target menit dan lihat progres hari ini di layar alat tambahan.
-- **Verifikasi cadangan.** Uji kering cadangan dan lihat jumlah lagu, playlist, dan lirik yang bisa dipulihkan.
+- **Verifikasi cadangan.** Uji kering cadangan dan lihat jumlah entri lagu, playlist, dan lirik yang terkandung.
 - **Rincian penyimpanan.** Folder terbesar berdasarkan jumlah lagu.
 - **Ekspor M3U.** Simpan pustaka atau pilihan dengan jalur absolut atau relatif.
 - **Diagnostik.** Log aplikasi untuk kegagalan pemutaran dan pemindaian, bisa dibagikan sebagai teks.

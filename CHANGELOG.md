@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.1.1
+
+Deep audit patch: existing v5 features are corrected and made lighter, with no new feature.
+
+## Improvements
+
+- **Bulk actions are batched.** Labelling and marking many songs played now write once and rebuild the UI once instead of once per song.
+- **Search filters see the whole library.** Genre, year and label filters no longer stop at the plain search result cap.
+- **Auto browse is lighter.** Covers no longer stat files on the UI isolate, and the three new categories have their own labels.
+- **Backup verification runs off the UI isolate** and reports the entries found in the file, not a promise about the local library.
+- **Extras screen caches aggregates** so opening it and moving the widget slider do not rescan history on every frame.
+
+## Bug fixes
+
+- **Recent searches now use one key**, so the chips and the Clear action agree.
+- **Timed lyrics edits refresh the open player** immediately.
+- **Sleep timer resume keeps the finish-current-song choice.**
+- **Custom covers refresh the library and player at once** and keep the picked file extension.
+- **Diagnostics can be shared and cleared**, and the extras screen is safe to leave during a restore.
+
 ## v5.1.0
 
 Design and interaction release. No new feature was added; existing screens feel more native, clearer and calmer.
@@ -34,9 +54,9 @@ Large feature release built entirely offline. New capabilities add local data an
 - **Filename to tags.** Preview `Artist - Title` parsed from a filename before applying.
 - **Custom covers.** Pick an image from another app and store it privately for that song.
 - **Storage volume filter.** Show internal storage, SD card, or both, using paths only.
-- **Listening reports.** Daily series, hourly distribution and weekday heatmap from existing history.
+- **Listening reports.** Hourly and weekday listening distributions from existing history.
 - **Daily goal.** Set a minutes target and see today's progress on the extras screen.
-- **Backup verification.** Dry-run a backup and see how many songs, playlists and lyrics can be restored.
+- **Backup verification.** Dry-run a backup and see how many song, playlist and lyric entries it contains.
 - **Storage breakdown.** Largest folders by song count.
 - **M3U export.** Save the library or a selection with absolute or relative paths.
 - **Diagnostics.** In-app log of playback and scan failures, shareable as text.

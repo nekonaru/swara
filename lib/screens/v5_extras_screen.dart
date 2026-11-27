@@ -1,6 +1,6 @@
-import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -32,9 +32,11 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
   int _queueRows = 5;
   bool _compact = false;
   String? _volumeFilter;
+  List<(String, int)> _folderRows = const [];
   bool _busy = false;
 
   Future<void> _load() async {
+    if (!mounted) return;
     final lib = context.read<LibraryProvider>();
     _trash = await DBHelper.instance.getTrashEntries();
     _searchHistory = await SearchHistoryService.recent();
@@ -48,13 +50,14 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
         60000;
     _hourly = await DBHelper.instance.getHourlyDistribution();
     _weekday = await DBHelper.instance.getWeekdayDistribution();
+    _folderRows = _rowsForFolders(lib.songs);
     if (mounted) setState(() {});
   }
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _load().catchError((Object _) {});
   }
 
   Future<void> _confirm(String title, String message, Future<void> Function() action) async {
@@ -77,8 +80,10 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
     try {
       await action();
     } catch (_) {} finally {
-      if (mounted) setState(() => _busy = false);
-      await _load();
+      if (mounted) {
+        setState(() => _busy = false);
+        await _load();
+      }
     }
   }
 
@@ -154,7 +159,7 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
             ),
           ]),
           _section(V5.storageReport, [
-            for (final folder in _storageRows(lib.songs))
+            for (final folder in _folderRows)
               ListTile(
                 leading: const Icon(Icons.folder_outlined),
                 title: Text(folder.$1),
@@ -195,6 +200,24 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
                 icon: Icons.check_circle_outline,
                 title: V5.diagnosticsEmpty,
               ),
+            if (DiagnosticsService.instance.lines.isNotEmpty) ...[
+              ListTile(
+                leading: const Icon(Icons.ios_share),
+                title: Text(V5.share),
+                onTap: () async {
+                  try {
+                    await SharePlus.instance.share(ShareParams(
+                        text: DiagnosticsService.instance.exportText()));
+                  } catch (_) {}
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: Text(V5.clearHistory),
+                onTap: () => _confirm(V5.clearHistory, V5.clearHistory,
+                    () async => DiagnosticsService.instance.clear()),
+              ),
+            ],
           ]),
           _section(V5.exportM3u, [
             SwitchListTile(
@@ -286,7 +309,7 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
         ),
       );
 
-  List<(String, int)> _storageRows(List<Song> songs) {
+  List<(String, int)> _rowsForFolders(List<Song> songs) {
     final counts = folderCounts(songs);
     final rows = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -331,7 +354,7 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
       if (picked.isEmpty) return;
       final bytes = await picked.first.readAsBytes();
       if (bytes.length > 32 * 1024 * 1024) return;
-      final result = await BackupService.verifyBackup(utf8.decode(bytes));
+      final result = await BackupService.verifyBackupBytes(bytes);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()

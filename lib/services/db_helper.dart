@@ -1161,6 +1161,30 @@ class DBHelper {
     }
   }
 
+  /// Mark many songs played in one transaction and invalidate the dashboard
+  /// cache once. The bulk selection path used to call markPlayed per row,
+  /// which did a SharedPreferences round trip for every song.
+  Future<int> markPlayedBulk(List<int> ids) async {
+    if (ids.isEmpty) return 0;
+    final database = await db;
+    final stamp = DateTime.now().toIso8601String();
+    var updated = 0;
+    try {
+      await database.transaction((txn) async {
+        for (final id in ids) {
+          updated += await txn.update(
+            'songs',
+            {'lastPlayedAt': stamp},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        }
+      });
+      await invalidateDashboardCache();
+    } catch (_) {}
+    return updated;
+  }
+
   Future<void> markPlayed(int songId) async {
     try {
       final database = await db;

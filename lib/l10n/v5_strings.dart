@@ -76,8 +76,8 @@ class V5 {
       ? 'Kosongkan sampah? Semua entri akan dihapus permanen.'
       : 'Empty the trash? All entries will be removed permanently.';
   static String verifyResult(int songs, int playlists, int lyrics) => id
-      ? 'Dapat dipulihkan: $songs lagu, $playlists playlist, $lyrics lirik'
-      : 'Restorable: $songs songs, $playlists playlists, $lyrics lyrics';
+      ? 'Ditemukan dalam cadangan: $songs lagu, $playlists playlist, $lyrics lirik'
+      : 'Found in backup: $songs songs, $playlists playlists, $lyrics lyrics';
   static String day(int d) => id
       ? const ['', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][d]
       : const ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d];
@@ -87,6 +87,11 @@ class V5 {
   static String get moreTools => id ? 'Alat tambahan' : 'More tools';
   static String get share => id ? 'Bagikan' : 'Share';
   static String get all => id ? 'Semua' : 'All';
+  static String get newSongs => id ? 'Lagu baru' : 'New songs';
+  static String get unplayed => id ? 'Belum diputar' : 'Unplayed';
+  static String get genres => id ? 'Genre' : 'Genres';
+  static String get markPlayed => id ? 'Tandai diputar' : 'Mark played';
+  static String get coverSaved => id ? 'Sampul disimpan' : 'Cover saved';
   static String get backupTooNew => id
       ? 'Cadangan dari versi lebih baru tidak didukung'
       : 'Backup from a newer version is not supported';

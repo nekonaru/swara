@@ -89,7 +89,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final Set<int> _selectedIds = {};
 
   // Last 10 non-empty queries, newest first, persisted in SharedPreferences.
-  static const _historyKey = 'search_history';
+  static const _historyKey = 'search_history_v5';
   static const _historyMax = 10;
   List<String> _history = [];
   // Advanced offline filters applied after the isolate returns its matches.
@@ -248,7 +248,14 @@ class _SearchScreenState extends State<SearchScreen> {
       final found = await _searchIsolate.search(
         key: key,
         query: _pendingQuery,
-        limit: _resultsLimit,
+        // Advanced filters remove hits after the text search. A fixed 500
+        // would hide matches beyond that window on large libraries, so the
+        // cap only applies to the plain search.
+        limit: (_genreFilter != null ||
+                _yearFilter != null ||
+                _labelFilter != null)
+            ? source.length
+            : _resultsLimit,
         generation: gen,
       );
       if (!mounted || gen != _queryGen) return;
@@ -257,6 +264,7 @@ class _SearchScreenState extends State<SearchScreen> {
           for (final i in found.indices)
             if (i >= 0 && i < source.length) source[i],
         ];
+        final labelById = context.read<LibraryProvider>().labels;
         _results = foundSongs.where((song) {
           if (_genreFilter != null &&
               (song.genre ?? '') != _genreFilter) {
@@ -266,8 +274,7 @@ class _SearchScreenState extends State<SearchScreen> {
               song.addedAt?.year != _yearFilter) {
             return false;
           }
-          if (_labelFilter != null &&
-              context.read<LibraryProvider>().labels[song.id] != _labelFilter) {
+          if (_labelFilter != null && labelById[song.id] != _labelFilter) {
             return false;
           }
           return true;

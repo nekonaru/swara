@@ -485,9 +485,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
     if (ok != true || !mounted) return;
     final lib = context.read<LibraryProvider>();
-    for (final song in songs) {
-      await lib.setLabel(song.id, controller.text.trim());
-    }
+    await lib.setLabels({
+      for (final song in songs) song.id: controller.text.trim(),
+    });
     _exitMultiSelect();
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -635,13 +635,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
           IconButton(
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               icon: const Icon(Icons.play_arrow_outlined),
-              tooltip: V5.sessionHistory,
+              tooltip: V5.markPlayed,
               onPressed: selected.isEmpty
                   ? null
                   : () async {
-                      for (final s in selected) {
-                        await DBHelper.instance.markPlayed(s.id);
-                      }
+                      await DBHelper.instance
+                          .markPlayedBulk([for (final s in selected) s.id]);
                       _exitMultiSelect();
                     }),
           IconButton(

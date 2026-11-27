@@ -32,6 +32,26 @@ Map<String, dynamic> _decodeBackup(String rawJson) {
   return decoded;
 }
 
+// Decode and count a backup entirely in the worker isolate.
+({int songs, int playlists, int lyrics}) _verifyBackupBytes(
+    Uint8List bytes) {
+  final decoded = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+  final version = (decoded['version'] as num?)?.toInt() ?? 0;
+  if (version > kBackupFormatVersion) {
+    return (songs: -1, playlists: -1, lyrics: -1);
+  }
+  final songRows = decoded['songs'] as List? ?? const [];
+  var lyrics = 0;
+  for (final row in songRows) {
+    if (row is Map && row['syncedLyrics'] != null) lyrics++;
+  }
+  return (
+    songs: songRows.length,
+    playlists: (decoded['playlists'] as List? ?? const []).length,
+    lyrics: lyrics,
+  );
+}
+
 // Encode the export payload off the main isolate as well.
 String _encodeBackup(Map<String, dynamic> payload) => jsonEncode(payload);
 
@@ -382,6 +402,13 @@ class BackupService {
       playlists: (decoded['playlists'] as List? ?? const []).length,
       lyrics: lyrics,
     );
+  }
+
+  /// Decode and verify from bytes off the UI isolate. A 32 MB backup used to
+  /// be utf8-decoded on the main thread before compute saw it.
+  static Future<({int songs, int playlists, int lyrics})> verifyBackupBytes(
+      Uint8List bytes) async {
+    return compute(_verifyBackupBytes, bytes);
   }
 
   static Future<BackupImportResult> importLibrary(String rawJson) async {

@@ -12,6 +12,8 @@ import '../providers/library_provider.dart';
 import '../services/tag_write_service.dart';
 import '../services/db_helper.dart';
 import '../services/extra_features_service.dart';
+import '../services/embedded_art_service.dart';
+import '../services/player_service.dart';
 import 'edit_lyrics_screen.dart';
 
 class EditMetadataScreen extends StatefulWidget {
@@ -61,15 +63,21 @@ class _EditMetadataScreenState extends State<EditMetadataScreen> {
       final docs = await getApplicationDocumentsDirectory();
       final dir = Directory('${docs.path}${Platform.pathSeparator}custom_covers');
       if (!await dir.exists()) await dir.create(recursive: true);
-      final file = File('${dir.path}${Platform.pathSeparator}${widget.song.id}.jpg');
+      final ext = p.extension(picked.first.name);
+      final safeExt = ext.isEmpty || ext.length > 5 ? '.jpg' : ext;
+      final file = File('${dir.path}${Platform.pathSeparator}'
+          '${widget.song.id}$safeExt');
       await file.writeAsBytes(bytes);
       await DBHelper.instance.setAlbumArtPath(widget.song.id, file.path);
       widget.song.albumArtPath = file.path;
+      EmbeddedArtService.instance.evict(widget.song.id);
+      if (!mounted) return;
+      await context.read<LibraryProvider>().loadFromDb();
+      PlayerService.instance.rebroadcastState();
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(
-          const SnackBar(content: Text('Cover updated')));
+          ..showSnackBar(SnackBar(content: Text(V5.coverSaved)));
     } catch (_) {}
   }
 

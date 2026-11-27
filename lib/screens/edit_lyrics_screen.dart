@@ -189,6 +189,7 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
     final offset = await DBHelper.instance.getSyncedLyricOffset(widget.song.id);
     await DBHelper.instance.setSyncedLyrics(
         widget.song.id, buffer.toString(), offsetMs: offset);
+    PlayerService.instance.lyricsRevision.value++;
   }
 
   Future<void> _importLrc() async {

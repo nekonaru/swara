@@ -243,7 +243,21 @@ class M3uService {
   // the file system.
   static String buildM3uContent(List<Song> songs, {bool relative = false}) {
     final buf = StringBuffer()..writeln('#EXTM3U');
-    const musicRoot = 'Music';
+    // Relative paths are relative to the common ancestor of the exported
+    // files, not to a hardcoded /Music/ folder that may not exist.
+    String? common;
+    if (relative && songs.isNotEmpty) {
+      String cursor = p.dirname(songs.first.filePath);
+      for (final song in songs.skip(1)) {
+        final folder = p.dirname(song.filePath);
+        while (folder != cursor && !folder.startsWith('$cursor/')) {
+          final parent = p.dirname(cursor);
+          if (parent == cursor) break;
+          cursor = parent;
+        }
+      }
+      common = cursor;
+    }
     for (final song in songs) {
       final seconds = song.durationMs > 0 ? song.durationMs ~/ 1000 : -1;
       // Commas and newlines would break the EXTINF format, so flatten them.
@@ -252,13 +266,11 @@ class M3uService {
           .replaceAll('\r', ' ')
           .replaceAll(',', ' ');
       buf.writeln('#EXTINF:$seconds,$title');
-      if (!relative) {
+      final base = common;
+      if (!relative || base == null) {
         buf.writeln(song.filePath);
       } else {
-        final idx = song.filePath.lastIndexOf('/Music/');
-        buf.writeln(idx >= 0
-            ? song.filePath.substring(idx + 1)
-            : '$musicRoot/${p.basename(song.filePath)}');
+        buf.writeln(p.relative(song.filePath, from: base));
       }
     }
     return buf.toString();

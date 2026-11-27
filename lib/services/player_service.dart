@@ -360,6 +360,8 @@ class PlayerService extends ChangeNotifier {
       await prefs.setString('resume_sleep_end',
           sleepTimerEndTime?.toIso8601String() ?? '');
       await prefs.setInt('resume_sleep_songs', sleepSongsRemaining ?? 0);
+      await prefs.setBool('resume_sleep_finish_song',
+          _finishCurrentSongOnSleep);
     } catch (e) {
       debugPrint('Failed to persist resume state: $e');
     }
@@ -444,7 +446,11 @@ class PlayerService extends ChangeNotifier {
       }
       final sleepEnd = DateTime.tryParse(prefs.getString('resume_sleep_end') ?? '');
       if (sleepEnd != null && sleepEnd.isAfter(DateTime.now())) {
-        setSleepTimer(sleepEnd.difference(DateTime.now()));
+        setSleepTimer(
+          sleepEnd.difference(DateTime.now()),
+          finishCurrentSong:
+              prefs.getBool('resume_sleep_finish_song') ?? false,
+        );
       } else {
         final sleepSongs = prefs.getInt('resume_sleep_songs') ?? 0;
         if (sleepSongs > 0) setSleepTimerBySongs(sleepSongs);

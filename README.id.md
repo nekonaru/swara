@@ -162,8 +162,8 @@
 | **Tempat sampah pustaka** | Penghapusan disimpan lokal dengan pulihkan atau hapus permanen berkonsirmasi |
 | **Pencarian lanjutan** | Saring berdasarkan genre, tahun ditambahkan, dan label, dengan riwayat query tersimpan |
 | **Editor lirik berwaktu** | Tandai baris LRC pada posisi putar saat ini dan pertahankan offset |
-| **Laporan mendengarkan** | Deret harian, distribusi per jam, peta panas mingguan, dan target harian |
-| **Verifikasi cadangan** | Uji kering cadangan sebelum dipakai, plus ekspor M3U dan log diagnostik |
+| **Laporan mendengarkan** | Distribusi pendengaran per jam dan per minggu, serta target harian |
+| **Verifikasi cadangan** | Uji kering cadangan untuk menghitung isinya, plus ekspor M3U dan log diagnostik |
 | **Persetujuan eksplisit** | Tidak ada yang dihapus otomatis: pemindaian dan boot tidak pernah menghapus lagu atau data, dan setiap penghapusan meminta konfirmasi lebih dulu |
 | **Snapshot lokal** | Simpan hingga lima snapshot otomatis pustaka, pulihkan dari Pengaturan, dan dapat penawaran pemulihan saat boot jika pustaka menyusut tajam |
 | **Bagikan audio ke Swara** | Kirim file audio dari aplikasi lain untuk menyalinnya ke pustaka dan memindai ulang otomatis |

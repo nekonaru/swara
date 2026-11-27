@@ -162,8 +162,8 @@
 | **Library trash** | Removals are staged locally with restore or confirmed permanent deletion |
 | **Advanced search** | Filter by genre, added year and label, with saved recent queries |
 | **Timed lyrics editor** | Stamp LRC lines at the current playhead and keep the offset |
-| **Listening reports** | Daily series, hourly distribution, weekday heatmap and a daily goal |
-| **Backup verification** | Dry-run a backup before trusting it, plus M3U export and a diagnostics log |
+| **Listening reports** | Hourly and weekday listening distributions and a daily goal |
+| **Backup verification** | Dry-run a backup to count its entries, plus M3U export and a diagnostics log |
 | **Explicit consent** | Nothing is deleted automatically: scans and startup never remove songs or data, and every removal asks for confirmation first |
 | **Local snapshots** | Keep up to five automatic app-private snapshots, restore one from Settings, and get a recovery offer at boot when the library drops sharply |
 | **Share audio into Swara** | Send audio files from other apps to copy them into your library and rescan automatically |

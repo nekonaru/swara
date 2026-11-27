@@ -756,6 +756,26 @@ class LibraryProvider extends ChangeNotifier {
     await loadFromDb();
   }
 
+  /// Apply many labels with one notification. The bulk action used to call
+  /// setLabel in a loop, which rebuilt the row index once per song.
+  Future<void> setLabels(Map<int, String> values) async {
+    if (values.isEmpty) return;
+    for (final entry in values.entries) {
+      await DBHelper.instance.setSongLabel(entry.key, entry.value);
+    }
+    final next = Map<int, String>.of(labels);
+    for (final entry in values.entries) {
+      if (entry.value.trim().isEmpty) {
+        next.remove(entry.key);
+      } else {
+        next[entry.key] = entry.value.trim();
+      }
+    }
+    labels = next;
+    _songsVersion++;
+    notifyListeners();
+  }
+
   Future<void> setLabel(int songId, String label) async {
     await DBHelper.instance.setSongLabel(songId, label);
     final next = Map<int, String>.of(labels);
