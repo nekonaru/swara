@@ -173,27 +173,52 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Future<void> _showSessionHistory() async {
-    final history = _player.sessionHistory.reversed.toList();
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: ListView.builder(
-          shrinkWrap: true,
-          itemCount: history.length,
-          itemBuilder: (context, i) {
-            final song = history[i];
-            return ListTile(
-              title: Text(song.title),
-              subtitle: Text(song.artist),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await _player.playSongAgain(song);
-              },
-            );
-          },
-        ),
-      ),
+      builder: (ctx) {
+        // Read the live list on every sheet build so a song played while the
+        // sheet is open appears without closing it.
+        final history = _player.sessionHistory.reversed.toList();
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (history.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(V5.historyEmpty),
+                ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: history.length,
+                  itemBuilder: (context, i) {
+                    final song = history[i];
+                    return ListTile(
+                      title: Text(song.title),
+                      subtitle: Text(song.artist),
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        await _player.playSongAgain(song);
+                      },
+                    );
+                  },
+                ),
+              ),
+              if (history.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(V5.clearHistory),
+                  onTap: () {
+                    _player.clearSessionHistory();
+                    Navigator.pop(ctx);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1338,6 +1363,96 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
+  /// A compact action with an icon and a readable label. The old secondary
+  /// row used bare icons only; on a narrow phone the queue button became
+  /// invisible among seven equally sized icon buttons.
+  Widget _labelledControl({
+    required Widget icon,
+    required String label,
+    required VoidCallback onPressed,
+    bool active = false,
+    Widget? subtitle,
+  }) {
+    final color = active
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    return SizedBox(
+      width: 68,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: InkResponse(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconTheme(
+              data: IconThemeData(color: color, size: 22),
+              child: SizedBox(height: 28, child: Center(child: icon)),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: color),
+            ),
+            if (subtitle != null) subtitle,
+          ],
+        ),
+        ),
+      ),
+    );
+  }
+
+  /// Secondary actions that do not need a permanent slot in the control row.
+  Future<void> _showMoreSheet(Song song) async {
+    final l = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.playlist_add),
+              title: Text(l.playerAddToPlaylist),
+              onTap: () {
+                Navigator.pop(ctx);
+                pickPlaylist(ctx, song, context.read<PlaylistProvider>());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.bookmark_border),
+              title: Text(l.playerBookmarks),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openBookmarks(song);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.speed),
+              title: Text(l.playerPlaybackSpeed),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickPlaybackSpeed();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: Text(V5.sessionHistory),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showSessionHistory();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildControls(Song song, bool isFavorite) {
     // Hoisted out of the position-tick StreamBuilder so the theme copy is
     // built once per control-tree rebuild instead of per tick.
@@ -1498,135 +1613,67 @@ class _PlayerScreenState extends State<PlayerScreen>
               _buildRepeatButton(),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                icon: AnimatedSwitcher(
-                  duration: SwaraMotion.of(context, SwaraMotion.feedback),
-                  switchInCurve: SwaraMotion.curveOf(context),
-                  switchOutCurve: SwaraMotion.curveOf(context),
-                  transitionBuilder: (child, animation) => ScaleTransition(
-                    scale: animation,
-                    child: child,
-                  ),
-                  child: Icon(
-                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                    key: ValueKey<bool>(isFavorite),
-                    color: isFavorite
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                    size: 22,
-                  ),
-                ),
-                tooltip: AppLocalizations.of(context)!.playerFavorite,
-                onPressed: () => context.read<LibraryProvider>().toggleFavorite(song, !isFavorite),
-              ),
-              IconButton(
-                icon: Icon(Icons.playlist_add, size: 22, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                tooltip: AppLocalizations.of(context)!.playerAddToPlaylist,
-                onPressed: () => pickPlaylist(context, song, context.read<PlaylistProvider>()),
-              ),
-              IconButton(
-                icon: Icon(Icons.bookmark_border,
-                    size: 22,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
-                tooltip: AppLocalizations.of(context)!.playerBookmarks,
-                onPressed: () => _openBookmarks(song),
-              ),
-              // ListenableBuilder so the "N more songs" label stays updated
-              // whenever sleepSongsRemaining changes (without waiting for another rebuild).
-              // The time based countdown ticks inside _SleepCountdownLabel,
-              // so this screen never rebuilds every second.
-              ListenableBuilder(
-                listenable: _player,
-                builder: (context, _) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.bedtime_outlined,
-                          color: (_player.sleepTimerRemaining != null || _player.sleepSongsRemaining != null)
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        tooltip: AppLocalizations.of(context)!.playerSleepTimer,
-                        onPressed: _pickSleepTimer,
-                      ),
-                      const _SleepCountdownLabel(),
-                    ],
-                  );
-                },
-              ),
-              // Speed and pitch chip. Shows the current speed (for example "1.0x") and
-              // opens the speed/pitch sheet. Disabled while nothing is loaded.
-              ListenableBuilder(
-                listenable: _player,
-                builder: (context, _) {
-                  final hasSong = _player.currentSong != null;
-                  final isAdjusted = _player.playbackSpeed != 1.0 ||
-                      _player.playbackPitch != 1.0;
-                  final color = Theme.of(context).colorScheme.primary;
-                  return ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 48),
-                    child: Center(
-                      child: ActionChip(
-                        avatar: Icon(Icons.speed,
-                            size: 14, color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant),
-                        label: Text(
-                          _player.playbackSpeedLabel,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isAdjusted ? color : Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        // The chip sits in a row of 48 dp icon buttons, so
-                        // give it the same hit height without changing look.
-                        tooltip: AppLocalizations.of(context)!.playerPlaybackSpeed,
-                        onPressed: hasSong ? _pickPlaybackSpeed : null,
+          // Five labelled controls fit a narrow phone. The rest live in More.
+          ListenableBuilder(
+            listenable: _player,
+            builder: (context, _) {
+              final l = AppLocalizations.of(context)!;
+              final sleepActive = _player.sleepTimerRemaining != null ||
+                  _player.sleepSongsRemaining != null;
+              final abActive = _player.hasABRepeat;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _labelledControl(
+                    icon: AnimatedSwitcher(
+                      duration: SwaraMotion.of(context, SwaraMotion.feedback),
+                      switchInCurve: SwaraMotion.curveOf(context),
+                      switchOutCurve: SwaraMotion.curveOf(context),
+                      child: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        key: ValueKey<bool>(isFavorite),
                       ),
                     ),
-                  );
-                },
-              ),
-              Center(
-                child: ActionChip(
-                  avatar: const Icon(Icons.history, size: 14),
-                  label: Text(V5.sessionHistory,
-                      style: const TextStyle(fontSize: 11)),
-                  tooltip: V5.sessionHistory,
-                  onPressed: _showSessionHistory,
-                ),
-              ),
-              // Small A-B repeat button. Active (looping) state uses the
-              // primary color, idle uses grey.
-              ListenableBuilder(
-                listenable: _player,
-                builder: (context, _) {
-                  final abActive = _player.hasABRepeat;
-                  return IconButton(
+                    label: l.playerFavorite,
+                    active: isFavorite,
+                    onPressed: () =>
+                        context.read<LibraryProvider>().toggleFavorite(
+                            song, !isFavorite),
+                  ),
+                  _labelledControl(
+                    icon: const Icon(Icons.bedtime_outlined),
+                    label: l.playerSleepTimer,
+                    active: sleepActive,
+                    subtitle: const _SleepCountdownLabel(),
+                    onPressed: _pickSleepTimer,
+                  ),
+                  _labelledControl(
                     icon: Text(
-                      AppLocalizations.of(context)!.abButton,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: abActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      l.abButton,
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold),
                     ),
-                    tooltip:
-                        AppLocalizations.of(context)!.abTooltip,
+                    label: l.abButton,
+                    active: abActive,
                     onPressed: _showABRepeatDialog,
-                  );
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.queue_music_outlined, size: 22, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                tooltip: AppLocalizations.of(context)!.queueTitle,
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QueueScreen())),
-              ),
-            ],
+                  ),
+                  _labelledControl(
+                    icon: const Icon(Icons.queue_music_outlined),
+                    label: l.queueTitle,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const QueueScreen()),
+                    ),
+                  ),
+                  _labelledControl(
+                    icon: const Icon(Icons.more_horiz),
+                    label: V5.more,
+                    onPressed: () => _showMoreSheet(song),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

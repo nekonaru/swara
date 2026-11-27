@@ -657,7 +657,7 @@ class _SearchScreenState extends State<SearchScreen> {
             hint: Text(V5.advancedFilters),
             underline: const SizedBox.shrink(),
             items: [
-              const DropdownMenuItem<String>(value: null, child: Text('All')),
+              DropdownMenuItem<String>(value: null, child: Text(V5.all)),
               for (final g in genres)
                 DropdownMenuItem<String>(value: g, child: Text(g)),
             ],
@@ -671,7 +671,7 @@ class _SearchScreenState extends State<SearchScreen> {
             hint: Text(V5.advancedFilters),
             underline: const SizedBox.shrink(),
             items: [
-              const DropdownMenuItem<int>(value: null, child: Text('All')),
+              DropdownMenuItem<int>(value: null, child: Text(V5.all)),
               for (final y in years)
                 DropdownMenuItem<int>(value: y, child: Text('$y')),
             ],
@@ -685,7 +685,7 @@ class _SearchScreenState extends State<SearchScreen> {
             hint: Text(V5.label),
             underline: const SizedBox.shrink(),
             items: [
-              const DropdownMenuItem<String>(value: null, child: Text('All')),
+              DropdownMenuItem<String>(value: null, child: Text(V5.all)),
               for (final label in labels)
                 DropdownMenuItem<String>(value: label, child: Text(label)),
             ],

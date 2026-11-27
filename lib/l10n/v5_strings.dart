@@ -92,6 +92,11 @@ class V5 {
   static String get genres => id ? 'Genre' : 'Genres';
   static String get markPlayed => id ? 'Tandai diputar' : 'Mark played';
   static String get coverSaved => id ? 'Sampul disimpan' : 'Cover saved';
+  static String get more => id ? 'Lainnya' : 'More';
+  static String get internalStorage => id ? 'Internal' : 'Internal';
+  static String get sdCard => id ? 'Kartu SD' : 'SD card';
+  static String get historyEmpty =>
+      id ? 'Belum ada lagu diputar sesi ini' : 'No songs played this session';
   static String get backupTooNew => id
       ? 'Cadangan dari versi lebih baru tidak didukung'
       : 'Backup from a newer version is not supported';

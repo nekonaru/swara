@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import '../utils/motion.dart';
 
 /// One empty state for every list in Swara. An empty screen always says what
 /// is missing and offers the next action, instead of showing a bare message.
@@ -26,10 +25,7 @@ class SwaraEmptyState extends StatelessWidget {
     final theme = Theme.of(context);
     return Semantics(
       container: true,
-      child: AnimatedOpacity(
-        opacity: 1,
-        duration: SwaraMotion.of(context, SwaraMotion.small),
-        child: Padding(
+      child: Padding(
           padding: const EdgeInsets.symmetric(
               horizontal: SwaraSpace.lg * 2, vertical: SwaraSpace.lg + SwaraSpace.sm),
           child: Column(
@@ -68,7 +64,6 @@ class SwaraEmptyState extends StatelessWidget {
               ],
             ],
           ),
-        ),
       ),
     );
   }

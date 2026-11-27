@@ -260,6 +260,7 @@ class BackupService {
 
     final allSongs = await DBHelper.instance.getAllSongs();
     final aliasById = await DBHelper.instance.getPathAliases();
+    final labelById = await DBHelper.instance.getSongLabels();
     final songExtras = await DBHelper.instance
         .getBackupSongExtras(allSongs.map((s) => s.id).toList());
     final songsJson = <Map<String, dynamic>>[];
@@ -295,6 +296,7 @@ class BackupService {
         ],
         'isFavorite': song.isFavorite,
         'lastPlayedAt': extras['lastPlayedAt'],
+        'label': labelById[song.id] ?? '',
       });
     }
 
@@ -1089,6 +1091,10 @@ class BackupService {
 
           if (raw['isFavorite'] == true) {
             await DBHelper.instance.setFavorite(localId, true);
+          }
+          final backedLabel = raw['label'] as String?;
+          if (backedLabel != null && backedLabel.isNotEmpty) {
+            await DBHelper.instance.setSongLabel(localId, backedLabel);
           }
           // Recency drives Recently Played and the unplayed smart rules.
           await DBHelper.instance.restoreLastPlayedAt(

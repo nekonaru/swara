@@ -249,6 +249,13 @@ class LibraryScanner {
       'existingById': existingById,
     });
 
+    // A trashed song is intentionally absent from the library. Drop it from
+    // this scan's inserts so it does not reappear while its trash entry lives.
+    final trashedPaths = await DBHelper.instance.getTrashedPaths();
+    if (trashedPaths.isNotEmpty) {
+      scanResult.pendingMaps.removeWhere(
+          (map) => trashedPaths.contains(map['filePath']));
+    }
     final pendingMaps = scanResult.pendingMaps;
     final pendingUpdates = scanResult.pendingUpdates;
     final updateIds = scanResult.updateIds;

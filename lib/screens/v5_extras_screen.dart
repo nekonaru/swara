@@ -92,7 +92,7 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
     final l = AppLocalizations.of(context)!;
     final lib = context.read<LibraryProvider>();
     return Scaffold(
-      appBar: AppBar(title: Text(V5.storageReport)),
+      appBar: AppBar(title: Text(V5.moreTools)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -202,7 +202,7 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
               ),
             if (DiagnosticsService.instance.lines.isNotEmpty) ...[
               ListTile(
-                leading: const Icon(Icons.ios_share),
+                leading: const Icon(Icons.share),
                 title: Text(V5.share),
                 onTap: () async {
                   try {
@@ -248,10 +248,10 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
               items: [
                 DropdownMenuItem<String?>(
                     value: null, child: Text(V5.all)),
-                const DropdownMenuItem<String?>(
-                    value: 'internal', child: Text('Internal')),
-                const DropdownMenuItem<String?>(
-                    value: 'sd', child: Text('SD')),
+                DropdownMenuItem<String?>(
+                    value: 'internal', child: Text(V5.internalStorage)),
+                DropdownMenuItem<String?>(
+                    value: 'sd', child: Text(V5.sdCard)),
               ],
               onChanged: (value) async {
                 setState(() => _volumeFilter = value);

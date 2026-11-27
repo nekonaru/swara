@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.1.2
+
+Patch tata letak player berdasarkan masukan langsung. Tombol antrean terlihat lagi dan semua kontrol sekunder punya label yang bisa dibaca.
+
+## Peningkatan
+
+- **Kontrol player diberi label.** Lima aksi berukuran sama menampilkan ikon dan teks: favorit, timer tidur, A-B, antrean, dan Lainnya.
+- **Tombol antrean kembali terlihat jelas**, tidak lagi tergusur oleh chip tanpa label.
+- **Aksi yang jarang dipakai dipindah ke Lainnya.** Tambah ke playlist, penanda, kecepatan, dan riwayat sesi tetap satu ketukan tanpa memenuhi player.
+- **Bilah pilih banyak kini membungkus** di layar sempit, sehingga sampah dan tutup tetap terjangkau.
+- **Riwayat sesi membuka lembar langsung** dengan keadaan kosong dan aksi Hapus.
+
+## Perbaikan bug
+
+- **Jumlah lagu widget kini menerima 3 sampai 8**, tidak lagi diam-diam menjadi 5.
+- **Lagu di tempat sampah tetap terhapus** setelah pemindaian perangkat, dan label tetap ada setelah pemulihan cadangan.
+- **Telusur Auto menyembunyikan folder yang dikecualikan** pada daftar Belum Diputar dan Genre.
+- **Pencapan lirik berwaktu menolak posisi lagu lain.**
+- **Konfirmasi sampah massal tidak lagi mengulang jumlah lagu.**
+
 ## v5.1.1
 
 Patch audit mendalam: fitur v5 yang ada diperbaiki dan dirampingkan, tanpa fitur baru.

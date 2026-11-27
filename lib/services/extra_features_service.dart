@@ -77,7 +77,7 @@ class WidgetSettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final value = prefs.getInt(_queueKey) ?? 5;
-      return value == 3 || value == 8 ? value : 5;
+      return value.clamp(3, 8);
     } catch (_) {
       return 5;
     }
@@ -86,7 +86,7 @@ class WidgetSettingsService {
   static Future<void> setQueueLength(int length) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_queueKey, length == 3 || length == 8 ? length : 5);
+      await prefs.setInt(_queueKey, length.clamp(3, 8));
     } catch (_) {}
   }
 

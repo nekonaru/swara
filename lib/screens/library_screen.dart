@@ -502,7 +502,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(V5.trash),
-        content: Text(V5.trashConfirm('${songs.length} ${l.librarySelectedCount(songs.length)}')),
+        content: Text(V5.trashConfirm(l.librarySelectedCount(songs.length))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
@@ -531,7 +531,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return Container(
       color: Theme.of(context).colorScheme.surfaceContainerHigh,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Row(
+      child: Wrap(
+        spacing: 2,
+        runSpacing: 0,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(l.librarySelectedCount(selected.length),
               style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -546,7 +549,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ? AppLocalizations.of(context)!.libraryClearSelection
                   : AppLocalizations.of(context)!.librarySelectAll,
               onPressed: () => _toggleSelectAll(visible)),
-          const Spacer(),
           IconButton(
               constraints:
                   const BoxConstraints(minWidth: 48, minHeight: 48),

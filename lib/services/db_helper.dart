@@ -1921,6 +1921,12 @@ class DBHelper {
   }
 
   /// Escape the LIKE wildcards in a user supplied search string.
+  List<String> _normalizedFolders(Set<String>? folders) => (folders ?? const <String>{})
+      .map((e) => e.replaceAll('\\', '/'))
+      .map((e) => e.endsWith('/') ? e.substring(0, e.length - 1) : e)
+      .where((e) => e.isNotEmpty)
+      .toList();
+
   String _escapeLike(String input) {
     return input
         .replaceAll(r'\', r'\\')
@@ -1982,15 +1988,19 @@ class DBHelper {
     String genre, {
     required int limit,
     required int offset,
+    Set<String>? excludedFolders,
   }) async {
     final database = await db;
-    final rows = await database.query(
-      'songs',
-      where: 'genre = ?',
-      whereArgs: [genre],
-      orderBy: 'title COLLATE NOCASE ASC',
-      limit: limit,
-      offset: offset,
+    final where = <String>['genre = ?'];
+    final args = <Object?>[genre];
+    for (final folder in _normalizedFolders(excludedFolders)) {
+      where.add("filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(folder)}/%');
+    }
+    final rows = await database.rawQuery(
+      'SELECT * FROM songs WHERE ${where.join(' AND ')} '
+      'ORDER BY title COLLATE NOCASE ASC LIMIT ? OFFSET ?',
+      [...args, limit, offset],
     );
     return _songsFromRows(rows);
   }
@@ -2023,14 +2033,19 @@ class DBHelper {
   Future<List<Song>> getUnplayedSongs({
     required int limit,
     required int offset,
+    Set<String>? excludedFolders,
   }) async {
     final database = await db;
-    final rows = await database.query(
-      'songs',
-      where: 'lastPlayedAt IS NULL',
-      orderBy: 'title COLLATE NOCASE ASC',
-      limit: limit,
-      offset: offset,
+    final where = <String>['lastPlayedAt IS NULL'];
+    final args = <Object?>[];
+    for (final folder in _normalizedFolders(excludedFolders)) {
+      where.add("filePath NOT LIKE ? ESCAPE '\\'");
+      args.add('${_escapeLike(folder)}/%');
+    }
+    final rows = await database.rawQuery(
+      'SELECT * FROM songs WHERE ${where.join(' AND ')} '
+      'ORDER BY title COLLATE NOCASE ASC LIMIT ? OFFSET ?',
+      [...args, limit, offset],
     );
     return _songsFromRows(rows);
   }
@@ -2561,6 +2576,24 @@ class DBHelper {
   }
 
   // ---------- Library trash (v17) ----------
+
+  /// Paths of songs in the trash. The scanner must not resurrect them on
+  /// the next device scan while their trash entry still exists.
+  Future<Set<String>> getTrashedPaths() async {
+    final database = await db;
+    final rows = await database.query('trash_songs', columns: ['payload']);
+    final out = <String>{};
+    for (final row in rows) {
+      final raw = row['payload'] as String?;
+      if (raw == null) continue;
+      try {
+        final song = (jsonDecode(raw) as Map)['song'] as Map?;
+        final path = song?['filePath'] as String?;
+        if (path != null && path.isNotEmpty) out.add(path);
+      } catch (_) {}
+    }
+    return out;
+  }
 
   Future<List<Map<String, Object?>>> getTrashEntries() async {
     final database = await db;

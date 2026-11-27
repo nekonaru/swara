@@ -157,6 +157,11 @@ class _EditLyricsScreenState extends State<EditLyricsScreen> {
                       '${((working[i].timeMs ~/ 1000) % 60).toString().padLeft(2, '0')}',
                     ),
                     onTap: () {
+                      // Never stamp a line with another song's playhead.
+                      if (PlayerService.instance.currentSong?.id !=
+                          widget.song.id) {
+                        return;
+                      }
                       final raw = PlayerService.instance.positionForWidget;
                       final ms = (raw - savedOffset) < 0 ? 0 : raw - savedOffset;
                       working[i] = LrcLine(timeMs: ms, text: working[i].text);

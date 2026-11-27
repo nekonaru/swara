@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.1.2
+
+Player layout patch based on direct feedback. The queue is visible again and every secondary control has a readable label.
+
+## Improvements
+
+- **Player controls are labelled.** Five evenly sized actions show icon and text: favourite, sleep, A-B, queue, and More.
+- **The queue button is back in plain sight** instead of being squeezed out by unlabelled chips.
+- **Less-used actions moved into More.** Adding to a playlist, bookmarks, speed, and session history are still one tap away without crowding the player.
+- **The multi-select bar wraps** on narrow phones, so trash and close stay reachable.
+- **Session history opens a live sheet** with an empty state and a Clear action.
+
+## Bug fixes
+
+- **The widget queue length now accepts 3 through 8** instead of silently snapping to 5.
+- **Trashed songs stay trashed across a device scan**, and labels survive a backup restore.
+- **Auto browse hides excluded folders** in Unplayed and Genre lists.
+- **Timed lyric stamping refuses another song's playhead.**
+- **Bulk trash confirmation no longer repeats the song count.**
+
 ## v5.1.1
 
 Deep audit patch: existing v5 features are corrected and made lighter, with no new feature.
