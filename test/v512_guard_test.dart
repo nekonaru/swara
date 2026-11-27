@@ -14,6 +14,8 @@ void main() {
     expect(player.contains('Icons.queue_music_outlined'), isTrue);
     expect(player.contains('V5.more'), isTrue);
     expect(player.contains('Future<void> _showMoreSheet('), isTrue);
+    expect(player.contains('LayoutBuilder('), isTrue);
+    expect(player.contains('constraints.maxWidth / 5'), isTrue);
     // The secondary row is no longer a single Row of eight bare icons.
     final controls = player.split('Widget _buildControls(')[1].split('/// Repeat button')[0];
     expect(controls.contains('ListenableBuilder('), isTrue);
@@ -46,6 +48,11 @@ void main() {
     expect(backup.contains("'label': labelById[song.id] ?? ''"), isTrue);
     expect(backup.contains('final labelById = await DBHelper.instance.getSongLabels();'),
         isTrue);
+    expect(backup.contains('final localLabels = await DBHelper.instance.getSongLabels();'),
+        isTrue);
+    expect(backup.contains("(localLabels[localId] ?? '').isEmpty"), isTrue);
+    final history = read('lib/screens/player_screen.dart');
+    expect(history.contains('ListenableBuilder('), isTrue);
   });
 
   test('lyrics stamping and Auto browse respect their scope', () {

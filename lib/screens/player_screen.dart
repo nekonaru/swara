@@ -176,9 +176,11 @@ class _PlayerScreenState extends State<PlayerScreen>
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (ctx) {
-        // Read the live list on every sheet build so a song played while the
-        // sheet is open appears without closing it.
+      builder: (ctx) => ListenableBuilder(
+        listenable: _player,
+        builder: (context, _) {
+        // Rebuild from the live list when playback changes, so a song played
+        // while the sheet is open appears without closing it.
         final history = _player.sessionHistory.reversed.toList();
         return SafeArea(
           child: Column(
@@ -218,7 +220,8 @@ class _PlayerScreenState extends State<PlayerScreen>
             ],
           ),
         );
-      },
+        },
+      ),
     );
   }
 
@@ -1372,12 +1375,13 @@ class _PlayerScreenState extends State<PlayerScreen>
     required VoidCallback onPressed,
     bool active = false,
     Widget? subtitle,
+    double width = 68,
   }) {
     final color = active
         ? Theme.of(context).colorScheme.primary
         : Theme.of(context).colorScheme.onSurfaceVariant;
     return SizedBox(
-      width: 68,
+      width: width,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 48),
         child: InkResponse(
@@ -1420,7 +1424,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               title: Text(l.playerAddToPlaylist),
               onTap: () {
                 Navigator.pop(ctx);
-                pickPlaylist(ctx, song, context.read<PlaylistProvider>());
+                pickPlaylist(context, song, context.read<PlaylistProvider>());
               },
             ),
             ListTile(
@@ -1621,11 +1625,16 @@ class _PlayerScreenState extends State<PlayerScreen>
               final sleepActive = _player.sleepTimerRemaining != null ||
                   _player.sleepSongsRemaining != null;
               final abActive = _player.hasABRepeat;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _labelledControl(
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final width =
+                      (constraints.maxWidth / 5).clamp(48.0, 68.0).toDouble();
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                    _labelledControl(
+                      width: width,
                     icon: AnimatedSwitcher(
                       duration: SwaraMotion.of(context, SwaraMotion.feedback),
                       switchInCurve: SwaraMotion.curveOf(context),
@@ -1641,14 +1650,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                         context.read<LibraryProvider>().toggleFavorite(
                             song, !isFavorite),
                   ),
-                  _labelledControl(
+                    _labelledControl(
+                      width: width,
                     icon: const Icon(Icons.bedtime_outlined),
                     label: l.playerSleepTimer,
                     active: sleepActive,
                     subtitle: const _SleepCountdownLabel(),
                     onPressed: _pickSleepTimer,
                   ),
-                  _labelledControl(
+                    _labelledControl(
+                      width: width,
                     icon: Text(
                       l.abButton,
                       style: const TextStyle(
@@ -1658,7 +1669,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                     active: abActive,
                     onPressed: _showABRepeatDialog,
                   ),
-                  _labelledControl(
+                    _labelledControl(
+                      width: width,
                     icon: const Icon(Icons.queue_music_outlined),
                     label: l.queueTitle,
                     onPressed: () => Navigator.push(
@@ -1666,12 +1678,15 @@ class _PlayerScreenState extends State<PlayerScreen>
                       MaterialPageRoute(builder: (_) => const QueueScreen()),
                     ),
                   ),
-                  _labelledControl(
+                    _labelledControl(
+                      width: width,
                     icon: const Icon(Icons.more_horiz),
                     label: V5.more,
                     onPressed: () => _showMoreSheet(song),
                   ),
-                ],
+                    ],
+                  );
+                },
               );
             },
           ),

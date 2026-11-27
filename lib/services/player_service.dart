@@ -656,7 +656,10 @@ class PlayerService extends ChangeNotifier {
     if (_sessionHistory.length > 100) _sessionHistory.removeAt(0);
   }
 
-  void clearSessionHistory() => _sessionHistory.clear();
+  void clearSessionHistory() {
+    _sessionHistory.clear();
+    notifyListeners();
+  }
 
   /// Replay a song from session history without discarding the current queue.
   Future<void> playSongAgain(Song song) async {

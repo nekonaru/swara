@@ -993,6 +993,9 @@ class BackupService {
     // and bookmarks. Conflict policy is additive and local wins: a customized
     // local value is never overwritten by a restore.
     if (versionNumber >= 3) {
+      // Same policy as the other song fields: a label set on this device
+      // after the backup was made wins over the exported one.
+      final localLabels = await DBHelper.instance.getSongLabels();
       for (final (localId, raw) in resolvedV3Songs) {
         try {
           final localRows = await DBHelper.instance.querySongById(localId);
@@ -1093,7 +1096,9 @@ class BackupService {
             await DBHelper.instance.setFavorite(localId, true);
           }
           final backedLabel = raw['label'] as String?;
-          if (backedLabel != null && backedLabel.isNotEmpty) {
+          if ((localLabels[localId] ?? '').isEmpty &&
+              backedLabel != null &&
+              backedLabel.isNotEmpty) {
             await DBHelper.instance.setSongLabel(localId, backedLabel);
           }
           // Recency drives Recently Played and the unplayed smart rules.

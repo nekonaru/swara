@@ -8,9 +8,9 @@ Patch tata letak player berdasarkan masukan langsung. Tombol antrean terlihat la
 
 - **Kontrol player diberi label.** Lima aksi berukuran sama menampilkan ikon dan teks: favorit, timer tidur, A-B, antrean, dan Lainnya.
 - **Tombol antrean kembali terlihat jelas**, tidak lagi tergusur oleh chip tanpa label.
-- **Aksi yang jarang dipakai dipindah ke Lainnya.** Tambah ke playlist, penanda, kecepatan, dan riwayat sesi tetap satu ketukan tanpa memenuhi player.
+- **Aksi yang jarang dipakai dipindah ke Lainnya.** Tambah ke playlist, penanda, kecepatan, dan riwayat sesi tersedia dari menu itu tanpa memenuhi player.
 - **Bilah pilih banyak kini membungkus** di layar sempit, sehingga sampah dan tutup tetap terjangkau.
-- **Riwayat sesi membuka lembar langsung** dengan keadaan kosong dan aksi Hapus.
+- **Riwayat sesi membuka lembar** yang mengikuti perubahan pemutaran dan menyediakan keadaan kosong serta aksi Hapus.
 
 ## Perbaikan bug
 

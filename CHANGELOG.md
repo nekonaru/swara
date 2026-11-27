@@ -8,9 +8,9 @@ Player layout patch based on direct feedback. The queue is visible again and eve
 
 - **Player controls are labelled.** Five evenly sized actions show icon and text: favourite, sleep, A-B, queue, and More.
 - **The queue button is back in plain sight** instead of being squeezed out by unlabelled chips.
-- **Less-used actions moved into More.** Adding to a playlist, bookmarks, speed, and session history are still one tap away without crowding the player.
+- **Less-used actions moved into More.** Adding to a playlist, bookmarks, speed, and session history are available from that menu without crowding the player.
 - **The multi-select bar wraps** on narrow phones, so trash and close stay reachable.
-- **Session history opens a live sheet** with an empty state and a Clear action.
+- **Session history opens a sheet** that follows playback changes and offers an empty state and a Clear action.
 
 ## Bug fixes
 

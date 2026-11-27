@@ -1920,13 +1920,14 @@ class DBHelper {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  /// Escape the LIKE wildcards in a user supplied search string.
+  /// Normalize excluded folder paths before building LIKE clauses.
   List<String> _normalizedFolders(Set<String>? folders) => (folders ?? const <String>{})
       .map((e) => e.replaceAll('\\', '/'))
       .map((e) => e.endsWith('/') ? e.substring(0, e.length - 1) : e)
       .where((e) => e.isNotEmpty)
       .toList();
 
+  /// Escape the LIKE wildcards in a user supplied search string.
   String _escapeLike(String input) {
     return input
         .replaceAll(r'\', r'\\')
