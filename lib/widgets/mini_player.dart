@@ -103,7 +103,20 @@ class MiniPlayer extends StatelessWidget {
                     final playing =
                         snapshot.data?.playing ?? player.activePlayer.playing;
                     return IconButton(
-                      icon: Icon(playing ? Icons.pause : Icons.play_arrow),
+                      icon: AnimatedSwitcher(
+                        duration: SwaraMotion.of(
+                            context, SwaraMotion.feedback),
+                        switchInCurve: SwaraMotion.curveOf(context),
+                        switchOutCurve: SwaraMotion.curveOf(context),
+                        transitionBuilder: (child, animation) => ScaleTransition(
+                          scale: animation,
+                          child: child,
+                        ),
+                        child: Icon(
+                          playing ? Icons.pause : Icons.play_arrow,
+                          key: ValueKey<bool>(playing),
+                        ),
+                      ),
                       tooltip: AppLocalizations.of(context)!.playerPlayPause,
                       onPressed: () {
                         player.togglePlayPause().catchError((_) {});

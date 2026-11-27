@@ -1,5 +1,21 @@
 # Changelog
 
+## v5.1.0
+
+Rilis desain dan interaksi. Tidak ada fitur baru; layar yang ada menjadi lebih native, jelas, dan tenang.
+
+## Peningkatan
+
+- **Kosakat gerak bersama.** Satu set durasi singkat dan kurva melambat dipakai untuk perubahan ikon dan transisi kecil, dan semua animasi mengikuti pengaturan sistem untuk mengurangi gerak.
+- **Ikon putar, favorit, acakan, dan ulangi kini beranimasi** dengan perubahan skala singkat, bukan berpindah mendadak.
+- **Keadaan kosong bersama.** Tempat sampah, diagnostik, dan daftar lain memakai satu komponen dengan ikon, judul jelas, dan aksi bila perlu.
+- **Token desain.** Nilai spasi dan jari-jari kini ada di satu tempat dan dipakai komponen baru.
+- **Umpan balik konsisten.** Tooltip dan semantics memberi label pada kontrol ikon dari v5, sehingga TalkBack dan pengguna pointer mendapat informasi yang sama.
+
+## Perbaikan bug
+
+- **Back prediktif dan Hero sampul bersama tetap berjalan** saat mikro-interaksi baru aktif.
+
 ## v5.0.0
 
 Rilis fitur besar yang sepenuhnya offline. Kemampuan baru hanya menambah data dan tampilan lokal. Tidak ada yang dihapus tanpa validasi dan konfirmasi eksplisit.

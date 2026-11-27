@@ -1407,8 +1407,18 @@ class _PlayerScreenState extends State<PlayerScreen>
               IconButton(
                 constraints: const BoxConstraints.tightFor(width: 44, height: 44),
                 iconSize: 22,
-                icon: Icon(Icons.shuffle,
-                    color: _player.isShuffle ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant),
+                icon: AnimatedSwitcher(
+                  duration: SwaraMotion.of(context, SwaraMotion.feedback),
+                  switchInCurve: SwaraMotion.curveOf(context),
+                  switchOutCurve: SwaraMotion.curveOf(context),
+                  child: Icon(
+                    Icons.shuffle,
+                    key: ValueKey<bool>(_player.isShuffle),
+                    color: _player.isShuffle
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 tooltip: AppLocalizations.of(context)!.playerShuffle,
                 onPressed: _player.toggleShuffle,
               ),
@@ -1492,10 +1502,22 @@ class _PlayerScreenState extends State<PlayerScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               IconButton(
-                icon: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: isFavorite ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant,
-                  size: 22,
+                icon: AnimatedSwitcher(
+                  duration: SwaraMotion.of(context, SwaraMotion.feedback),
+                  switchInCurve: SwaraMotion.curveOf(context),
+                  switchOutCurve: SwaraMotion.curveOf(context),
+                  transitionBuilder: (child, animation) => ScaleTransition(
+                    scale: animation,
+                    child: child,
+                  ),
+                  child: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    key: ValueKey<bool>(isFavorite),
+                    color: isFavorite
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
                 ),
                 tooltip: AppLocalizations.of(context)!.playerFavorite,
                 onPressed: () => context.read<LibraryProvider>().toggleFavorite(song, !isFavorite),
@@ -1641,9 +1663,15 @@ class _PlayerScreenState extends State<PlayerScreen>
         backgroundColor:
             isActive ? color.withValues(alpha: 0.15) : Colors.transparent,
       ),
-      icon: Icon(
-        mode == SwaraRepeatMode.one ? Icons.repeat_one : Icons.repeat,
-        color: isActive ? color : Theme.of(context).colorScheme.onSurfaceVariant,
+      icon: AnimatedSwitcher(
+        duration: SwaraMotion.of(context, SwaraMotion.feedback),
+        switchInCurve: SwaraMotion.curveOf(context),
+        switchOutCurve: SwaraMotion.curveOf(context),
+        child: Icon(
+          mode == SwaraRepeatMode.one ? Icons.repeat_one : Icons.repeat,
+          key: ValueKey<SwaraRepeatMode>(mode),
+          color: isActive ? color : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

@@ -12,6 +12,7 @@ import '../services/backup_service.dart';
 import '../services/db_helper.dart';
 import '../services/extra_features_service.dart';
 import '../services/m3u_service.dart';
+import '../widgets/swara_empty_state.dart';
 
 /// Extra tools introduced in v5. All offline, all user confirmed.
 class V5ExtrasScreen extends StatefulWidget {
@@ -92,9 +93,9 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
         children: [
           _section(V5.trash, [
             if (_trash.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(V5.trashEmpty),
+              SwaraEmptyState(
+                icon: Icons.delete_outline,
+                title: V5.trashEmpty,
               ),
             for (final entry in _trash)
               ListTile(
@@ -190,8 +191,10 @@ class _V5ExtrasScreenState extends State<V5ExtrasScreen> {
             for (final line in DiagnosticsService.instance.lines)
               ListTile(title: Text(line, style: const TextStyle(fontSize: 12))),
             if (DiagnosticsService.instance.lines.isEmpty)
-              Padding(
-                  padding: const EdgeInsets.all(12), child: Text(V5.diagnosticsEmpty)),
+              SwaraEmptyState(
+                icon: Icons.check_circle_outline,
+                title: V5.diagnosticsEmpty,
+              ),
           ]),
           _section(V5.exportM3u, [
             SwitchListTile(

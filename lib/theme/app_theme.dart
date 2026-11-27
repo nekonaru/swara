@@ -26,6 +26,21 @@ class _SwaraPageTransitions extends PageTransitionsBuilder {
   }
 }
 
+/// Spacing and corner tokens. Screens use these instead of repeating raw
+/// numbers, so density and rounding stay consistent across the app.
+abstract final class SwaraSpace {
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 16;
+  static const double lg = 24;
+}
+
+abstract final class SwaraRadius {
+  static const double card = 16;
+  static const double chip = 12;
+  static const double sheet = 28;
+}
+
 /// The single source of truth for every visual default in Swara.
 ///
 /// Screens used to style their own app bars, cards, dialogs, buttons and

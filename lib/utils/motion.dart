@@ -10,3 +10,19 @@ bool reduceMotion(BuildContext context) =>
 /// "remove animations" setting without duplicating the check.
 Duration motionDuration(BuildContext context, Duration duration) =>
     reduceMotion(context) ? Duration.zero : duration;
+
+/// Shared motion vocabulary. Durations stay short so the UI answers the
+/// finger immediately, and the curve is always decelerating: nothing in a
+/// music player should bounce after the user has already decided.
+abstract final class SwaraMotion {
+  static const Duration feedback = Duration(milliseconds: 120);
+  static const Duration small = Duration(milliseconds: 220);
+  static const Duration page = Duration(milliseconds: 320);
+  static const Curve curve = Curves.easeOutCubic;
+
+  static Duration of(BuildContext context, Duration duration) =>
+      motionDuration(context, duration);
+
+  static Curve curveOf(BuildContext context) =>
+      reduceMotion(context) ? Curves.linear : curve;
+}
