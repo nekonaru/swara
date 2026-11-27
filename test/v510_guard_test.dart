@@ -39,8 +39,8 @@ void main() {
     final mini = read('lib/widgets/mini_player.dart');
     final player = read('lib/screens/player_screen.dart');
     const tag = r"tag: 'swara_art_${song.id}'";
-    expect(mini.contains(tag), isTrue);
-    expect(player.contains(tag), isTrue);
+    expect(tag.allMatches(mini).length, 1);
+    expect(tag.allMatches(player).length, 1);
   });
 
   test('predictive back is enabled natively', () {

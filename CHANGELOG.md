@@ -6,8 +6,8 @@ Design and interaction release. No new feature was added; existing screens feel 
 
 ## Improvements
 
-- **Shared motion vocabulary.** One set of short durations and a decelerating curve drives icon changes and small transitions, and every animation honours the OS reduce-motion setting.
-- **Play, favourite, shuffle and repeat icons now animate** with a brief scale change instead of snapping between states.
+- **Shared motion vocabulary.** One set of short durations and a decelerating curve drives icon changes and small transitions, and these shared animations honour the OS reduce-motion setting.
+- **Play, favourite, shuffle and repeat icons now animate** with a brief scale or fade instead of snapping between states.
 - **Shared empty states.** Trash, diagnostics and other lists use one component with an icon, a clear title and an action where useful.
 - **Design tokens.** Spacing and radius values now live in one place and are used by new UI components.
 - **Consistent feedback.** Tooltips and semantics label the icon controls added in v5, so TalkBack and pointer users get the same information.

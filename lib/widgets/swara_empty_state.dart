@@ -26,7 +26,6 @@ class SwaraEmptyState extends StatelessWidget {
     final theme = Theme.of(context);
     return Semantics(
       container: true,
-      label: title,
       child: AnimatedOpacity(
         opacity: 1,
         duration: SwaraMotion.of(context, SwaraMotion.small),
@@ -58,6 +57,12 @@ class SwaraEmptyState extends StatelessWidget {
                 const SizedBox(height: 16),
                 FilledButton.tonal(
                   onPressed: onAction,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(SwaraRadius.chip),
+                    ),
+                  ),
                   child: Text(actionLabel!),
                 ),
               ],
